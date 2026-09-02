@@ -1,0 +1,591 @@
+import React, { useState } from 'react';
+import {
+  StyleSheet,
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  SafeAreaView,
+  TextInput,
+  Dimensions,
+  ImageBackground,
+  Alert
+} from 'react-native';
+import { MOCK_HAIRSTYLES, MOCK_SALONS, INITIAL_BOOKINGS } from '../services/mockData';
+
+interface HomeScreenProps {
+  navigation: any;
+}
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<string>('Home');
+  const upcomingBooking = INITIAL_BOOKINGS[0];
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* Top App Bar */}
+      <View style={styles.topAppBar}>
+        <TouchableOpacity
+          style={styles.iconBtn}
+          onPress={() => navigation.navigate('AdminDashboard')}
+        >
+          <Text style={styles.topIcon}>☰</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.brandTitle}>StyleLock</Text>
+
+        <TouchableOpacity
+          style={styles.iconBtn}
+          onPress={() => navigation.navigate('BookingHistory')}
+        >
+          <Text style={styles.topIcon}>🔔</Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Greeting & Search Section */}
+        <View style={styles.greetingSection}>
+          <Text style={styles.greetingTitle}>Hello, Sarah</Text>
+          <Text style={styles.greetingSub}>Find your next signature look.</Text>
+
+          <View style={styles.searchBox}>
+            <Text style={styles.searchIcon}>🔍</Text>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search styles, salons, or stylists..."
+              placeholderTextColor="#64748B"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onSubmitEditing={() => navigation.navigate('HairstyleSelect')}
+            />
+          </View>
+        </View>
+
+        {/* Promotional Banner Card */}
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={styles.promoBannerCard}
+          onPress={() => navigation.navigate('HairstyleSelect')}
+        >
+          <ImageBackground
+            source={{
+              uri: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800'
+            }}
+            style={styles.promoBannerImg}
+            imageStyle={{ borderRadius: 20 }}
+          >
+            <View style={styles.promoOverlay}>
+              <Text style={styles.promoTag}>SEASONAL COLLECTION</Text>
+              <Text style={styles.promoTitle}>New Summer Styles</Text>
+              <TouchableOpacity
+                style={styles.exploreBtn}
+                onPress={() => navigation.navigate('CameraUpload')}
+              >
+                <Text style={styles.exploreBtnText}>Explore Now</Text>
+              </TouchableOpacity>
+            </View>
+          </ImageBackground>
+        </TouchableOpacity>
+
+        {/* Quick Actions (3 Cards) */}
+        <View style={styles.quickActionsRow}>
+          {/* Card 1: Try Hairstyle */}
+          <TouchableOpacity
+            style={styles.quickActionCard}
+            onPress={() => navigation.navigate('CameraUpload')}
+          >
+            <View style={styles.quickIconCircle}>
+              <Text style={styles.actionEmoji}>✨</Text>
+            </View>
+            <Text style={styles.quickActionText}>Try Hairstyle</Text>
+          </TouchableOpacity>
+
+          {/* Card 2: Book Salon */}
+          <TouchableOpacity
+            style={styles.quickActionCard}
+            onPress={() => navigation.navigate('SalonList')}
+          >
+            <View style={styles.quickIconCircle}>
+              <Text style={styles.actionEmoji}>🏪</Text>
+            </View>
+            <Text style={styles.quickActionText}>Book Salon</Text>
+          </TouchableOpacity>
+
+          {/* Card 3: AI Consult / Salon Dashboard */}
+          <TouchableOpacity
+            style={styles.quickActionCard}
+            onPress={() => navigation.navigate('SalonDashboard')}
+          >
+            <View style={styles.quickIconCircle}>
+              <Text style={styles.actionEmoji}>🤖</Text>
+            </View>
+            <Text style={styles.quickActionText}>AI Consult</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Upcoming Appointment Section */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Upcoming Appointment</Text>
+        </View>
+
+        <TouchableOpacity
+          style={styles.appointmentCard}
+          activeOpacity={0.9}
+          onPress={() => navigation.navigate('BookingStatus', { bookingId: upcomingBooking.id })}
+        >
+          <Image
+            source={{ uri: upcomingBooking.tryOnImageUrl || 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=300' }}
+            style={styles.appointmentImg}
+          />
+          <View style={styles.appointmentInfo}>
+            <Text style={styles.appointmentTitle}>{upcomingBooking.hairstyleName || 'Balayage & Trim'}</Text>
+            <Text style={styles.appointmentTime}>Tomorrow, 2:00 PM</Text>
+            <Text style={styles.appointmentSub} numberOfLines={1}>
+              {upcomingBooking.salonName} • with Stylist
+            </Text>
+          </View>
+          <View style={styles.arrowCircle}>
+            <Text style={styles.arrowIcon}>➔</Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* Recommended for You (Horizontal Scroll) */}
+        <View style={styles.sectionHeaderBetween}>
+          <Text style={styles.sectionTitle}>Recommended for You</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('HairstyleSelect')}>
+            <Text style={styles.seeAllText}>See All</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+          {MOCK_HAIRSTYLES.slice(0, 6).map((hair, index) => {
+            const matchPercent = 98 - index * 3;
+            return (
+              <TouchableOpacity
+                key={hair.id}
+                style={styles.recommendCard}
+                onPress={() => navigation.navigate('CameraUpload', { preselectedHair: hair })}
+              >
+                <View style={styles.recommendImgWrapper}>
+                  <Image source={{ uri: hair.imageUrl }} style={styles.recommendImg} />
+                  <TouchableOpacity style={styles.favBadge}>
+                    <Text style={styles.favHeart}>🤍</Text>
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.recommendName} numberOfLines={1}>
+                  {hair.name}
+                </Text>
+                <Text style={styles.recommendMatch}>{matchPercent}% Match</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
+        <View style={{ height: 90 }} />
+      </ScrollView>
+
+      {/* Bottom Navigation Bar */}
+      <View style={styles.bottomBar}>
+        {/* Home */}
+        <TouchableOpacity
+          style={[styles.navItem, activeTab === 'Home' && styles.navItemActive]}
+          onPress={() => {
+            setActiveTab('Home');
+          }}
+        >
+          <Text style={[styles.navIcon, activeTab === 'Home' && styles.navIconActive]}>🏠</Text>
+          <Text style={[styles.navLabel, activeTab === 'Home' && styles.navLabelActive]}>Home</Text>
+        </TouchableOpacity>
+
+        {/* Explore */}
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => {
+            setActiveTab('Explore');
+            navigation.navigate('HairstyleSelect');
+          }}
+        >
+          <Text style={styles.navIcon}>🔍</Text>
+          <Text style={styles.navLabel}>Explore</Text>
+        </TouchableOpacity>
+
+        {/* AI Camera */}
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => {
+            setActiveTab('AICamera');
+            navigation.navigate('CameraUpload');
+          }}
+        >
+          <Text style={styles.navIcon}>✨</Text>
+          <Text style={styles.navLabel}>AI Camera</Text>
+        </TouchableOpacity>
+
+        {/* Bookings */}
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => {
+            setActiveTab('Bookings');
+            navigation.navigate('BookingHistory');
+          }}
+        >
+          <Text style={styles.navIcon}>📅</Text>
+          <Text style={styles.navLabel}>Bookings</Text>
+        </TouchableOpacity>
+
+        {/* Profile / Login */}
+        <TouchableOpacity
+          style={styles.navItem}
+          onPress={() => {
+            setActiveTab('Profile');
+            navigation.navigate('Login');
+          }}
+        >
+          <Text style={styles.navIcon}>👤</Text>
+          <Text style={styles.navLabel}>Profile</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F8F9FF'
+  },
+  topAppBar: {
+    height: 60,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    backgroundColor: 'rgba(248, 249, 255, 0.9)',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    zIndex: 10
+  },
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  topIcon: {
+    fontSize: 20,
+    color: '#005C55'
+  },
+  brandTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#005C55',
+    letterSpacing: -0.5
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 16
+  },
+  greetingSection: {
+    marginBottom: 20
+  },
+  greetingTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#121C2A',
+    letterSpacing: -0.5,
+    marginBottom: 2
+  },
+  greetingSub: {
+    fontSize: 15,
+    color: '#3E4947',
+    marginBottom: 16
+  },
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 30,
+    paddingHorizontal: 16,
+    height: 54,
+    borderWidth: 1,
+    borderColor: '#BDC9C6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2
+  },
+  searchIcon: {
+    fontSize: 18,
+    marginRight: 10
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#121C2A'
+  },
+  promoBannerCard: {
+    width: '100%',
+    height: 190,
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: 24,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12
+  },
+  promoBannerImg: {
+    width: '100%',
+    height: '100%'
+  },
+  promoOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(18, 28, 42, 0.55)',
+    padding: 20,
+    justifyContent: 'center'
+  },
+  promoTag: {
+    color: '#9CF2E8',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginBottom: 6
+  },
+  promoTitle: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: '800',
+    marginBottom: 14,
+    maxWidth: '75%',
+    lineHeight: 28
+  },
+  exploreBtn: {
+    backgroundColor: '#005C55',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 25,
+    alignSelf: 'flex-start'
+  },
+  exploreBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700'
+  },
+  quickActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+    gap: 10
+  },
+  quickActionCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#EFF4FF'
+  },
+  quickIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(15, 118, 110, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8
+  },
+  actionEmoji: {
+    fontSize: 22
+  },
+  quickActionText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#121C2A',
+    textAlign: 'center'
+  },
+  sectionHeader: {
+    marginBottom: 12
+  },
+  sectionHeaderBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+    marginTop: 8
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#121C2A'
+  },
+  seeAllText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#005C55'
+  },
+  appointmentCard: {
+    backgroundColor: '#005C55',
+    borderRadius: 20,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+    shadowColor: '#005C55',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 6
+  },
+  appointmentImg: {
+    width: 60,
+    height: 60,
+    borderRadius: 14,
+    marginRight: 14,
+    backgroundColor: '#0F766E'
+  },
+  appointmentInfo: {
+    flex: 1
+  },
+  appointmentTitle: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 2
+  },
+  appointmentTime: {
+    color: '#A3FAEF',
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 2
+  },
+  appointmentSub: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 12
+  },
+  arrowCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  arrowIcon: {
+    color: '#FFFFFF',
+    fontSize: 16
+  },
+  horizontalScroll: {
+    marginBottom: 20,
+    marginHorizontal: -20,
+    paddingHorizontal: 20
+  },
+  recommendCard: {
+    width: 170,
+    marginRight: 14
+  },
+  recommendImgWrapper: {
+    width: 170,
+    height: 220,
+    borderRadius: 20,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#E6EEFF',
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2
+  },
+  recommendImg: {
+    width: '100%',
+    height: '100%'
+  },
+  favBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  favHeart: {
+    fontSize: 14
+  },
+  recommendName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#121C2A'
+  },
+  recommendMatch: {
+    fontSize: 12,
+    color: '#3E4947',
+    marginTop: 2
+  },
+  bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 75,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10
+  },
+  navItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20
+  },
+  navItemActive: {
+    backgroundColor: 'rgba(15, 118, 110, 0.15)'
+  },
+  navIcon: {
+    fontSize: 18,
+    marginBottom: 2
+  },
+  navIconActive: {
+    transform: [{ scale: 1.1 }]
+  },
+  navLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#3E4947'
+  },
+  navLabelActive: {
+    color: '#005C55',
+    fontWeight: '700'
+  }
+});
