@@ -1,359 +1,532 @@
 import React, { useState } from 'react';
 import {
-  StyleSheet,
-  View,
-  Text,
-  TouchableOpacity,
-  SafeAreaView,
-  ScrollView,
-  Image
+    StyleSheet,
+    View,
+    Text,
+    TouchableOpacity,
+    SafeAreaView,
+    ScrollView,
+    Image,
+    Alert
 } from 'react-native';
 import { bookingService } from '../services/bookingService';
 import { Booking, BookingStatus } from '../types';
 
 interface BookingHistoryScreenProps {
-  navigation: any;
+    navigation: any;
 }
 
-const STATUS_FILTERS: { label: string; value: string }[] = [
-  { label: 'Tất cả', value: 'ALL' },
-  { label: 'Chờ duyệt', value: 'PENDING' },
-  { label: 'Đã duyệt', value: 'CONFIRMED' },
-  { label: 'Hoàn thành', value: 'COMPLETED' },
-  { label: 'Đã hủy', value: 'CANCELLED' }
+const TABS = [
+    { label: 'Upcoming', value: 'UPCOMING' },
+    { label: 'Completed', value: 'COMPLETED' },
+    { label: 'Cancelled', value: 'CANCELLED' }
 ];
 
 export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navigation }) => {
-  const [selectedFilter, setSelectedFilter] = useState<string>('ALL');
-  const allBookings = bookingService.getAllBookings();
+    const [activeTab, setActiveTab] = useState<string>('UPCOMING');
+    const allBookings = bookingService.getAllBookings();
 
-  const filteredBookings = allBookings.filter((b) => {
-    if (selectedFilter === 'ALL') return true;
-    return b.status === selectedFilter;
-  });
+    const filteredBookings = allBookings.filter((b) => {
+        if (activeTab === 'UPCOMING') {
+            return b.status === 'PENDING' || b.status === 'CONFIRMED' || b.status === 'IN_SERVICE';
+        }
+        if (activeTab === 'COMPLETED') {
+            return b.status === 'COMPLETED';
+        }
+        if (activeTab === 'CANCELLED') {
+            return b.status === 'CANCELLED';
+        }
+        return true;
+    });
 
-  const getStatusBadge = (status: BookingStatus) => {
-    switch (status) {
-      case 'PENDING':
-        return { label: 'PENDING', color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.2)' };
-      case 'CONFIRMED':
-        return { label: 'CONFIRMED', color: '#10B981', bg: 'rgba(16, 185, 129, 0.2)' };
-      case 'COMPLETED':
-        return { label: 'COMPLETED', color: '#38BDF8', bg: 'rgba(56, 189, 248, 0.2)' };
-      case 'CANCELLED':
-        return { label: 'CANCELLED', color: '#EF4444', bg: 'rgba(239, 68, 68, 0.2)' };
-      default:
-        return { label: status, color: '#94A3B8', bg: '#334155' };
-    }
-  };
+    const getStatusBadge = (status: BookingStatus) => {
+        switch (status) {
+            case 'CONFIRMED':
+                return { label: 'CONFIRMED', color: '#00695C', bg: '#E0F2F1' };
+            case 'PENDING':
+                return { label: 'PENDING', color: '#3E4947', bg: '#D9E3F6' };
+            case 'IN_SERVICE':
+                return { label: 'IN SERVICE', color: '#005C55', bg: '#9CF2E8' };
+            case 'COMPLETED':
+                return { label: 'COMPLETED', color: '#10B981', bg: 'rgba(16, 185, 129, 0.15)' };
+            case 'CANCELLED':
+                return { label: 'CANCELLED', color: '#BA1A1A', bg: '#FFDAD6' };
+            default:
+                return { label: status, color: '#3E4947', bg: '#E6EEFF' };
+        }
+    };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Text style={styles.backBtnText}>◀ Trở về</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Lịch sử Đặt lịch & Booking Profile</Text>
-          <View style={{ width: 60 }} />
-        </View>
+    const handleCancelBooking = (bookingId: string) => {
+        Alert.alert(
+            'Hủy lịch hẹn',
+            'Bạn có chắc chắn muốn hủy lịch hẹn này?',
+            [
+                { text: 'Bỏ qua', style: 'cancel' },
+                {
+                    text: 'Xác nhận Hủy',
+                    style: 'destructive',
+                    onPress: () => {
+                        bookingService.updateBookingStatus(bookingId, 'CANCELLED');
+                        Alert.alert('Đã hủy', 'Lịch hẹn của bạn đã được hủy thành công.');
+                    }
+                }
+            ]
+        );
+    };
 
-        {/* Loyalty Points Banner */}
-        <View style={styles.loyaltyCard}>
-          <View style={styles.loyaltyLeft}>
-            <Text style={styles.loyaltyPoints}>🌟 150 Điểm StyleLock</Text>
-            <Text style={styles.loyaltySub}>Tích 500 điểm nhận ngay 1 lần cắt tóc miễn phí!</Text>
-          </View>
-          <View style={styles.loyaltyBadge}>
-            <Text style={styles.loyaltyBadgeText}>Thành viên Vàng</Text>
-          </View>
-        </View>
+    const handleReschedule = (b: Booking) => {
+        Alert.alert(
+            'Đổi lịch hẹn',
+            `Bạn muốn chọn lại thời gian cho lịch hẹn tại ${b.salonName}?`,
+            [
+                { text: 'Đóng', style: 'cancel' },
+                {
+                    text: 'Chọn giờ mới',
+                    onPress: () =>
+                        navigation.navigate('SalonDetail', {
+                            salon: { id: b.salonId, name: b.salonName, address: b.salonAddress, services: [] }
+                        })
+                }
+            ]
+        );
+    };
 
-        {/* Filter Pills */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.filterScroll}
-          contentContainerStyle={styles.filterContent}
-        >
-          {STATUS_FILTERS.map((f) => (
-            <TouchableOpacity
-              key={f.value}
-              style={[styles.filterPill, selectedFilter === f.value && styles.activePill]}
-              onPress={() => setSelectedFilter(f.value)}
-            >
-              <Text style={[styles.filterText, selectedFilter === f.value && styles.activeFilterText]}>
-                {f.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+    const handleMessage = (b: Booking) => {
+        Alert.alert('Tin nhắn', `Đang kết nối chat trực tiếp với ${b.salonName}...`);
+    };
 
-        {/* Bookings List */}
-        {filteredBookings.length === 0 ? (
-          <View style={styles.emptyBox}>
-            <Text style={styles.emptyIcon}>📅</Text>
-            <Text style={styles.emptyText}>Chưa có lịch hẹn nào ở trạng thái này</Text>
-            <TouchableOpacity
-              style={styles.bookNowBtn}
-              onPress={() => navigation.navigate('HairstyleSelect')}
-            >
-              <Text style={styles.bookNowText}>Thử tóc & Đặt lịch ngay ✂️</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          filteredBookings.map((b) => {
-            const badge = getStatusBadge(b.status);
-            return (
-              <TouchableOpacity
-                key={b.id}
-                style={styles.bookingItem}
-                onPress={() => navigation.navigate('BookingStatus', { bookingId: b.id })}
-              >
-                <View style={styles.itemHeader}>
-                  <Text style={styles.bookingId}>Mã: #{b.id}</Text>
-                  <View style={[styles.statusBadge, { backgroundColor: badge.bg }]}>
-                    <Text style={[styles.statusBadgeText, { color: badge.color }]}>
-                      {badge.label}
-                    </Text>
-                  </View>
+    return (
+        <SafeAreaView style={styles.container}>
+            {/* Top App Bar */}
+            <View style={styles.topAppBar}>
+                <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()}>
+                    <Text style={styles.topIcon}>☰</Text>
+                </TouchableOpacity>
+
+                <Text style={styles.brandTitle}>StyleLock</Text>
+
+                <TouchableOpacity style={styles.iconBtn} onPress={() => Alert.alert('Thông báo', 'Không có thông báo mới')}>
+                    <Text style={styles.topIcon}>🔔</Text>
+                </TouchableOpacity>
+            </View>
+
+            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                {/* Page Title */}
+                <Text style={styles.pageTitle}>My Bookings</Text>
+
+                {/* Filter Tabs */}
+                <View style={styles.tabsRow}>
+                    {TABS.map((tab) => {
+                        const isActive = activeTab === tab.value;
+                        return (
+                            <TouchableOpacity
+                                key={tab.value}
+                                style={[styles.tabChip, isActive && styles.tabChipActive]}
+                                onPress={() => setActiveTab(tab.value)}
+                            >
+                                <Text style={[styles.tabChipText, isActive && styles.tabChipTextActive]}>
+                                    {tab.label}
+                                </Text>
+                            </TouchableOpacity>
+                        );
+                    })}
                 </View>
 
-                <View style={styles.itemBody}>
-                  {b.tryOnImageUrl && (
-                    <Image source={{ uri: b.tryOnImageUrl }} style={styles.itemThumb} />
-                  )}
-                  <View style={styles.itemInfo}>
-                    <Text style={styles.salonName} numberOfLines={1}>
-                      {b.salonName}
-                    </Text>
-                    {b.hairstyleName && (
-                      <Text style={styles.hairName}>✂️ Kiểu tóc: {b.hairstyleName}</Text>
-                    )}
-                    <Text style={styles.serviceName}>💇 Service: {b.serviceName || 'Cắt tóc'}</Text>
-                    <Text style={styles.dateTime}>
-                      🕒 {b.timeSlot} - Ngày {b.date}
-                    </Text>
-                  </View>
-                </View>
+                {/* Bookings List */}
+                {filteredBookings.length === 0 ? (
+                    <View style={styles.emptyCard}>
+                        <Text style={styles.emptyIcon}>📅</Text>
+                        <Text style={styles.emptyTitle}>Chưa có lịch hẹn nào</Text>
+                        <Text style={styles.emptySub}>Khám phá các kiểu tóc mới và đặt lịch giữ chỗ ngay hôm nay!</Text>
+                        <TouchableOpacity
+                            style={styles.exploreBtn}
+                            onPress={() => navigation.navigate('HairstyleSelect')}
+                        >
+                            <Text style={styles.exploreBtnText}>Khám phá kiểu tóc ➔</Text>
+                        </TouchableOpacity>
+                    </View>
+                ) : (
+                    <View style={styles.bookingsList}>
+                        {filteredBookings.map((b) => {
+                            const badge = getStatusBadge(b.status);
+                            const cardImage =
+                                b.tryOnImageUrl ||
+                                'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400';
 
-                <View style={styles.itemFooter}>
-                  <Text style={styles.createdDate}>Tạo lúc: {b.createdAt}</Text>
-                  {b.totalPrice && (
-                    <Text style={styles.totalPrice}>
-                      {b.totalPrice.toLocaleString('vi-VN')} đ
-                    </Text>
-                  )}
-                </View>
-              </TouchableOpacity>
-            );
-          })
-        )}
-      </ScrollView>
-    </SafeAreaView>
-  );
+                            return (
+                                <View key={b.id} style={styles.bookingCard}>
+                                    {/* Top Part: Image & Info */}
+                                    <TouchableOpacity
+                                        style={styles.cardHeader}
+                                        activeOpacity={0.9}
+                                        onPress={() => navigation.navigate('BookingStatus', { bookingId: b.id })}
+                                    >
+                                        <Image source={{ uri: cardImage }} style={styles.salonImg} />
+
+                                        <View style={styles.cardDetails}>
+                                            <View style={styles.titleBadgeRow}>
+                                                <Text style={styles.salonName} numberOfLines={1}>
+                                                    {b.salonName}
+                                                </Text>
+                                                <View style={[styles.statusBadge, { backgroundColor: badge.bg }]}>
+                                                    <Text style={[styles.statusBadgeText, { color: badge.color }]}>
+                                                        {badge.label}
+                                                    </Text>
+                                                </View>
+                                            </View>
+
+                                            <Text style={styles.serviceDesc} numberOfLines={1}>
+                                                {b.serviceName || b.hairstyleName || 'Cắt tóc & Styling'}
+                                            </Text>
+
+                                            <View style={styles.metaRow}>
+                                                <Text style={styles.metaIcon}>📅</Text>
+                                                <Text style={styles.metaText}>{b.date}</Text>
+                                            </View>
+
+                                            <View style={styles.metaRow}>
+                                                <Text style={styles.metaIcon}>🕒</Text>
+                                                <Text style={styles.metaText}>{b.timeSlot}</Text>
+                                            </View>
+                                        </View>
+                                    </TouchableOpacity>
+
+                                    {/* Bottom Actions Row */}
+                                    <View style={styles.cardActions}>
+                                        {/* Show Cancel Button for Pending bookings */}
+                                        {b.status === 'PENDING' && (
+                                            <TouchableOpacity
+                                                style={styles.cancelBtn}
+                                                onPress={() => handleCancelBooking(b.id)}
+                                            >
+                                                <Text style={styles.cancelBtnIcon}>✕</Text>
+                                            </TouchableOpacity>
+                                        )}
+
+                                        <TouchableOpacity
+                                            style={styles.rescheduleBtn}
+                                            onPress={() => handleReschedule(b)}
+                                        >
+                                            <Text style={styles.rescheduleText}>Reschedule</Text>
+                                        </TouchableOpacity>
+
+                                        <TouchableOpacity
+                                            style={styles.messageBtn}
+                                            onPress={() => handleMessage(b)}
+                                        >
+                                            <Text style={styles.messageText}>Message</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            );
+                        })}
+                    </View>
+                )}
+
+                <View style={{ height: 100 }} />
+            </ScrollView>
+
+            {/* Bottom Navigation Bar */}
+            <View style={styles.bottomBar}>
+                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Home')}>
+                    <Text style={styles.navIcon}>🏠</Text>
+                    <Text style={styles.navLabel}>Home</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('HairstyleSelect')}>
+                    <Text style={styles.navIcon}>🔍</Text>
+                    <Text style={styles.navLabel}>Explore</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CameraUpload')}>
+                    <Text style={styles.navIcon}>✨</Text>
+                    <Text style={styles.navLabel}>AI Camera</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={[styles.navItem, styles.navItemActive]}>
+                    <Text style={[styles.navIcon, styles.navIconActive]}>📅</Text>
+                    <Text style={[styles.navLabel, styles.navLabelActive]}>Bookings</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Profile')}>
+                    <Text style={styles.navIcon}>👤</Text>
+                    <Text style={styles.navLabel}>Profile</Text>
+                </TouchableOpacity>
+            </View>
+        </SafeAreaView>
+    );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0F172A'
-  },
-  scrollContent: {
-    padding: 16
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 14
-  },
-  backBtn: {
-    paddingVertical: 4
-  },
-  backBtnText: {
-    color: '#38BDF8',
-    fontSize: 13,
-    fontWeight: '600'
-  },
-  headerTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#F8FAFC'
-  },
-  loyaltyCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#1E293B',
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#F59E0B'
-  },
-  loyaltyLeft: {
-    flex: 1
-  },
-  loyaltyPoints: {
-    color: '#FBBF24',
-    fontSize: 15,
-    fontWeight: '800',
-    marginBottom: 2
-  },
-  loyaltySub: {
-    color: '#94A3B8',
-    fontSize: 11
-  },
-  loyaltyBadge: {
-    backgroundColor: 'rgba(245, 158, 11, 0.2)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10
-  },
-  loyaltyBadgeText: {
-    color: '#F59E0B',
-    fontSize: 11,
-    fontWeight: '700'
-  },
-  filterScroll: {
-    marginBottom: 16,
-    maxHeight: 40
-  },
-  filterContent: {
-    gap: 8
-  },
-  filterPill: {
-    backgroundColor: '#1E293B',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#334155'
-  },
-  activePill: {
-    backgroundColor: '#0EA5E9',
-    borderColor: '#38BDF8'
-  },
-  filterText: {
-    color: '#94A3B8',
-    fontSize: 12,
-    fontWeight: '600'
-  },
-  activeFilterText: {
-    color: '#FFFFFF',
-    fontWeight: '700'
-  },
-  emptyBox: {
-    alignItems: 'center',
-    backgroundColor: '#1E293B',
-    borderRadius: 18,
-    padding: 30,
-    marginTop: 20,
-    borderWidth: 1,
-    borderColor: '#334155'
-  },
-  emptyIcon: {
-    fontSize: 40,
-    marginBottom: 10
-  },
-  emptyText: {
-    color: '#94A3B8',
-    fontSize: 14,
-    marginBottom: 16,
-    textAlign: 'center'
-  },
-  bookNowBtn: {
-    backgroundColor: '#0EA5E9',
-    borderRadius: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 12
-  },
-  bookNowText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700'
-  },
-  bookingItem: {
-    backgroundColor: '#1E293B',
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: '#334155'
-  },
-  itemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10
-  },
-  bookingId: {
-    color: '#94A3B8',
-    fontSize: 12,
-    fontWeight: '700'
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6
-  },
-  statusBadgeText: {
-    fontSize: 10,
-    fontWeight: '800'
-  },
-  itemBody: {
-    flexDirection: 'row',
-    marginBottom: 10
-  },
-  itemThumb: {
-    width: 60,
-    height: 60,
-    borderRadius: 10,
-    marginRight: 12,
-    backgroundColor: '#334155'
-  },
-  itemInfo: {
-    flex: 1,
-    justifyContent: 'center'
-  },
-  salonName: {
-    color: '#F8FAFC',
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 2
-  },
-  hairName: {
-    color: '#38BDF8',
-    fontSize: 12,
-    fontWeight: '600'
-  },
-  serviceName: {
-    color: '#CBD5E1',
-    fontSize: 11
-  },
-  dateTime: {
-    color: '#FBBF24',
-    fontSize: 11,
-    fontWeight: '600',
-    marginTop: 2
-  },
-  itemFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#334155',
-    paddingTop: 8
-  },
-  createdDate: {
-    color: '#64748B',
-    fontSize: 10
-  },
-  totalPrice: {
-    color: '#38BDF8',
-    fontSize: 14,
-    fontWeight: '800'
-  }
+    container: {
+        flex: 1,
+        backgroundColor: '#FAFAFA'
+    },
+    topAppBar: {
+        height: 60,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        backgroundColor: 'rgba(250, 250, 250, 0.95)',
+        borderBottomWidth: 1,
+        borderBottomColor: '#E6EEFF',
+        zIndex: 10
+    },
+    iconBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    topIcon: {
+        fontSize: 20,
+        color: '#005C55'
+    },
+    brandTitle: {
+        fontSize: 22,
+        fontWeight: '800',
+        color: '#005C55',
+        letterSpacing: -0.5
+    },
+    scrollContent: {
+        paddingHorizontal: 20,
+        paddingTop: 16
+    },
+    pageTitle: {
+        fontSize: 28,
+        fontWeight: '700',
+        color: '#121C2A',
+        marginBottom: 16
+    },
+    tabsRow: {
+        flexDirection: 'row',
+        gap: 10,
+        marginBottom: 20
+    },
+    tabChip: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: '#BDC9C6',
+        backgroundColor: '#FFFFFF'
+    },
+    tabChipActive: {
+        backgroundColor: '#005C55',
+        borderColor: '#005C55'
+    },
+    tabChipText: {
+        fontSize: 13,
+        fontWeight: '500',
+        color: '#3E4947'
+    },
+    tabChipTextActive: {
+        color: '#FFFFFF',
+        fontWeight: '700'
+    },
+    bookingsList: {
+        gap: 16
+    },
+    bookingCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 24,
+        borderWidth: 1,
+        borderColor: '#F3F4F6',
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.04,
+        shadowRadius: 16,
+        elevation: 3
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        padding: 16,
+        gap: 14
+    },
+    salonImg: {
+        width: 80,
+        height: 80,
+        borderRadius: 14,
+        backgroundColor: '#E6EEFF'
+    },
+    cardDetails: {
+        flex: 1
+    },
+    titleBadgeRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 4
+    },
+    salonName: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#121C2A',
+        flex: 1,
+        marginRight: 6
+    },
+    statusBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 12
+    },
+    statusBadgeText: {
+        fontSize: 10,
+        fontWeight: '800',
+        letterSpacing: 0.5
+    },
+    serviceDesc: {
+        fontSize: 13,
+        color: '#3E4947',
+        marginBottom: 8
+    },
+    metaRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 2
+    },
+    metaIcon: {
+        fontSize: 12
+    },
+    metaText: {
+        fontSize: 12,
+        color: '#3E4947'
+    },
+    cardActions: {
+        flexDirection: 'row',
+        borderTopWidth: 1,
+        borderTopColor: '#F3F4F6',
+        padding: 12,
+        gap: 10
+    },
+    cancelBtn: {
+        width: 52,
+        height: 52,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#BDC9C6',
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF'
+    },
+    cancelBtnIcon: {
+        fontSize: 16,
+        color: '#BA1A1A',
+        fontWeight: '700'
+    },
+    rescheduleBtn: {
+        flex: 1,
+        height: 52,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#BDC9C6',
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF'
+    },
+    rescheduleText: {
+        color: '#3E4947',
+        fontSize: 14,
+        fontWeight: '600'
+    },
+    messageBtn: {
+        flex: 1,
+        height: 52,
+        borderRadius: 12,
+        backgroundColor: '#005C55',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    messageText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '600'
+    },
+    emptyCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 24,
+        padding: 32,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#F3F4F6',
+        marginTop: 20
+    },
+    emptyIcon: {
+        fontSize: 48,
+        marginBottom: 12
+    },
+    emptyTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#121C2A',
+        marginBottom: 6
+    },
+    emptySub: {
+        fontSize: 13,
+        color: '#3E4947',
+        textAlign: 'center',
+        lineHeight: 18,
+        marginBottom: 16
+    },
+    exploreBtn: {
+        backgroundColor: '#005C55',
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderRadius: 12
+    },
+    exploreBtnText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '700'
+    },
+    bottomBar: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 75,
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        alignItems: 'center',
+        borderTopWidth: 1,
+        borderTopColor: '#E2E8F0',
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10
+    },
+    navItem: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 20
+    },
+    navItemActive: {
+        backgroundColor: 'rgba(15, 118, 110, 0.15)'
+    },
+    navIcon: {
+        fontSize: 18,
+        marginBottom: 2
+    },
+    navIconActive: {
+        transform: [{ scale: 1.1 }]
+    },
+    navLabel: {
+        fontSize: 11,
+        fontWeight: '500',
+        color: '#3E4947'
+    },
+    navLabelActive: {
+        color: '#005C55',
+        fontWeight: '700'
+    }
 });

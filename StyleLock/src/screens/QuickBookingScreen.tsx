@@ -8,7 +8,8 @@ import {
   SafeAreaView,
   ScrollView,
   Image,
-  Alert
+  Alert,
+  Dimensions
 } from 'react-native';
 import { bookingService } from '../services/bookingService';
 import { Salon, ServiceItem, Hairstyle } from '../types';
@@ -18,153 +19,415 @@ interface QuickBookingScreenProps {
   route: any;
 }
 
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+const SERVICES = ['Haircut & Style', 'Coloring', 'Balayage', 'AI Consultation'];
+
+const STYLISTS = [
+  {
+    id: 'st-elena',
+    name: 'Elena',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200'
+  },
+  {
+    id: 'st-marcus',
+    name: 'Marcus',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200'
+  },
+  {
+    id: 'st-sarah',
+    name: 'Sarah',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200'
+  }
+];
+
+const TIME_SLOTS_DISPLAY = [
+  { label: '09:00 AM', value: '09:00', disabled: false },
+  { label: '10:30 AM', value: '10:30', disabled: false },
+  { label: '01:00 PM', value: '13:00', disabled: false },
+  { label: '02:30 PM', value: '14:30', disabled: true },
+  { label: '04:00 PM', value: '16:00', disabled: false }
+];
+
+// Build current month calendar
+function buildCalendarDays(year: number, month: number) {
+  const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  // Fill leading empty slots with prev month days
+  const prevMonthDays = new Date(year, month, 0).getDate();
+  const days: { day: number; currentMonth: boolean }[] = [];
+
+  for (let i = firstDay - 1; i >= 0; i--) {
+    days.push({ day: prevMonthDays - i, currentMonth: false });
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    days.push({ day: d, currentMonth: true });
+  }
+  return days;
+}
+
+const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
 export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigation, route }) => {
   const salon: Salon = route.params.salon;
-  const selectedService: ServiceItem = route.params.selectedService;
-  const selectedDate: string = route.params.selectedDate;
-  const selectedTimeSlot: string = route.params.selectedTimeSlot;
+  const selectedServiceParam: ServiceItem = route.params.selectedService;
+  const selectedDateParam: string = route.params.selectedDate;
+  const selectedTimeSlotParam: string = route.params.selectedTimeSlot;
   const selectedHairstyle: Hairstyle | undefined = route.params?.selectedHairstyle;
   const userPhotoUri: string | undefined = route.params?.userPhotoUri;
 
+  // Service selection
+  const [activeService, setActiveService] = useState<string>(
+    selectedServiceParam?.name || SERVICES[0]
+  );
+
+  // Stylist selection
+  const [activeStylistId, setActiveStylistId] = useState<string>('st-elena');
+
+  // Calendar state
+  const today = new Date();
+  const [calYear, setCalYear] = useState<number>(today.getFullYear());
+  const [calMonth, setCalMonth] = useState<number>(today.getMonth());
+  const [selectedDay, setSelectedDay] = useState<number>(today.getDate());
+
+  // Time slot
+  const [selectedTime, setSelectedTime] = useState<string>('10:30');
+
+  // Contact
   const [customerName, setCustomerName] = useState<string>('Nguyễn Văn Minh');
   const [customerPhone, setCustomerPhone] = useState<string>('0988123456');
+  const [isConfirming, setIsConfirming] = useState<boolean>(false);
+  const [confirmed, setConfirmed] = useState<boolean>(false);
+
+  const calDays = buildCalendarDays(calYear, calMonth);
+  const activeStylist = STYLISTS.find((s) => s.id === activeStylistId) || STYLISTS[0];
+
+  const formattedDate = `${MONTH_NAMES[calMonth].slice(0, 3)} ${selectedDay}`;
+  const formattedTime = TIME_SLOTS_DISPLAY.find((t) => t.value === selectedTime)?.label || selectedTime;
+
+  const handlePrevMonth = () => {
+    if (calMonth === 0) {
+      setCalMonth(11);
+      setCalYear(calYear - 1);
+    } else {
+      setCalMonth(calMonth - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (calMonth === 11) {
+      setCalMonth(0);
+      setCalYear(calYear + 1);
+    } else {
+      setCalMonth(calMonth + 1);
+    }
+  };
+
+  const buildBookingDate = () => {
+    const mm = String(calMonth + 1).padStart(2, '0');
+    const dd = String(selectedDay).padStart(2, '0');
+    return `${calYear}-${mm}-${dd}`;
+  };
 
   const handleConfirmBooking = () => {
     if (!customerName.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng nhập tên người đặt!');
+      Alert.alert('Thiếu thông tin', 'Vui lòng nhập tên người đặt!');
+      return;
+    }
+    if (customerPhone.trim().length < 9) {
+      Alert.alert('Thiếu thông tin', 'Vui lòng nhập số điện thoại hợp lệ!');
       return;
     }
 
-    if (!customerPhone.trim() || customerPhone.length < 9) {
-      Alert.alert('Lỗi', 'Vui lòng nhập số điện thoại hợp lệ để Salon liên hệ!');
-      return;
-    }
+    setIsConfirming(true);
 
-    // Create Booking in Service
-    const createdBooking = bookingService.createBooking({
-      customerName: customerName.trim(),
-      customerPhone: customerPhone.trim(),
-      salonId: salon.id,
-      salonName: salon.name,
-      salonAddress: salon.address,
-      hairstyleId: selectedHairstyle?.id,
-      hairstyleName: selectedHairstyle?.name,
-      tryOnImageUrl: userPhotoUri || selectedHairstyle?.imageUrl,
-      serviceId: selectedService.id,
-      serviceName: selectedService.name,
-      date: selectedDate,
-      timeSlot: selectedTimeSlot,
-      totalPrice: selectedService.price
-    });
+    setTimeout(() => {
+      const createdBooking = bookingService.createBooking({
+        customerName: customerName.trim(),
+        customerPhone: customerPhone.trim(),
+        salonId: salon.id,
+        salonName: salon.name,
+        salonAddress: salon.address,
+        hairstyleId: selectedHairstyle?.id,
+        hairstyleName: selectedHairstyle?.name,
+        tryOnImageUrl: userPhotoUri || selectedHairstyle?.imageUrl,
+        serviceId: selectedServiceParam?.id || 'srv-1',
+        serviceName: activeService,
+        date: buildBookingDate(),
+        timeSlot: selectedTime,
+        totalPrice: selectedServiceParam?.price || 120000
+      });
 
-    // Navigate to status screen with new booking
-    navigation.replace('BookingStatus', {
-      bookingId: createdBooking.id
-    });
+      setIsConfirming(false);
+      setConfirmed(true);
+
+      setTimeout(() => {
+        navigation.replace('BookingStatus', { bookingId: createdBooking.id });
+      }, 1200);
+    }, 1000);
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Text style={styles.backBtnText}>◀ Chọn lại giờ</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Xác nhận Đặt lịch</Text>
-          <View style={{ width: 60 }} />
+      {/* Fixed Top App Bar */}
+      <View style={styles.topAppBar}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Text style={styles.backIcon}>◀</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Booking</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      {/* Success Toast */}
+      {confirmed && (
+        <View style={styles.successToast}>
+          <Text style={styles.toastIcon}>✅</Text>
+          <Text style={styles.toastText}>Booking Confirmed!</Text>
+        </View>
+      )}
+
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ─── Step 1: Select Service ─── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Select Service</Text>
+          <View style={styles.serviceChipsWrap}>
+            {SERVICES.map((svc) => {
+              const isActive = activeService === svc;
+              return (
+                <TouchableOpacity
+                  key={svc}
+                  style={[styles.serviceChip, isActive && styles.serviceChipActive]}
+                  onPress={() => setActiveService(svc)}
+                >
+                  <Text style={[styles.serviceChipText, isActive && styles.serviceChipTextActive]}>
+                    {svc}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
 
-        {/* SUMMARY CARD */}
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>📋 Thông tin phiếu đặt lịch</Text>
+        {/* ─── Step 2: Choose Stylist ─── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Choose Stylist</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.stylistScroll}>
+            {STYLISTS.map((st) => {
+              const isActive = activeStylistId === st.id;
+              return (
+                <TouchableOpacity
+                  key={st.id}
+                  style={styles.stylistItem}
+                  onPress={() => setActiveStylistId(st.id)}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.stylistAvatarWrap, isActive && styles.stylistAvatarActive]}>
+                    <Image source={{ uri: st.avatar }} style={styles.stylistAvatar} />
+                    {isActive && (
+                      <View style={styles.checkBadge}>
+                        <Text style={styles.checkBadgeIcon}>✓</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={[styles.stylistName, isActive && styles.stylistNameActive]}>
+                    {st.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
 
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Salon:</Text>
-            <Text style={styles.summaryValBold}>{salon.name}</Text>
-          </View>
-          <Text style={styles.summaryAddress}>📍 {salon.address}</Text>
-
-          <View style={styles.divider} />
-
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Dịch vụ:</Text>
-            <Text style={styles.summaryVal}>{selectedService.name}</Text>
-          </View>
-
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Thời gian:</Text>
-            <Text style={styles.summaryHighlight}>
-              🕒 {selectedTimeSlot} - {selectedDate}
-            </Text>
-          </View>
-
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Tạm tính thanh toán:</Text>
-            <Text style={styles.summaryPrice}>
-              {selectedService.price.toLocaleString('vi-VN')} đ
-            </Text>
-          </View>
+            {/* Anyone option */}
+            <TouchableOpacity
+              style={styles.stylistItem}
+              onPress={() => setActiveStylistId('anyone')}
+              activeOpacity={0.8}
+            >
+              <View style={[
+                styles.stylistAvatarWrap,
+                styles.anyoneAvatarWrap,
+                activeStylistId === 'anyone' && styles.stylistAvatarActive
+              ]}>
+                <Text style={styles.anyoneIcon}>🔍</Text>
+              </View>
+              <Text style={[
+                styles.stylistName,
+                activeStylistId === 'anyone' && styles.stylistNameActive
+              ]}>
+                Anyone
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
 
-        {/* HAIRSTYLE TRY-ON ATTACHMENT CARD */}
+        {/* ─── Step 3: Date & Time ─── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Date & Time</Text>
+
+          {/* Calendar Widget */}
+          <View style={styles.calendarCard}>
+            {/* Month Navigation Header */}
+            <View style={styles.calendarHeader}>
+              <TouchableOpacity onPress={handlePrevMonth} style={styles.calNavBtn}>
+                <Text style={styles.calNavIcon}>‹</Text>
+              </TouchableOpacity>
+              <Text style={styles.calMonthTitle}>
+                {MONTH_NAMES[calMonth]} {calYear}
+              </Text>
+              <TouchableOpacity onPress={handleNextMonth} style={styles.calNavBtn}>
+                <Text style={styles.calNavIcon}>›</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Day Labels */}
+            <View style={styles.calDayLabels}>
+              {DAY_LABELS.map((d, idx) => (
+                <Text key={idx} style={styles.calDayLabel}>{d}</Text>
+              ))}
+            </View>
+
+            {/* Calendar Days Grid */}
+            <View style={styles.calGrid}>
+              {calDays.map((item, idx) => {
+                const isSelected = item.currentMonth && item.day === selectedDay;
+                return (
+                  <TouchableOpacity
+                    key={idx}
+                    style={[
+                      styles.calDay,
+                      isSelected && styles.calDaySelected,
+                      !item.currentMonth && styles.calDayOtherMonth
+                    ]}
+                    onPress={() => item.currentMonth && setSelectedDay(item.day)}
+                    disabled={!item.currentMonth}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[
+                      styles.calDayText,
+                      isSelected && styles.calDayTextSelected,
+                      !item.currentMonth && styles.calDayTextOther
+                    ]}>
+                      {item.day}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Time Slots */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.timeSlotsScroll}
+            contentContainerStyle={styles.timeSlotsContent}
+          >
+            {TIME_SLOTS_DISPLAY.map((slot) => {
+              const isActive = selectedTime === slot.value;
+              return (
+                <TouchableOpacity
+                  key={slot.value}
+                  style={[
+                    styles.timeSlot,
+                    isActive && styles.timeSlotActive,
+                    slot.disabled && styles.timeSlotDisabled
+                  ]}
+                  onPress={() => !slot.disabled && setSelectedTime(slot.value)}
+                  disabled={slot.disabled}
+                >
+                  <Text style={[
+                    styles.timeSlotText,
+                    isActive && styles.timeSlotTextActive,
+                    slot.disabled && styles.timeSlotTextDisabled
+                  ]}>
+                    {slot.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        {/* ─── Hairstyle Attachment ─── */}
         {selectedHairstyle && (
-          <View style={styles.tryOnAttachmentCard}>
-            <Text style={styles.attachmentTitle}>✂️ Mẫu tóc thử kèm theo:</Text>
-            <View style={styles.attachmentRow}>
+          <View style={styles.section}>
+            <View style={styles.tryOnCard}>
               <Image
                 source={{ uri: userPhotoUri || selectedHairstyle.imageUrl }}
-                style={styles.attachmentImg}
+                style={styles.tryOnImg}
               />
-              <View style={styles.attachmentInfo}>
-                <Text style={styles.attachmentHairName}>{selectedHairstyle.name}</Text>
-                <Text style={styles.attachmentSub}>
-                  Salon sẽ xem ảnh ghép try-on này để tư vấn & cắt đúng mong muốn của bạn.
-                </Text>
+              <View style={styles.tryOnInfo}>
+                <Text style={styles.tryOnLabel}>ATTACHED HAIRSTYLE</Text>
+                <Text style={styles.tryOnName}>{selectedHairstyle.name}</Text>
+                <Text style={styles.tryOnSub}>Salon sẽ xem ảnh thử tóc này</Text>
               </View>
             </View>
           </View>
         )}
 
-        {/* CUSTOMER CONTACT FORM */}
-        <View style={styles.formCard}>
-          <Text style={styles.formTitle}>👤 Thông tin liên hệ của bạn</Text>
+        {/* ─── Contact Info ─── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Your Details</Text>
+          <View style={styles.formCard}>
+            <Text style={styles.inputLabel}>Full Name *</Text>
+            <TextInput
+              style={styles.input}
+              value={customerName}
+              onChangeText={setCustomerName}
+              placeholder="Enter your name"
+              placeholderTextColor="#6E7977"
+            />
 
-          <Text style={styles.inputLabel}>Họ và tên *</Text>
-          <TextInput
-            style={styles.input}
-            value={customerName}
-            onChangeText={setCustomerName}
-            placeholder="Nhập họ và tên"
-            placeholderTextColor="#64748B"
-          />
+            <Text style={styles.inputLabel}>Phone Number *</Text>
+            <TextInput
+              style={styles.input}
+              value={customerPhone}
+              onChangeText={setCustomerPhone}
+              placeholder="e.g. 0988 123 456"
+              keyboardType="phone-pad"
+              placeholderTextColor="#6E7977"
+            />
+          </View>
+        </View>
 
-          <Text style={styles.inputLabel}>Số điện thoại nhận xác nhận *</Text>
-          <TextInput
-            style={styles.input}
-            value={customerPhone}
-            onChangeText={setCustomerPhone}
-            placeholder="Nhập số điện thoại (vd: 0988123456)"
-            keyboardType="phone-pad"
-            placeholderTextColor="#64748B"
-          />
+        {/* Bottom spacer for fixed bar */}
+        <View style={{ height: 120 }} />
+      </ScrollView>
 
-          <View style={styles.noticeBox}>
-            <Text style={styles.noticeText}>
-              🔒 Lịch hẹn sẽ khởi tạo ở trạng thái <Text style={{ fontWeight: '800', color: '#F59E0B' }}>PENDING</Text>. Salon sẽ xác nhận giữ chỗ trong vòng 5 phút để tránh trùng lịch.
+      {/* ─── Fixed Bottom Action Bar ─── */}
+      <View style={styles.bottomBar}>
+        {/* Summary Row */}
+        <View style={styles.summaryRow}>
+          <View>
+            <Text style={styles.totalLabel}>TOTAL</Text>
+            <Text style={styles.totalPrice}>
+              ${((selectedServiceParam?.price || 120000) / 1000).toFixed(0)}.00
+            </Text>
+          </View>
+          <View style={styles.summaryRight}>
+            <Text style={styles.summaryDateTime}>{formattedDate}, {formattedTime}</Text>
+            <Text style={styles.summaryWith}>
+              with {activeStylistId === 'anyone' ? 'Anyone' : activeStylist.name}
             </Text>
           </View>
         </View>
 
-        {/* CONFIRM BOOKING BUTTON */}
+        {/* Confirm Button */}
         <TouchableOpacity
-          style={styles.confirmBtn}
-          activeOpacity={0.85}
+          style={[styles.confirmBtn, isConfirming && styles.confirmBtnLoading]}
           onPress={handleConfirmBooking}
+          activeOpacity={0.88}
+          disabled={isConfirming || confirmed}
         >
-          <Text style={styles.confirmBtnText}>XÁC NHẬN ĐẶT LỊCH GIỮ CHỖ ➔</Text>
+          <Text style={styles.confirmBtnText}>
+            {isConfirming ? 'Confirming...' : confirmed ? 'Booking Confirmed! ✓' : 'Confirm Booking'}
+          </Text>
         </TouchableOpacity>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 };
@@ -172,181 +435,420 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A'
+    backgroundColor: '#F8F9FF'
+  },
+  topAppBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 60,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    backgroundColor: 'rgba(248, 249, 255, 0.9)',
+    zIndex: 30,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(217, 227, 246, 0.5)'
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  backIcon: {
+    fontSize: 18,
+    color: '#3E4947'
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#005C55',
+    letterSpacing: -0.3
+  },
+  successToast: {
+    position: 'absolute',
+    top: 72,
+    alignSelf: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 30,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    zIndex: 50,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 92, 85, 0.2)',
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10
+  },
+  toastIcon: {
+    fontSize: 18
+  },
+  toastText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#121C2A'
   },
   scrollContent: {
-    padding: 16
+    paddingTop: 76,
+    paddingHorizontal: 20,
+    paddingBottom: 20
   },
-  header: {
+  section: {
+    marginBottom: 28
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: '600',
+    color: '#121C2A',
+    marginBottom: 14,
+    letterSpacing: -0.3
+  },
+  // Services
+  serviceChipsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  serviceChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#BDC9C6',
+    backgroundColor: '#FFFFFF'
+  },
+  serviceChipActive: {
+    backgroundColor: '#005C55',
+    borderColor: '#005C55'
+  },
+  serviceChipText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#3E4947'
+  },
+  serviceChipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '600'
+  },
+  // Stylists
+  stylistScroll: {
+    marginHorizontal: -20,
+    paddingHorizontal: 20
+  },
+  stylistItem: {
+    alignItems: 'center',
+    marginRight: 16,
+    gap: 6
+  },
+  stylistAvatarWrap: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    borderWidth: 1,
+    borderColor: '#BDC9C6',
+    overflow: 'hidden',
+    position: 'relative'
+  },
+  stylistAvatarActive: {
+    borderWidth: 2,
+    borderColor: '#005C55',
+    padding: 2
+  },
+  stylistAvatar: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 34
+  },
+  checkBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#005C55',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  checkBadgeIcon: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800'
+  },
+  anyoneAvatarWrap: {
+    backgroundColor: '#E6EEFF',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  anyoneIcon: {
+    fontSize: 22
+  },
+  stylistName: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#3E4947'
+  },
+  stylistNameActive: {
+    color: '#005C55',
+    fontWeight: '700'
+  },
+  // Calendar
+  calendarCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#D9E3F6',
+    marginBottom: 14,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.02,
+    shadowRadius: 8
+  },
+  calendarHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 14
   },
-  backBtn: {
-    paddingVertical: 4
+  calNavBtn: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center'
   },
-  backBtnText: {
-    color: '#38BDF8',
-    fontSize: 13,
-    fontWeight: '600'
+  calNavIcon: {
+    fontSize: 22,
+    color: '#3E4947',
+    fontWeight: '300'
   },
-  headerTitle: {
-    fontSize: 16,
+  calMonthTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#121C2A'
+  },
+  calDayLabels: {
+    flexDirection: 'row',
+    marginBottom: 6
+  },
+  calDayLabel: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 11,
     fontWeight: '700',
-    color: '#F8FAFC'
+    color: '#3E4947',
+    letterSpacing: 0.5
   },
-  summaryCard: {
-    backgroundColor: '#1E293B',
+  calGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap'
+  },
+  calDay: {
+    width: `${100 / 7}%`,
+    aspectRatio: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 999
+  },
+  calDaySelected: {
+    backgroundColor: '#005C55'
+  },
+  calDayOtherMonth: {
+    opacity: 0.35
+  },
+  calDayText: {
+    fontSize: 15,
+    fontWeight: '400',
+    color: '#121C2A'
+  },
+  calDayTextSelected: {
+    color: '#FFFFFF',
+    fontWeight: '700'
+  },
+  calDayTextOther: {
+    color: '#6E7977'
+  },
+  // Time Slots
+  timeSlotsScroll: {
+    marginHorizontal: -20
+  },
+  timeSlotsContent: {
+    paddingHorizontal: 20,
+    gap: 10
+  },
+  timeSlot: {
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#BDC9C6',
+    backgroundColor: '#FFFFFF'
+  },
+  timeSlotActive: {
+    backgroundColor: '#005C55',
+    borderColor: '#005C55',
+    elevation: 2,
+    shadowColor: '#005C55',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4
+  },
+  timeSlotDisabled: {
+    opacity: 0.4
+  },
+  timeSlotText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#3E4947'
+  },
+  timeSlotTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700'
+  },
+  timeSlotTextDisabled: {
+    color: '#6E7977'
+  },
+  // Try-On Card
+  tryOnCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#005C55',
+    gap: 12
+  },
+  tryOnImg: {
+    width: 52,
+    height: 52,
+    borderRadius: 10,
+    backgroundColor: '#E6EEFF'
+  },
+  tryOnInfo: { flex: 1 },
+  tryOnLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#005C55',
+    letterSpacing: 0.8,
+    marginBottom: 2
+  },
+  tryOnName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#121C2A'
+  },
+  tryOnSub: {
+    fontSize: 11,
+    color: '#3E4947'
+  },
+  // Contact form
+  formCard: {
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
-    marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#334155'
+    borderColor: '#D9E3F6',
+    elevation: 1
   },
-  summaryTitle: {
-    color: '#38BDF8',
-    fontSize: 15,
-    fontWeight: '700',
-    marginBottom: 12
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#3E4947',
+    marginBottom: 6
+  },
+  input: {
+    backgroundColor: '#F8F9FF',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: '#121C2A',
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#BDC9C6'
+  },
+  // Bottom Bar
+  bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    borderTopWidth: 1,
+    borderTopColor: '#D9E3F6',
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 28,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    elevation: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 20
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6
-  },
-  summaryLabel: {
-    color: '#94A3B8',
-    fontSize: 13
-  },
-  summaryVal: {
-    color: '#F8FAFC',
-    fontSize: 13,
-    fontWeight: '600'
-  },
-  summaryValBold: {
-    color: '#F8FAFC',
-    fontSize: 14,
-    fontWeight: '800'
-  },
-  summaryAddress: {
-    color: '#64748B',
-    fontSize: 12,
-    marginBottom: 8
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#334155',
-    marginVertical: 10
-  },
-  summaryHighlight: {
-    color: '#FBBF24',
-    fontSize: 13,
-    fontWeight: '700'
-  },
-  summaryPrice: {
-    color: '#38BDF8',
-    fontSize: 16,
-    fontWeight: '800'
-  },
-  tryOnAttachmentCard: {
-    backgroundColor: '#1E293B',
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#0EA5E9'
-  },
-  attachmentTitle: {
-    color: '#0EA5E9',
-    fontSize: 13,
-    fontWeight: '700',
-    marginBottom: 8
-  },
-  attachmentRow: {
-    flexDirection: 'row',
-    alignItems: 'center'
-  },
-  attachmentImg: {
-    width: 56,
-    height: 56,
-    borderRadius: 10,
-    marginRight: 12,
-    backgroundColor: '#334155'
-  },
-  attachmentInfo: {
-    flex: 1
-  },
-  attachmentHairName: {
-    color: '#F8FAFC',
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 2
-  },
-  attachmentSub: {
-    color: '#94A3B8',
-    fontSize: 11,
-    lineHeight: 15
-  },
-  formCard: {
-    backgroundColor: '#1E293B',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#334155'
-  },
-  formTitle: {
-    color: '#F8FAFC',
-    fontSize: 15,
-    fontWeight: '700',
     marginBottom: 14
   },
-  inputLabel: {
-    color: '#94A3B8',
-    fontSize: 12,
-    fontWeight: '600',
-    marginBottom: 6
+  totalLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#3E4947',
+    letterSpacing: 0.8,
+    marginBottom: 2
   },
-  input: {
-    backgroundColor: '#0F172A',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    color: '#F8FAFC',
+  totalPrice: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#005C55',
+    letterSpacing: -0.5
+  },
+  summaryRight: {
+    alignItems: 'flex-end'
+  },
+  summaryDateTime: {
     fontSize: 14,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: '#334155'
+    fontWeight: '500',
+    color: '#121C2A'
   },
-  noticeBox: {
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-    borderRadius: 10,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)'
-  },
-  noticeText: {
-    color: '#FCD34D',
-    fontSize: 11,
-    lineHeight: 16
+  summaryWith: {
+    fontSize: 12,
+    color: '#3E4947'
   },
   confirmBtn: {
-    backgroundColor: '#0EA5E9',
+    width: '100%',
+    height: 58,
+    backgroundColor: '#005C55',
     borderRadius: 16,
-    paddingVertical: 16,
+    justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#0EA5E9',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 8,
-    marginBottom: 24
+    elevation: 6,
+    shadowColor: '#005C55',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10
+  },
+  confirmBtnLoading: {
+    opacity: 0.75
   },
   confirmBtnText: {
     color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '800'
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: -0.2
   }
 });

@@ -4,12 +4,14 @@ import { LoginScreen } from '../screens/LoginScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { CameraUploadScreen } from '../screens/CameraUploadScreen';
 import { HairstyleSelectScreen } from '../screens/HairstyleSelectScreen';
+import { HairstyleDetailScreen } from '../screens/HairstyleDetailScreen';
 import { TryOnEditorScreen } from '../screens/TryOnEditorScreen';
 import { SalonListScreen } from '../screens/SalonListScreen';
 import { SalonDetailScreen } from '../screens/SalonDetailScreen';
 import { QuickBookingScreen } from '../screens/QuickBookingScreen';
 import { BookingStatusScreen } from '../screens/BookingStatusScreen';
 import { BookingHistoryScreen } from '../screens/BookingHistoryScreen';
+import { ProfileScreen } from '../screens/ProfileScreen';
 import { SalonDashboardScreen } from '../screens/SalonDashboardScreen';
 import { AdminDashboardScreen } from '../screens/AdminDashboardScreen';
 
@@ -29,12 +31,14 @@ export const AppNavigator = () => {
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="CameraUpload" component={CameraUploadScreen} />
       <Stack.Screen name="HairstyleSelect" component={HairstyleSelectScreen} />
+      <Stack.Screen name="HairstyleDetail" component={HairstyleDetailScreen} />
       <Stack.Screen name="TryOnEditor" component={TryOnEditorScreen} />
       <Stack.Screen name="SalonList" component={SalonListScreen} />
       <Stack.Screen name="SalonDetail" component={SalonDetailScreen} />
       <Stack.Screen name="QuickBooking" component={QuickBookingScreen} />
       <Stack.Screen name="BookingStatus" component={BookingStatusScreen} />
       <Stack.Screen name="BookingHistory" component={BookingHistoryScreen} />
+      <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="SalonDashboard" component={SalonDashboardScreen} />
       <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
     </Stack.Navigator>

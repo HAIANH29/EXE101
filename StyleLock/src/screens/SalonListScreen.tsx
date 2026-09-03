@@ -254,7 +254,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
           <Text style={[styles.navLabel, styles.navLabelActive]}>Bookings</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Login')}>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Profile')}>
           <Text style={styles.navIcon}>👤</Text>
           <Text style={styles.navLabel}>Profile</Text>
         </TouchableOpacity>

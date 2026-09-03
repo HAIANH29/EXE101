@@ -7,42 +7,41 @@ import {
   Image,
   SafeAreaView,
   ScrollView,
-  Alert
+  Alert,
+  Dimensions,
+  ImageBackground
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { MOCK_HAIRSTYLES } from '../services/mockData';
+import { Hairstyle } from '../types';
 
 interface CameraUploadScreenProps {
   navigation: any;
   route?: any;
 }
 
-const SAMPLE_FACES = [
-  {
-    id: 'face-nam-1',
-    name: 'Khuôn mặt Nam 1',
-    uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600'
-  },
-  {
-    id: 'face-nam-2',
-    name: 'Khuôn mặt Nam 2',
-    uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600'
-  },
-  {
-    id: 'face-nu-1',
-    name: 'Khuôn mặt Nữ 1',
-    uri: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600'
-  },
-  {
-    id: 'face-nu-2',
-    name: 'Khuôn mặt Nữ 2',
-    uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600'
-  }
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+const FILTER_STYLES = [
+  { id: 'bob', label: 'Bob', recommended: true },
+  { id: 'waves', label: 'Waves', recommended: false },
+  { id: 'sleek', label: 'Sleek', recommended: true },
+  { id: 'shag', label: 'Shag', recommended: false },
 ];
 
 export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigation, route }) => {
-  const preselectedHair = route?.params?.preselectedHair;
+  const preselectedHair: Hairstyle | undefined = route?.params?.preselectedHair;
+
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [activeFilterIdx, setActiveFilterIdx] = useState<number>(0);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [analysisComplete, setAnalysisComplete] = useState<boolean>(false);
+
+  // Map filter styles to actual hairstyles from mock data
+  const filterHairstyles = FILTER_STYLES.map((f, idx) => ({
+    ...f,
+    hairstyle: MOCK_HAIRSTYLES[idx % MOCK_HAIRSTYLES.length]
+  }));
 
   const handlePickFromGallery = async () => {
     try {
@@ -61,6 +60,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
 
       if (!result.canceled && result.assets[0]?.uri) {
         setSelectedPhoto(result.assets[0].uri);
+        simulateAnalysis();
       }
     } catch (e) {
       console.log('Pick image error', e);
@@ -83,94 +83,228 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
 
       if (!result.canceled && result.assets[0]?.uri) {
         setSelectedPhoto(result.assets[0].uri);
+        simulateAnalysis();
       }
     } catch (e) {
       console.log('Camera error', e);
     }
   };
 
-  const handleProceedToTryOn = (photoUri: string) => {
-    const hairToUse = preselectedHair || MOCK_HAIRSTYLES[0];
-    navigation.navigate('TryOnEditor', {
-      userPhotoUri: photoUri,
-      hairstyle: hairToUse
-    });
+  const simulateAnalysis = () => {
+    setIsProcessing(true);
+    setAnalysisComplete(false);
+    setTimeout(() => {
+      setIsProcessing(false);
+      setAnalysisComplete(true);
+    }, 1500);
   };
+
+  const handleCapture = () => {
+    if (selectedPhoto) {
+      // Already have a photo, proceed to try-on
+      const hairToUse = filterHairstyles[activeFilterIdx].hairstyle;
+      navigation.navigate('TryOnEditor', {
+        userPhotoUri: selectedPhoto,
+        hairstyle: preselectedHair || hairToUse
+      });
+    } else {
+      // No photo yet — use sample face for demo
+      const sampleUri = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600';
+      setSelectedPhoto(sampleUri);
+      simulateAnalysis();
+    }
+  };
+
+  const handleBookThisHairstyle = () => {
+    const hairToUse = preselectedHair || filterHairstyles[activeFilterIdx].hairstyle;
+    navigation.navigate('SalonList', { selectedHairstyle: hairToUse, userPhotoUri: selectedPhoto });
+  };
+
+  // Determine the camera feed image
+  const cameraFeedUri = selectedPhoto
+    || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800';
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Text style={styles.backBtnText}>◀ Bỏ qua</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Chụp / Tải ảnh chân dung</Text>
-          <View style={{ width: 60 }} />
-        </View>
+      {/* Top App Bar */}
+      <View style={styles.topAppBar}>
+        <TouchableOpacity style={styles.topBtn} onPress={() => navigation.goBack()}>
+          <Text style={styles.topBtnIcon}>☰</Text>
+        </TouchableOpacity>
 
-        {/* Instructions */}
-        <View style={styles.tipBox}>
-          <Text style={styles.tipTitle}>💡 Mẹo để có kết quả ghép tóc chuẩn nhất:</Text>
-          <Text style={styles.tipText}>• Chụp chính diện góc 90 độ</Text>
-          <Text style={styles.tipText}>• Để lộ rõ phần trán và đường nét khuôn mặt</Text>
-          <Text style={styles.tipText}>• Ánh sáng rõ ràng, không đeo kính râm hay khẩu trang</Text>
-        </View>
+        <Text style={styles.brandTitle}>StyleLock</Text>
 
-        {/* Photo Preview / Placeholder with Face Guide */}
-        <View style={styles.previewBox}>
-          {selectedPhoto ? (
-            <Image source={{ uri: selectedPhoto }} style={styles.previewImage} resizeMode="cover" />
-          ) : (
-            <View style={styles.guidePlaceholder}>
-              <View style={styles.ovalFaceGuide}>
-                <Text style={styles.guideIcon}>👤</Text>
-                <Text style={styles.guideText}>Khung căn khuôn mặt</Text>
+        <TouchableOpacity
+          style={styles.topBtn}
+          onPress={() => navigation.navigate('BookingHistory')}
+        >
+          <Text style={styles.topBtnIcon}>🔔</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Full-Screen Camera Canvas */}
+      <View style={styles.cameraCanvas}>
+        <ImageBackground
+          source={{ uri: cameraFeedUri }}
+          style={styles.cameraFeed}
+          resizeMode="cover"
+        >
+          {/* Vignette Gradient Overlay */}
+          <View style={styles.vignetteTop} />
+          <View style={styles.vignetteBottom} />
+
+          {/* Face Tracking Mesh Overlay (Dashed Oval) */}
+          {!selectedPhoto && (
+            <View style={styles.faceMeshOverlay}>
+              <View style={styles.faceMeshOval}>
+                <View style={styles.meshLine1} />
+                <View style={styles.meshLine2} />
               </View>
             </View>
           )}
-        </View>
 
-        {/* Action Buttons */}
-        <View style={styles.actionRow}>
-          <TouchableOpacity style={styles.primaryActionBtn} onPress={handleTakePhoto}>
-            <Text style={styles.actionBtnIcon}>📸</Text>
-            <Text style={styles.actionBtnText}>Chụp ảnh bằng Camera</Text>
-          </TouchableOpacity>
+          {/* Top Controls Overlay */}
+          <View style={styles.topControlsOverlay}>
+            {/* Status Badge */}
+            <View style={styles.statusBadge}>
+              <View style={styles.statusDot} />
+              <Text style={styles.statusText}>LIVE TRACKING</Text>
+            </View>
 
-          <TouchableOpacity style={styles.secondaryActionBtn} onPress={handlePickFromGallery}>
-            <Text style={styles.secondaryBtnIcon}>🖼️</Text>
-            <Text style={styles.secondaryBtnText}>Tải từ thư viện ảnh</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Continue with current photo if selected */}
-        {selectedPhoto && (
-          <TouchableOpacity
-            style={styles.continueBtn}
-            onPress={() => handleProceedToTryOn(selectedPhoto)}
-          >
-            <Text style={styles.continueBtnText}>Tiếp tục thử tóc với ảnh này ➔</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Sample Face Options for Quick Demo */}
-        <View style={styles.sampleSection}>
-          <Text style={styles.sampleTitle}>Hoặc chọn nhanh ảnh mẫu để demo:</Text>
-          <View style={styles.sampleGrid}>
-            {SAMPLE_FACES.map((sample) => (
-              <TouchableOpacity
-                key={sample.id}
-                style={styles.sampleCard}
-                onPress={() => handleProceedToTryOn(sample.uri)}
-              >
-                <Image source={{ uri: sample.uri }} style={styles.sampleImg} />
-                <Text style={styles.sampleName}>{sample.name}</Text>
+            {/* Quick Action Buttons */}
+            <View style={styles.quickActions}>
+              <TouchableOpacity style={styles.quickActionBtn} onPress={handleTakePhoto}>
+                <Text style={styles.quickActionIcon}>📷</Text>
               </TouchableOpacity>
-            ))}
+
+              <TouchableOpacity style={styles.quickActionBtn} onPress={handlePickFromGallery}>
+                <Text style={styles.quickActionIcon}>📤</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </ScrollView>
+
+          {/* AI Analysis Results Overlay */}
+          <View style={styles.analysisOverlay}>
+            <View style={styles.analysisCard}>
+              <View style={styles.analysisLabelRow}>
+                <Text style={styles.analysisLabelIcon}>👤</Text>
+                <Text style={styles.analysisLabelText}>DETECTED SHAPE</Text>
+              </View>
+              <Text style={styles.analysisValue}>Oval</Text>
+            </View>
+
+            <View style={styles.analysisCard}>
+              <View style={styles.analysisLabelRow}>
+                <Text style={styles.analysisLabelIcon}>📊</Text>
+                <Text style={styles.analysisLabelText}>CONFIDENCE</Text>
+              </View>
+              <View style={styles.confidenceRow}>
+                <Text style={styles.confidenceValue}>98%</Text>
+                <View style={styles.confidenceBarBg}>
+                  <View style={styles.confidenceBarFill} />
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* Bottom UI Area */}
+          <View style={styles.bottomUIArea}>
+            {/* Filter Carousel */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterCarouselContent}
+            >
+              {filterHairstyles.map((item, idx) => {
+                const isActive = activeFilterIdx === idx;
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={[styles.filterThumb, isActive && styles.filterThumbActive]}
+                    onPress={() => setActiveFilterIdx(idx)}
+                  >
+                    <Image
+                      source={{ uri: item.hairstyle.imageUrl }}
+                      style={[styles.filterThumbImg, !isActive && styles.filterThumbImgInactive]}
+                    />
+
+                    {/* Active Overlay */}
+                    {isActive && <View style={styles.filterActiveOverlay} />}
+                    {!isActive && <View style={styles.filterInactiveOverlay} />}
+
+                    {/* Label */}
+                    <View style={[styles.filterLabel, isActive ? styles.filterLabelActive : styles.filterLabelInactive]}>
+                      <Text style={[styles.filterLabelText, isActive ? styles.filterLabelTextActive : styles.filterLabelTextInactive]}>
+                        {item.label}
+                      </Text>
+                    </View>
+
+                    {/* Recommended Star Badge */}
+                    {item.recommended && (
+                      <View style={styles.starBadge}>
+                        <Text style={styles.starBadgeText}>⭐</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            {/* Capture Button Area */}
+            <View style={styles.captureArea}>
+              <View style={styles.captureLine} />
+              <TouchableOpacity style={styles.captureBtn} onPress={handleCapture} activeOpacity={0.85}>
+                <View style={styles.captureRing}>
+                  <View style={styles.captureInner}>
+                    <Text style={styles.captureIcon}>✨</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+              <View style={styles.captureLine} />
+            </View>
+
+            {/* Book This Hairstyle CTA */}
+            <View style={styles.ctaContainer}>
+              <TouchableOpacity
+                style={styles.bookCtaBtn}
+                activeOpacity={0.85}
+                onPress={handleBookThisHairstyle}
+              >
+                <Text style={styles.bookCtaText}>Book This Hairstyle</Text>
+                <Text style={styles.bookCtaArrow}>→</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ImageBackground>
+      </View>
+
+      {/* Bottom Navigation Bar */}
+      <View style={styles.bottomBar}>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Home')}>
+          <Text style={styles.navIcon}>🏠</Text>
+          <Text style={styles.navLabel}>Home</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('HairstyleSelect')}>
+          <Text style={styles.navIcon}>🔍</Text>
+          <Text style={styles.navLabel}>Explore</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.navItem, styles.navItemActive]}>
+          <Text style={[styles.navIcon, styles.navIconActive]}>✨</Text>
+          <Text style={[styles.navLabel, styles.navLabelActive]}>AI Camera</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('BookingHistory')}>
+          <Text style={styles.navIcon}>📅</Text>
+          <Text style={styles.navLabel}>Bookings</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Profile')}>
+          <Text style={styles.navIcon}>👤</Text>
+          <Text style={styles.navLabel}>Profile</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 };
@@ -178,176 +312,418 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A'
+    backgroundColor: '#27313F'
   },
-  scrollContent: {
-    padding: 16
-  },
-  header: {
+  topAppBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 60,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16
+    paddingHorizontal: 20,
+    backgroundColor: 'rgba(248, 249, 255, 0.8)',
+    zIndex: 30
   },
-  backBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 10
-  },
-  backBtnText: {
-    color: '#38BDF8',
-    fontSize: 14,
-    fontWeight: '600'
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#F8FAFC'
-  },
-  tipBox: {
-    backgroundColor: '#1E293B',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: '#0EA5E9'
-  },
-  tipTitle: {
-    color: '#38BDF8',
-    fontWeight: '700',
-    fontSize: 13,
-    marginBottom: 4
-  },
-  tipText: {
-    color: '#94A3B8',
-    fontSize: 12,
-    lineHeight: 18
-  },
-  previewBox: {
-    width: '100%',
-    height: 320,
+  topBtn: {
+    width: 40,
+    height: 40,
     borderRadius: 20,
-    backgroundColor: '#1E293B',
-    overflow: 'hidden',
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: '#334155',
     justifyContent: 'center',
     alignItems: 'center'
   },
-  previewImage: {
+  topBtnIcon: {
+    fontSize: 20,
+    color: '#005C55'
+  },
+  brandTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#005C55',
+    letterSpacing: -0.5
+  },
+  cameraCanvas: {
+    flex: 1,
+    width: '100%',
+    backgroundColor: '#27313F'
+  },
+  cameraFeed: {
+    flex: 1,
     width: '100%',
     height: '100%'
   },
-  guidePlaceholder: {
-    justifyContent: 'center',
-    alignItems: 'center'
+  vignetteTop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 120,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)'
   },
-  ovalFaceGuide: {
-    width: 170,
-    height: 230,
-    borderRadius: 100,
-    borderWidth: 2,
-    borderColor: '#38BDF8',
-    borderStyle: 'dashed',
-    justifyContent: 'center',
+  vignetteBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 300,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)'
+  },
+  faceMeshOverlay: {
+    position: 'absolute',
+    top: '22%',
+    left: 0,
+    right: 0,
     alignItems: 'center',
-    backgroundColor: 'rgba(56, 189, 248, 0.05)'
+    zIndex: 5
   },
-  guideIcon: {
-    fontSize: 40,
+  faceMeshOval: {
+    width: 200,
+    height: 260,
+    borderRadius: 130,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderStyle: 'dashed',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingBottom: 16
+  },
+  meshLine1: {
+    width: 64,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     marginBottom: 8
   },
-  guideText: {
-    color: '#94A3B8',
-    fontSize: 12,
-    fontWeight: '600'
+  meshLine2: {
+    width: 48,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)'
   },
-  actionRow: {
-    gap: 10,
-    marginBottom: 16
-  },
-  primaryActionBtn: {
-    backgroundColor: '#0EA5E9',
-    borderRadius: 14,
-    paddingVertical: 14,
+  topControlsOverlay: {
+    position: 'absolute',
+    top: 75,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    zIndex: 15
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(248, 249, 255, 0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    gap: 6
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#80D5CB'
+  },
+  statusText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.5
+  },
+  quickActions: {
+    gap: 12
+  },
+  quickActionBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(248, 249, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)'
+  },
+  quickActionIcon: {
+    fontSize: 18,
+    color: '#FFFFFF'
+  },
+  analysisOverlay: {
+    position: 'absolute',
+    top: 130,
+    left: 20,
+    zIndex: 15,
+    gap: 8
+  },
+  analysisCard: {
+    backgroundColor: 'rgba(248, 249, 255, 0.85)',
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(189, 201, 198, 0.3)',
+    maxWidth: 180,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4
+  },
+  analysisLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 2
+  },
+  analysisLabelIcon: {
+    fontSize: 14,
+    color: '#005C55'
+  },
+  analysisLabelText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#3E4947',
+    letterSpacing: 0.8
+  },
+  analysisValue: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#121C2A'
+  },
+  confidenceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
+  },
+  confidenceValue: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#005C55'
+  },
+  confidenceBarBg: {
+    width: 60,
+    height: 8,
+    backgroundColor: '#D9E3F6',
+    borderRadius: 4,
+    overflow: 'hidden'
+  },
+  confidenceBarFill: {
+    width: '98%',
+    height: '100%',
+    backgroundColor: '#005C55',
+    borderRadius: 4
+  },
+  bottomUIArea: {
+    position: 'absolute',
+    bottom: 75,
+    left: 0,
+    right: 0,
+    zIndex: 20,
+    paddingBottom: 16
+  },
+  filterCarouselContent: {
+    paddingHorizontal: 20,
+    gap: 12,
+    paddingBottom: 12,
+    paddingTop: 8
+  },
+  filterThumb: {
+    width: 76,
+    height: 92,
+    borderRadius: 14,
+    overflow: 'hidden',
+    position: 'relative'
+  },
+  filterThumbActive: {
+    borderWidth: 2,
+    borderColor: '#005C55'
+  },
+  filterThumbImg: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute'
+  },
+  filterThumbImgInactive: {
+    opacity: 0.75
+  },
+  filterActiveOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 92, 85, 0.15)',
+    zIndex: 1
+  },
+  filterInactiveOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    zIndex: 1
+  },
+  filterLabel: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 4,
+    alignItems: 'center',
+    zIndex: 2
+  },
+  filterLabelActive: {
+    backgroundColor: 'rgba(248, 249, 255, 0.9)'
+  },
+  filterLabelInactive: {
+    backgroundColor: 'rgba(248, 249, 255, 0.35)'
+  },
+  filterLabelText: {
+    fontSize: 11,
+    fontWeight: '700'
+  },
+  filterLabelTextActive: {
+    color: '#121C2A'
+  },
+  filterLabelTextInactive: {
+    color: '#FFFFFF'
+  },
+  starBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#005C55',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 3
+  },
+  starBadgeText: {
+    fontSize: 8
+  },
+  captureArea: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12
+  },
+  captureLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginHorizontal: 20
+  },
+  captureBtn: {
+    width: 76,
+    height: 76,
     justifyContent: 'center',
     alignItems: 'center'
   },
-  actionBtnIcon: {
-    fontSize: 18,
-    marginRight: 8
+  captureRing: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center'
   },
-  actionBtnText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 15
+  captureInner: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: '#005C55',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#005C55',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8
   },
-  secondaryActionBtn: {
-    backgroundColor: '#1E293B',
+  captureIcon: {
+    fontSize: 28,
+    color: '#FFFFFF'
+  },
+  ctaContainer: {
+    paddingHorizontal: 20,
+    marginTop: 16
+  },
+  bookCtaBtn: {
+    width: '100%',
+    height: 52,
+    backgroundColor: '#005C55',
     borderRadius: 14,
-    paddingVertical: 14,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#334155'
+    gap: 8,
+    elevation: 6,
+    shadowColor: 'rgba(0, 92, 85, 0.3)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 12
   },
-  secondaryBtnIcon: {
-    fontSize: 18,
-    marginRight: 8
-  },
-  secondaryBtnText: {
-    color: '#E2E8F0',
-    fontWeight: '600',
-    fontSize: 14
-  },
-  continueBtn: {
-    backgroundColor: '#10B981',
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginBottom: 20
-  },
-  continueBtnText: {
+  bookCtaText: {
     color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: '800'
+    fontWeight: '700'
   },
-  sampleSection: {
-    marginTop: 8
+  bookCtaArrow: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '400'
   },
-  sampleTitle: {
-    color: '#E2E8F0',
-    fontSize: 13,
-    fontWeight: '700',
-    marginBottom: 12
-  },
-  sampleGrid: {
+  bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 75,
+    backgroundColor: 'rgba(248, 249, 255, 0.85)',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 10
-  },
-  sampleCard: {
-    width: '48%',
-    backgroundColor: '#1E293B',
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#334155',
+    justifyContent: 'space-around',
     alignItems: 'center',
-    paddingBottom: 8
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(217, 227, 246, 0.5)',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    zIndex: 40
   },
-  sampleImg: {
-    width: '100%',
-    height: 100,
-    backgroundColor: '#334155'
+  navItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20
   },
-  sampleName: {
-    color: '#94A3B8',
-    fontSize: 11,
-    fontWeight: '600',
-    marginTop: 6
+  navItemActive: {
+    backgroundColor: 'rgba(15, 118, 110, 0.15)'
+  },
+  navIcon: {
+    fontSize: 20,
+    marginBottom: 2
+  },
+  navIconActive: {
+    transform: [{ scale: 1.1 }]
+  },
+  navLabel: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: '#3E4947'
+  },
+  navLabelActive: {
+    color: '#005C55',
+    fontWeight: '700'
   }
 });

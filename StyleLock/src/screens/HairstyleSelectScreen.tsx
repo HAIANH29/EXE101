@@ -119,8 +119,12 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
             const isFav = favorites[hair.id];
             return (
               <View key={hair.id} style={styles.articleCard}>
-                {/* Large Image Aspect 4:5 */}
-                <View style={styles.imgWrapper}>
+                {/* Large Image Aspect 4:5 - Click opens HairstyleDetail */}
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  style={styles.imgWrapper}
+                  onPress={() => navigation.navigate('HairstyleDetail', { hairstyle: hair })}
+                >
                   <Image source={{ uri: hair.imageUrl }} style={styles.hairImg} />
 
                   {/* Favorite Heart Button */}
@@ -130,10 +134,14 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
                   >
                     <Text style={styles.favIcon}>{isFav ? '❤️' : '🤍'}</Text>
                   </TouchableOpacity>
-                </View>
+                </TouchableOpacity>
 
                 {/* Card Content & Details */}
-                <View style={styles.cardContent}>
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  style={styles.cardContent}
+                  onPress={() => navigation.navigate('HairstyleDetail', { hairstyle: hair })}
+                >
                   <Text style={styles.cardTitle}>{hair.name}</Text>
                   <Text style={styles.cardDesc} numberOfLines={2}>
                     {hair.description}
@@ -147,7 +155,7 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
                   >
                     <Text style={styles.tryNowText}>Try Now</Text>
                   </TouchableOpacity>
-                </View>
+                </TouchableOpacity>
               </View>
             );
           })}

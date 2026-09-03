@@ -171,7 +171,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               <TouchableOpacity
                 key={hair.id}
                 style={styles.recommendCard}
-                onPress={() => navigation.navigate('CameraUpload', { preselectedHair: hair })}
+                onPress={() => navigation.navigate('HairstyleDetail', { hairstyle: hair })}
               >
                 <View style={styles.recommendImgWrapper}>
                   <Image source={{ uri: hair.imageUrl }} style={styles.recommendImg} />
@@ -245,7 +245,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           style={styles.navItem}
           onPress={() => {
             setActiveTab('Profile');
-            navigation.navigate('Login');
+            navigation.navigate('Profile');
           }}
         >
           <Text style={styles.navIcon}>👤</Text>
