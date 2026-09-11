@@ -1,0 +1,70 @@
+spring:
+  datasource:
+    url: ${DB_URL}          # bắt buộc set qua biến môi trường, không có default
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: validate   # KHÔNG bao giờ dùng update/create ở prod
+    properties:
+      hibernate:
+        format_sql: false
+        generate_statistics: false
+
+  flyway:
+    url: ${DB_URL}
+    user: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    validate-on-migrate: true
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+
+server:
+  port: ${SERVER_PORT:8080}
+  compression:
+    enabled: true
+  error:
+    include-message: on_param
+    include-binding-errors: on_param
+
+springdoc:
+  swagger-ui:
+    enabled: false   # tắt Swagger UI ở production
+  api-docs:
+    enabled: false
+
+logging:
+  level:
+    root: WARN
+    be.exe: INFO
+    org.hibernate.SQL: WARN
+  file:
+    name: /var/log/salon-backend/app.log
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}   # bắt buộc, tối thiểu 256-bit, không có default
+
+  sepay:
+    base-url: ${SEPAY_BASE_URL:https://my.sepay.vn/userapi}
+    api-token: ${SEPAY_API_TOKEN}
+    account-number: ${SEPAY_ACCOUNT_NUMBER}
+    webhook-secret: ${SEPAY_WEBHOOK_SECRET}
+
+  openai:
+    api-key: ${OPENAI_API_KEY}   # bắt buộc, không có default ở prod
