@@ -1,12 +1,14 @@
 package be.exe.auth.controller;
 
 import be.exe.auth.dto.request.ChangePasswordRequest;
+import be.exe.auth.dto.request.GoogleLoginRequest;
 import be.exe.auth.dto.request.LoginRequest;
 import be.exe.auth.dto.request.RefreshTokenRequest;
 import be.exe.auth.dto.request.RegisterRequest;
 import be.exe.auth.dto.response.LoginResponse;
 import be.exe.auth.dto.response.TokenResponse;
 import be.exe.auth.dto.response.UserResponse;
+import be.exe.auth.security.GoogleTokenVerifier;
 import be.exe.auth.service.AuthService;
 import be.exe.common.response.ApiResponse;
 import be.exe.common.security.CustomUserDetails;
@@ -20,9 +22,11 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final GoogleTokenVerifier googleTokenVerifier;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, GoogleTokenVerifier googleTokenVerifier) {
         this.authService = authService;
+        this.googleTokenVerifier = googleTokenVerifier;
     }
 
     @PostMapping("/register")
@@ -37,6 +41,20 @@ public class AuthController {
             @Valid @RequestBody LoginRequest request) {
         LoginResponse response = authService.login(request);
         return ResponseEntity.ok(ApiResponse.success("Đăng nhập thành công", response));
+    }
+
+    /**
+     * Frontend dùng Google Identity Services SDK để hiện nút "Đăng nhập với Google",
+     * lấy được idToken từ Google, rồi gửi lên đây. Backend verify token, tìm/tạo user,
+     * trả JWT y hệt luồng login thường - không cần redirect qua lại như oauth2Login() truyền thống.
+     */
+    @PostMapping("/google")
+    public ResponseEntity<ApiResponse<LoginResponse>> loginWithGoogle(
+            @Valid @RequestBody GoogleLoginRequest request) {
+        GoogleTokenVerifier.GoogleProfile profile = googleTokenVerifier.verify(request.getIdToken());
+        LoginResponse response = authService.loginOrRegisterViaOAuth2(
+                profile.email(), profile.fullName(), profile.avatarUrl());
+        return ResponseEntity.ok(ApiResponse.success("Đăng nhập Google thành công", response));
     }
 
     @PostMapping("/refresh")
