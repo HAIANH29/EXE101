@@ -8,6 +8,9 @@ import be.exe.booking.dto.response.BookingSummaryResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+
 public interface BookingService {
 
     BookingResponse createBooking(Long customerId, CreateBookingRequest request);
@@ -35,4 +38,12 @@ public interface BookingService {
     Page<BookingResponse> getSalonBookings(Long salonId, Long ownerId, Pageable pageable);
 
     Page<BookingResponse> getStylistBookings(Long stylistId, Pageable pageable);
+
+    // ===== Dùng cho dashboard (module admin) =====
+
+    long countBookingsByStatus(String status);
+
+    long countBookingsBetween(Instant from, Instant to);
+
+    BigDecimal getRevenueBetween(Instant from, Instant to);
 }

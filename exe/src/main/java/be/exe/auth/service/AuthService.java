@@ -7,6 +7,10 @@ import be.exe.auth.dto.request.RegisterRequest;
 import be.exe.auth.dto.response.LoginResponse;
 import be.exe.auth.dto.response.TokenResponse;
 import be.exe.auth.dto.response.UserResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import java.time.Instant;
 
 public interface AuthService {
 
@@ -29,4 +33,16 @@ public interface AuthService {
      * nếu đã tồn tại thì đăng nhập bình thường và cập nhật avatar mới nhất từ Google.
      */
     LoginResponse loginOrRegisterViaOAuth2(String email, String fullName, String avatarUrl);
+
+    // ===== Dùng bởi module admin =====
+
+    /** Khóa/mở khóa tài khoản. status: ACTIVE / INACTIVE / BANNED */
+    UserResponse updateUserStatus(Long userId, String status);
+
+    Page<UserResponse> getUsers(String statusFilter, Pageable pageable);
+
+    /** Dùng cho dashboard: tổng số user + số đăng ký mới trong khoảng thời gian. */
+    long countUsers();
+
+    long countNewUsers(Instant from, Instant to);
 }

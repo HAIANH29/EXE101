@@ -4,6 +4,7 @@ import be.exe.auth.domain.RefreshToken;
 import be.exe.auth.domain.Role;
 import be.exe.auth.domain.RoleName;
 import be.exe.auth.domain.User;
+import be.exe.auth.domain.UserStatus;
 import be.exe.auth.dto.request.ChangePasswordRequest;
 import be.exe.auth.dto.request.LoginRequest;
 import be.exe.auth.dto.request.RefreshTokenRequest;
@@ -22,8 +23,9 @@ import be.exe.common.exception.ResourceNotFoundException;
 import be.exe.common.security.JwtService;
 import be.exe.common.util.HashUtils;
 import io.jsonwebtoken.Claims;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -46,14 +48,12 @@ public class AuthServiceImpl implements AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
 
-    public AuthServiceImpl(
-            UserRepository userRepository,
-            RoleRepository roleRepository,
-            RefreshTokenRepository refreshTokenRepository,
-            PasswordEncoder passwordEncoder,
-            JwtService jwtService,
-            AuthenticationManager authenticationManager
-    ) {
+    public AuthServiceImpl(UserRepository userRepository,
+                           RoleRepository roleRepository,
+                           RefreshTokenRepository refreshTokenRepository,
+                           PasswordEncoder passwordEncoder,
+                           JwtService jwtService,
+                           AuthenticationManager authenticationManager) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.refreshTokenRepository = refreshTokenRepository;
@@ -64,15 +64,13 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginResponse register(RegisterRequest request) {
-
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new BusinessException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
         Role customerRole = roleRepository.findByName(RoleName.CUSTOMER)
                 .orElseThrow(() -> new IllegalStateException(
-                        "Role CUSTOMER chưa được seed trong DB - kiểm tra lại migration V1"
-                ));
+                        "Role CUSTOMER chưa được seed trong DB - kiểm tra lại migration V1"));
 
         User user = new User(
                 request.getEmail(),
@@ -85,7 +83,7 @@ public class AuthServiceImpl implements AuthService {
 
         userRepository.save(user);
 
-        // Tự động đăng nhập sau khi đăng ký thành công
+        // Tự động đăng nhập luôn sau khi đăng ký thành công
         return buildLoginResponse(user);
     }
 
@@ -103,24 +101,19 @@ public class AuthServiceImpl implements AuthService {
         } catch (DisabledException | LockedException e) {
             throw new BusinessException(ErrorCode.ACCOUNT_DISABLED);
 
-        } catch (BadCredentialsException e) {
-            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
-
         } catch (AuthenticationException e) {
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() ->
-                        new BusinessException(ErrorCode.INVALID_CREDENTIALS)
-                );
+                        new BusinessException(ErrorCode.INVALID_CREDENTIALS));
 
         return buildLoginResponse(user);
     }
 
     @Override
     public TokenResponse refreshToken(RefreshTokenRequest request) {
-
         String rawToken = request.getRefreshToken();
 
         if (!jwtService.isValid(rawToken)) {
@@ -129,11 +122,10 @@ public class AuthServiceImpl implements AuthService {
 
         String tokenHash = HashUtils.sha256(rawToken);
 
-        RefreshToken storedToken = refreshTokenRepository
-                .findByTokenHash(tokenHash)
-                .orElseThrow(() ->
-                        new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN)
-                );
+        RefreshToken storedToken =
+                refreshTokenRepository.findByTokenHash(tokenHash)
+                        .orElseThrow(() ->
+                                new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN));
 
         if (!storedToken.isValid()) {
             throw new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN);
@@ -141,8 +133,7 @@ public class AuthServiceImpl implements AuthService {
 
         User user = storedToken.getUser();
 
-        // Rotate refresh token:
-        // Hủy token cũ và tạo token mới
+        // Rotate refresh token
         storedToken.revoke();
 
         String newAccessToken = generateAccessToken(user);
@@ -163,30 +154,25 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void logout(RefreshTokenRequest request) {
-
         String tokenHash = HashUtils.sha256(
                 request.getRefreshToken()
         );
 
-        refreshTokenRepository
-                .findByTokenHash(tokenHash)
+        refreshTokenRepository.findByTokenHash(tokenHash)
                 .ifPresent(RefreshToken::revoke);
     }
 
     @Override
     public void logoutAllDevices(Long userId) {
-
         refreshTokenRepository.revokeAllByUserId(userId);
     }
 
     @Override
     @Transactional(readOnly = true)
     public UserResponse getCurrentUser(Long userId) {
-
         User user = userRepository.findById(userId)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("User", userId)
-                );
+                        new ResourceNotFoundException("User", userId));
 
         return UserMapper.toResponse(user);
     }
@@ -194,18 +180,16 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void changePassword(
             Long userId,
-            ChangePasswordRequest request
-    ) {
+            ChangePasswordRequest request) {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("User", userId)
-                );
+                        new ResourceNotFoundException("User", userId));
 
         if (!passwordEncoder.matches(
                 request.getOldPassword(),
-                user.getPasswordHash()
-        )) {
+                user.getPasswordHash())) {
+
             throw new BusinessException(
                     ErrorCode.INVALID_CREDENTIALS,
                     "Mật khẩu hiện tại không đúng"
@@ -213,7 +197,9 @@ public class AuthServiceImpl implements AuthService {
         }
 
         user.changePassword(
-                passwordEncoder.encode(request.getNewPassword())
+                passwordEncoder.encode(
+                        request.getNewPassword()
+                )
         );
     }
 
@@ -221,17 +207,14 @@ public class AuthServiceImpl implements AuthService {
     public LoginResponse loginOrRegisterViaOAuth2(
             String email,
             String fullName,
-            String avatarUrl
-    ) {
+            String avatarUrl) {
 
-        User user = userRepository
-                .findByEmail(email)
+        User user = userRepository.findByEmail(email)
                 .orElseGet(() ->
-                        createOAuth2User(email, fullName)
-                );
+                        createOAuth2User(email, fullName));
 
         // Cập nhật avatar mới nhất từ Google
-        if (avatarUrl != null && !avatarUrl.isBlank()) {
+        if (avatarUrl != null) {
             user.setAvatarUrl(avatarUrl);
         }
 
@@ -246,20 +229,20 @@ public class AuthServiceImpl implements AuthService {
 
     private User createOAuth2User(
             String email,
-            String fullName
-    ) {
+            String fullName) {
 
-        Role customerRole = roleRepository
-                .findByName(RoleName.CUSTOMER)
-                .orElseThrow(() -> new IllegalStateException(
-                        "Role CUSTOMER chưa được seed trong DB - kiểm tra lại migration V1"
-                ));
+        Role customerRole =
+                roleRepository.findByName(RoleName.CUSTOMER)
+                        .orElseThrow(() ->
+                                new IllegalStateException(
+                                        "Role CUSTOMER chưa được seed trong DB - kiểm tra lại migration V1"
+                                ));
 
-        // Tài khoản OAuth2 không có password thật.
-        // Tạo password random và hash bằng BCrypt.
-        String randomPassword = passwordEncoder.encode(
-                java.util.UUID.randomUUID().toString()
-        );
+        // Tài khoản Google không có password thật
+        String randomPassword =
+                passwordEncoder.encode(
+                        java.util.UUID.randomUUID().toString()
+                );
 
         User user = new User(
                 email,
@@ -274,13 +257,68 @@ public class AuthServiceImpl implements AuthService {
         return user;
     }
 
-    // =========================================================
-    // PRIVATE HELPERS
-    // =========================================================
+    // ===== Dùng bởi module admin =====
+
+    @Override
+    public UserResponse updateUserStatus(
+            Long userId,
+            String status) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "User",
+                                userId
+                        ));
+
+        user.setStatus(
+                UserStatus.valueOf(status)
+        );
+
+        return UserMapper.toResponse(user);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<UserResponse> getUsers(
+            String statusFilter,
+            Pageable pageable) {
+
+        Page<User> page =
+                (statusFilter != null && !statusFilter.isBlank())
+                        ? userRepository.findByStatus(
+                        UserStatus.valueOf(statusFilter),
+                        pageable
+                )
+                        : userRepository.findAll(pageable);
+
+        return page.map(UserMapper::toResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countUsers() {
+        return userRepository.count();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countNewUsers(
+            Instant from,
+            Instant to) {
+
+        return userRepository.countByCreatedAtBetween(
+                from,
+                to
+        );
+    }
+
+    // ===== Private helpers =====
 
     private LoginResponse buildLoginResponse(User user) {
 
-        String accessToken = generateAccessToken(user);
+        String accessToken =
+                generateAccessToken(user);
 
         String refreshToken =
                 generateAndStoreRefreshToken(user);
@@ -302,11 +340,11 @@ public class AuthServiceImpl implements AuthService {
 
     private String generateAccessToken(User user) {
 
-        List<String> roleNames = user.getRoles()
-                .stream()
-                .map(Role::getName)
-                .map(Enum::name)
-                .toList();
+        List<String> roleNames =
+                user.getRoles().stream()
+                        .map(Role::getName)
+                        .map(Enum::name)
+                        .toList();
 
         return jwtService.generateAccessToken(
                 user.getId(),
@@ -315,22 +353,28 @@ public class AuthServiceImpl implements AuthService {
         );
     }
 
-    private String generateAndStoreRefreshToken(User user) {
+    private String generateAndStoreRefreshToken(
+            User user) {
 
         String refreshTokenJwt =
-                jwtService.generateRefreshToken(user.getId());
+                jwtService.generateRefreshToken(
+                        user.getId()
+                );
 
         Claims claims =
-                jwtService.parseClaims(refreshTokenJwt);
+                jwtService.parseClaims(
+                        refreshTokenJwt
+                );
 
         Instant expiresAt =
                 claims.getExpiration().toInstant();
 
-        RefreshToken entity = new RefreshToken(
-                user,
-                HashUtils.sha256(refreshTokenJwt),
-                expiresAt
-        );
+        RefreshToken entity =
+                new RefreshToken(
+                        user,
+                        HashUtils.sha256(refreshTokenJwt),
+                        expiresAt
+                );
 
         refreshTokenRepository.save(entity);
 

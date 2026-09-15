@@ -37,4 +37,9 @@ public interface SalonService {
     Page<SalonResponse> getSalonsByOwner(Long ownerId, Pageable pageable);
 
     void updateBusinessHours(Long salonId, Long ownerId, List<UpdateBusinessHourRequest> requests);
+
+    /** Dùng cho dashboard (module admin): đếm số salon theo trạng thái. */
+    long countSalonsByStatus(SalonStatus status);
+
+    long countAllSalons();
 }

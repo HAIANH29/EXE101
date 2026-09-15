@@ -11,4 +11,6 @@ public interface SalonRepository extends JpaRepository<Salon, Long> {
     Page<Salon> findByOwnerId(Long ownerId, Pageable pageable);
 
     Page<Salon> findByStatus(SalonStatus status, Pageable pageable);
+
+    long countByStatus(SalonStatus status);
 }

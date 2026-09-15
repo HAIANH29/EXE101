@@ -115,6 +115,18 @@ public class SalonServiceImpl implements SalonService {
         }
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public long countSalonsByStatus(SalonStatus status) {
+        return salonRepository.countByStatus(status);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countAllSalons() {
+        return salonRepository.count();
+    }
+
     private Salon findOrThrow(Long salonId) {
         return salonRepository.findById(salonId)
                 .orElseThrow(() -> new ResourceNotFoundException("Salon", salonId));

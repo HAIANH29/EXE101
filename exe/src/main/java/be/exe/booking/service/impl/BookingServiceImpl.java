@@ -36,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.math.BigDecimal;
 import java.time.temporal.ChronoUnit;
 
 /**
@@ -242,6 +243,26 @@ public class BookingServiceImpl implements BookingService {
     @Transactional(readOnly = true)
     public Page<BookingResponse> getStylistBookings(Long stylistId, Pageable pageable) {
         return bookingRepository.findByStylistId(stylistId, pageable).map(BookingMapper::toResponse);
+    }
+
+    // ===== Dùng cho dashboard (module admin) =====
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countBookingsByStatus(String status) {
+        return bookingRepository.countByStatus(BookingStatus.valueOf(status));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countBookingsBetween(Instant from, Instant to) {
+        return bookingRepository.countByCreatedAtBetween(from, to);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal getRevenueBetween(Instant from, Instant to) {
+        return bookingRepository.sumRevenueBetween(from, to);
     }
 
     private Booking findOrThrow(Long bookingId) {

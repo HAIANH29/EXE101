@@ -1,12 +1,14 @@
 package be.exe.booking.repository;
 
 import be.exe.booking.domain.Booking;
+import be.exe.booking.domain.BookingStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
@@ -34,4 +36,18 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     boolean existsOverlappingBooking(@Param("stylistId") Long stylistId,
                                       @Param("startAt") Instant startAt,
                                       @Param("endAt") Instant endAt);
+
+    // ===== Dùng cho dashboard thống kê =====
+
+    long countByStatus(BookingStatus status);
+
+    long countByCreatedAtBetween(Instant from, Instant to);
+
+    /** Tổng doanh thu từ các booking đã hoàn tất trong khoảng thời gian. */
+    @Query("""
+            SELECT COALESCE(SUM(b.totalAmount), 0) FROM Booking b
+            WHERE b.status = be.exe.booking.domain.BookingStatus.COMPLETED
+              AND b.createdAt BETWEEN :from AND :to
+            """)
+    BigDecimal sumRevenueBetween(@Param("from") Instant from, @Param("to") Instant to);
 }
