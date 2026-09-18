@@ -2,6 +2,7 @@ export type GenderCategory = 'nam' | 'nu' | 'unisex';
 
 export interface Hairstyle {
   id: string;
+  apiId?: number;
   name: string;
   category: string;
   gender: GenderCategory;
@@ -13,6 +14,7 @@ export interface Hairstyle {
 
 export interface ServiceItem {
   id: string;
+  apiId?: number;
   name: string;
   price: number;
   durationMinutes: number;
@@ -20,6 +22,7 @@ export interface ServiceItem {
 
 export interface Salon {
   id: string;
+  apiId?: number;
   name: string;
   address: string;
   distance: string;
@@ -31,12 +34,22 @@ export interface Salon {
   openingHours: string;
   supportedHairstyles: string[]; // Hairstyle IDs
   services: ServiceItem[];
+  stylists?: StylistItem[];
+}
+
+export interface StylistItem {
+  id: string;
+  apiId?: number;
+  name: string;
+  role?: string;
+  avatar?: string;
 }
 
 export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'IN_SERVICE' | 'COMPLETED' | 'CANCELLED';
 
 export interface Booking {
   id: string;
+  apiId?: number;
   customerName: string;
   customerPhone: string;
   salonId: string;

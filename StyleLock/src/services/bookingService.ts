@@ -20,6 +20,22 @@ class BookingStore {
     return this.bookings.filter((b) => b.salonId === salonId);
   }
 
+  public upsertBooking(booking: Booking): Booking {
+    const bookingIndex = this.bookings.findIndex((b) => b.id === booking.id);
+    if (bookingIndex === -1) {
+      this.bookings.unshift(booking);
+      return booking;
+    }
+
+    this.bookings[bookingIndex] = booking;
+    return booking;
+  }
+
+  public replaceBookings(bookings: Booking[]): Booking[] {
+    this.bookings = bookings;
+    return this.getAllBookings();
+  }
+
   public createBooking(newBookingData: Omit<Booking, 'id' | 'createdAt' | 'status' | 'qrCode'>): Booking {
     const id = `BK-${Math.floor(10000 + Math.random() * 90000)}`;
     const now = new Date();

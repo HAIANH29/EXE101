@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -12,6 +12,7 @@ import {
   ImageBackground
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { CameraView, useCameraPermissions, CameraType } from 'expo-camera';
 import { MOCK_HAIRSTYLES } from '../services/mockData';
 import { Hairstyle } from '../types';
 
@@ -31,11 +32,15 @@ const FILTER_STYLES = [
 
 export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigation, route }) => {
   const preselectedHair: Hairstyle | undefined = route?.params?.preselectedHair;
+  const cameraRef = useRef<CameraView | null>(null);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
 
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [cameraFacing, setCameraFacing] = useState<CameraType>('front');
   const [activeFilterIdx, setActiveFilterIdx] = useState<number>(0);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [analysisComplete, setAnalysisComplete] = useState<boolean>(false);
+  const [isCapturing, setIsCapturing] = useState<boolean>(false);
 
   // Map filter styles to actual hairstyles from mock data
   const filterHairstyles = FILTER_STYLES.map((f, idx) => ({
@@ -67,27 +72,14 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
     }
   };
 
-  const handleTakePhoto = async () => {
-    try {
-      const permission = await ImagePicker.requestCameraPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert('Quyền camera', 'Vui lòng cấp quyền Camera để chụp ảnh khuôn mặt!');
-        return;
-      }
-
-      const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        aspect: [3, 4],
-        quality: 0.9
-      });
-
-      if (!result.canceled && result.assets[0]?.uri) {
-        setSelectedPhoto(result.assets[0].uri);
-        simulateAnalysis();
-      }
-    } catch (e) {
-      console.log('Camera error', e);
+  const handleTakePhoto = () => {
+    if (selectedPhoto) {
+      setSelectedPhoto(null);
+      setAnalysisComplete(false);
+      return;
     }
+
+    setCameraFacing((current) => (current === 'front' ? 'back' : 'front'));
   };
 
   const simulateAnalysis = () => {
@@ -99,7 +91,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
     }, 1500);
   };
 
-  const handleCapture = () => {
+  const handleCapture = async () => {
     if (selectedPhoto) {
       // Already have a photo, proceed to try-on
       const hairToUse = filterHairstyles[activeFilterIdx].hairstyle;
@@ -108,10 +100,36 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
         hairstyle: preselectedHair || hairToUse
       });
     } else {
-      // No photo yet — use sample face for demo
-      const sampleUri = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600';
-      setSelectedPhoto(sampleUri);
-      simulateAnalysis();
+      try {
+        if (!cameraPermission?.granted) {
+          const permission = await requestCameraPermission();
+          if (!permission.granted) {
+            Alert.alert('Quyền camera', 'Vui lòng cấp quyền Camera để chụp ảnh khuôn mặt!');
+            return;
+          }
+        }
+
+        if (!cameraRef.current) {
+          Alert.alert('Camera chưa sẵn sàng', 'Vui lòng đợi camera mở xong rồi thử lại.');
+          return;
+        }
+
+        setIsCapturing(true);
+        const photo = await cameraRef.current.takePictureAsync({
+          quality: 0.9,
+          skipProcessing: false
+        });
+
+        if (photo?.uri) {
+          setSelectedPhoto(photo.uri);
+          simulateAnalysis();
+        }
+      } catch (e) {
+        console.log('Camera capture error', e);
+        Alert.alert('Không chụp được ảnh', 'Thiết bị hoặc trình duyệt chưa cho phép mở camera.');
+      } finally {
+        setIsCapturing(false);
+      }
     }
   };
 
@@ -120,9 +138,48 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
     navigation.navigate('SalonList', { selectedHairstyle: hairToUse, userPhotoUri: selectedPhoto });
   };
 
-  // Determine the camera feed image
-  const cameraFeedUri = selectedPhoto
-    || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800';
+  const renderCameraSurface = () => {
+    if (selectedPhoto) {
+      return (
+        <ImageBackground
+          source={{ uri: selectedPhoto }}
+          style={styles.cameraFeed}
+          resizeMode="cover"
+        />
+      );
+    }
+
+    if (!cameraPermission) {
+      return (
+        <View style={styles.permissionSurface}>
+          <Text style={styles.permissionTitle}>Đang kiểm tra camera...</Text>
+        </View>
+      );
+    }
+
+    if (!cameraPermission.granted) {
+      return (
+        <View style={styles.permissionSurface}>
+          <Text style={styles.permissionTitle}>StyleLock cần quyền camera</Text>
+          <Text style={styles.permissionBody}>Cho phép camera để xem preview trực tiếp và chụp ảnh khuôn mặt.</Text>
+          <TouchableOpacity style={styles.permissionBtn} onPress={requestCameraPermission}>
+            <Text style={styles.permissionBtnText}>Cho phép Camera</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return (
+      <CameraView
+        ref={cameraRef}
+        style={styles.cameraFeed}
+        facing={cameraFacing}
+        mode="picture"
+        mute={true}
+        mirror={cameraFacing === 'front'}
+      />
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -144,11 +201,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
 
       {/* Full-Screen Camera Canvas */}
       <View style={styles.cameraCanvas}>
-        <ImageBackground
-          source={{ uri: cameraFeedUri }}
-          style={styles.cameraFeed}
-          resizeMode="cover"
-        >
+        {renderCameraSurface()}
           {/* Vignette Gradient Overlay */}
           <View style={styles.vignetteTop} />
           <View style={styles.vignetteBottom} />
@@ -174,7 +227,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
             {/* Quick Action Buttons */}
             <View style={styles.quickActions}>
               <TouchableOpacity style={styles.quickActionBtn} onPress={handleTakePhoto}>
-                <Text style={styles.quickActionIcon}>📷</Text>
+                <Text style={styles.quickActionIcon}>{selectedPhoto ? '↺' : '🔄'}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.quickActionBtn} onPress={handlePickFromGallery}>
@@ -253,10 +306,15 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
             {/* Capture Button Area */}
             <View style={styles.captureArea}>
               <View style={styles.captureLine} />
-              <TouchableOpacity style={styles.captureBtn} onPress={handleCapture} activeOpacity={0.85}>
+              <TouchableOpacity
+                style={[styles.captureBtn, isCapturing && styles.captureBtnDisabled]}
+                onPress={handleCapture}
+                activeOpacity={0.85}
+                disabled={isCapturing}
+              >
                 <View style={styles.captureRing}>
                   <View style={styles.captureInner}>
-                    <Text style={styles.captureIcon}>✨</Text>
+                    <Text style={styles.captureIcon}>{selectedPhoto ? '✓' : '📷'}</Text>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -275,7 +333,6 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
               </TouchableOpacity>
             </View>
           </View>
-        </ImageBackground>
       </View>
 
       {/* Bottom Navigation Bar */}
@@ -353,6 +410,40 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%'
+  },
+  permissionSurface: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 28,
+    backgroundColor: '#121C2A'
+  },
+  permissionTitle: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: 8
+  },
+  permissionBody: {
+    color: 'rgba(255, 255, 255, 0.78)',
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: 'center',
+    marginBottom: 16
+  },
+  permissionBtn: {
+    backgroundColor: '#005C55',
+    borderRadius: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 12
+  },
+  permissionBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700'
   },
   vignetteTop: {
     position: 'absolute',
@@ -623,6 +714,9 @@ const styles = StyleSheet.create({
     height: 76,
     justifyContent: 'center',
     alignItems: 'center'
+  },
+  captureBtnDisabled: {
+    opacity: 0.6
   },
   captureRing: {
     width: 72,

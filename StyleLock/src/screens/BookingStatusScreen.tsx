@@ -8,6 +8,7 @@ import {
   ScrollView,
   Image
 } from 'react-native';
+import { backendApi } from '../services/backendApi';
 import { bookingService } from '../services/bookingService';
 import { Booking } from '../types';
 
@@ -23,9 +24,31 @@ export const BookingStatusScreen: React.FC<BookingStatusScreenProps> = ({ naviga
   );
 
   useEffect(() => {
-    // Refresh booking data
-    const updated = bookingService.getBookingById(bookingId);
-    if (updated) setBooking({ ...updated });
+    let isMounted = true;
+
+    const loadBooking = async () => {
+      const updated = bookingService.getBookingById(bookingId);
+      if (updated) {
+        setBooking({ ...updated });
+        return;
+      }
+
+      if (!backendApi.isAuthenticated()) return;
+
+      try {
+        const backendBooking = await backendApi.getBookingDetail(bookingId);
+        bookingService.upsertBooking(backendBooking);
+        if (isMounted) setBooking({ ...backendBooking });
+      } catch {
+        // Keep not-found state when backend detail is unavailable.
+      }
+    };
+
+    loadBooking();
+
+    return () => {
+      isMounted = false;
+    };
   }, [bookingId]);
 
   if (!booking) {

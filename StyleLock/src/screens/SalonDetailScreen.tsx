@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -10,7 +10,8 @@ import {
   ImageBackground,
   Alert
 } from 'react-native';
-import { Salon, Hairstyle, ServiceItem } from '../types';
+import { backendApi } from '../services/backendApi';
+import { Salon, Hairstyle, ServiceItem, StylistItem } from '../types';
 
 interface SalonDetailScreenProps {
   navigation: any;
@@ -23,7 +24,7 @@ const TIME_SLOTS = [
   '17:00', '17:30', '18:00', '18:30', '19:00'
 ];
 
-const STYLISTS = [
+const STYLISTS: StylistItem[] = [
   {
     id: 'st-1',
     name: 'Elena R.',
@@ -44,6 +45,10 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
   const userPhotoUri: string | undefined = route.params?.userPhotoUri;
 
   const [activeTab, setActiveTab] = useState<string>('Services');
+  const [salonServices, setSalonServices] = useState<ServiceItem[]>(salon.services);
+  const [salonStylists, setSalonStylists] = useState<StylistItem[]>(
+    salon.stylists && salon.stylists.length > 0 ? salon.stylists : STYLISTS
+  );
 
   // Dates
   const today = new Date();
@@ -62,17 +67,60 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
 
   const [selectedDate, setSelectedDate] = useState<string>(dateOptions[0].fullDate);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('14:30');
-  const [selectedService, setSelectedService] = useState<ServiceItem>(salon.services[0]);
+  const [selectedService, setSelectedService] = useState<ServiceItem | undefined>(salon.services[0]);
+  const [selectedStylist, setSelectedStylist] = useState<StylistItem | undefined>(
+    salon.stylists && salon.stylists.length > 0 ? salon.stylists[0] : STYLISTS[0]
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadBackendSalonDetails = async () => {
+      if (!salon.apiId) return;
+
+      try {
+        const [apiServices, apiStylists] = await Promise.all([
+          backendApi.getServicesBySalon(salon.apiId),
+          backendApi.getStylistsBySalon(salon.apiId)
+        ]);
+
+        if (!isMounted) return;
+
+        if (apiServices.length > 0) {
+          setSalonServices(apiServices);
+          setSelectedService(apiServices[0]);
+        }
+
+        if (apiStylists.length > 0) {
+          setSalonStylists(apiStylists);
+          setSelectedStylist(apiStylists[0]);
+        }
+      } catch {
+        // Keep route/mock salon details when backend detail APIs are unavailable.
+      }
+    };
+
+    loadBackendSalonDetails();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [salon.apiId]);
 
   const handleBookAppointment = () => {
-    if (!selectedDate || !selectedTimeSlot || !selectedService) {
-      Alert.alert('Selection Missing', 'Please select a service, date and time slot!');
+    if (!selectedDate || !selectedTimeSlot || !selectedService || !selectedStylist) {
+      Alert.alert('Selection Missing', 'Please select a service, stylist, date and time slot!');
       return;
     }
 
     navigation.navigate('QuickBooking', {
-      salon,
+      salon: {
+        ...salon,
+        services: salonServices,
+        stylists: salonStylists
+      },
       selectedService,
+      selectedStylist,
       selectedDate,
       selectedTimeSlot,
       selectedHairstyle,
@@ -151,24 +199,36 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Top Stylists</Text>
           <View style={styles.stylistGrid}>
-            {STYLISTS.map((st) => (
-              <View key={st.id} style={styles.stylistCard}>
-                <Image source={{ uri: st.avatar }} style={styles.stylistAvatar} />
+            {salonStylists.map((st) => {
+              const isSelected = selectedStylist?.id === st.id;
+              return (
+              <TouchableOpacity
+                key={st.id}
+                style={[styles.stylistCard, isSelected && styles.selectedStylistCard]}
+                onPress={() => setSelectedStylist(st)}
+              >
+                <Image source={{ uri: st.avatar || salon.imageUrl }} style={styles.stylistAvatar} />
                 <View>
                   <Text style={styles.stylistName}>{st.name}</Text>
-                  <Text style={styles.stylistRole}>{st.role}</Text>
+                  <Text style={styles.stylistRole}>{st.role || 'StyleLock stylist'}</Text>
                 </View>
-              </View>
-            ))}
+              </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
         {/* Services List Section */}
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Services</Text>
-          <View style={styles.serviceList}>
-            {salon.services.map((srv) => {
-              const isSelected = selectedService.id === srv.id;
+          {salonServices.length === 0 ? (
+            <View style={styles.emptyServiceCard}>
+              <Text style={styles.emptyServiceText}>Salon này chưa có dịch vụ từ backend.</Text>
+            </View>
+          ) : (
+            <View style={styles.serviceList}>
+              {salonServices.map((srv) => {
+                const isSelected = selectedService?.id === srv.id;
               return (
                 <TouchableOpacity
                   key={srv.id}
@@ -194,8 +254,9 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
                   </View>
                 </TouchableOpacity>
               );
-            })}
-          </View>
+              })}
+            </View>
+          )}
         </View>
 
         {/* Date Selection */}
@@ -455,6 +516,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 8
   },
+  selectedStylistCard: {
+    borderColor: '#005C55',
+    backgroundColor: 'rgba(0, 92, 85, 0.04)'
+  },
   stylistAvatar: {
     width: 52,
     height: 52,
@@ -473,6 +538,17 @@ const styles = StyleSheet.create({
   },
   serviceList: {
     gap: 12
+  },
+  emptyServiceCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E6EEFF'
+  },
+  emptyServiceText: {
+    color: '#3E4947',
+    fontSize: 13
   },
   serviceCard: {
     flexDirection: 'row',

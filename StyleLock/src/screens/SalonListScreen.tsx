@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -11,6 +11,7 @@ import {
   Alert
 } from 'react-native';
 import { MOCK_SALONS } from '../services/mockData';
+import { backendApi } from '../services/backendApi';
 import { Hairstyle, Salon } from '../types';
 
 interface SalonListScreenProps {
@@ -25,12 +26,34 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeFilter, setActiveFilter] = useState<string>('All');
   const [favorites, setFavorites] = useState<{ [id: string]: boolean }>({});
+  const [salons, setSalons] = useState<Salon[]>(MOCK_SALONS);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadSalons = async () => {
+      try {
+        const apiSalons = await backendApi.getSalons();
+        if (isMounted && apiSalons.length > 0) {
+          setSalons(apiSalons);
+        }
+      } catch {
+        // Keep mock salons when backend salon APIs are unavailable.
+      }
+    };
+
+    loadSalons();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const toggleFavorite = (id: string) => {
     setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const salonsToDisplay = MOCK_SALONS.filter((salon) => {
+  const salonsToDisplay = salons.filter((salon) => {
     const matchesSearch =
       salon.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       salon.address.toLowerCase().includes(searchQuery.toLowerCase());

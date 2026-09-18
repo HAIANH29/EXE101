@@ -11,8 +11,9 @@ import {
   Alert,
   Dimensions
 } from 'react-native';
+import { backendApi } from '../services/backendApi';
 import { bookingService } from '../services/bookingService';
-import { Salon, ServiceItem, Hairstyle } from '../types';
+import { Salon, ServiceItem, Hairstyle, StylistItem, Booking } from '../types';
 
 interface QuickBookingScreenProps {
   navigation: any;
@@ -23,7 +24,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const SERVICES = ['Haircut & Style', 'Coloring', 'Balayage', 'AI Consultation'];
 
-const STYLISTS = [
+const STYLISTS: StylistItem[] = [
   {
     id: 'st-elena',
     name: 'Elena',
@@ -72,28 +73,32 @@ const MONTH_NAMES = ['January','February','March','April','May','June','July','A
 
 export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigation, route }) => {
   const salon: Salon = route.params.salon;
-  const selectedServiceParam: ServiceItem = route.params.selectedService;
-  const selectedDateParam: string = route.params.selectedDate;
-  const selectedTimeSlotParam: string = route.params.selectedTimeSlot;
+  const selectedServiceParam: ServiceItem | undefined = route.params.selectedService;
+  const selectedDateParam: string | undefined = route.params.selectedDate;
+  const selectedTimeSlotParam: string | undefined = route.params.selectedTimeSlot;
+  const selectedStylistParam: StylistItem | undefined = route.params?.selectedStylist;
   const selectedHairstyle: Hairstyle | undefined = route.params?.selectedHairstyle;
   const userPhotoUri: string | undefined = route.params?.userPhotoUri;
+  const stylistsToDisplay = salon.stylists && salon.stylists.length > 0 ? salon.stylists : STYLISTS;
+  const initialDate = selectedDateParam ? new Date(`${selectedDateParam}T00:00:00`) : new Date();
 
   // Service selection
   const [activeService, setActiveService] = useState<string>(
-    selectedServiceParam?.name || SERVICES[0]
+    selectedServiceParam?.name || salon.services[0]?.name || SERVICES[0]
   );
 
   // Stylist selection
-  const [activeStylistId, setActiveStylistId] = useState<string>('st-elena');
+  const [activeStylistId, setActiveStylistId] = useState<string>(
+    selectedStylistParam?.id || stylistsToDisplay[0]?.id || 'anyone'
+  );
 
   // Calendar state
-  const today = new Date();
-  const [calYear, setCalYear] = useState<number>(today.getFullYear());
-  const [calMonth, setCalMonth] = useState<number>(today.getMonth());
-  const [selectedDay, setSelectedDay] = useState<number>(today.getDate());
+  const [calYear, setCalYear] = useState<number>(initialDate.getFullYear());
+  const [calMonth, setCalMonth] = useState<number>(initialDate.getMonth());
+  const [selectedDay, setSelectedDay] = useState<number>(initialDate.getDate());
 
   // Time slot
-  const [selectedTime, setSelectedTime] = useState<string>('10:30');
+  const [selectedTime, setSelectedTime] = useState<string>(selectedTimeSlotParam || '10:30');
 
   // Contact
   const [customerName, setCustomerName] = useState<string>('Nguyễn Văn Minh');
@@ -102,7 +107,7 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
   const [confirmed, setConfirmed] = useState<boolean>(false);
 
   const calDays = buildCalendarDays(calYear, calMonth);
-  const activeStylist = STYLISTS.find((s) => s.id === activeStylistId) || STYLISTS[0];
+  const activeStylist = stylistsToDisplay.find((s) => s.id === activeStylistId) || stylistsToDisplay[0];
 
   const formattedDate = `${MONTH_NAMES[calMonth].slice(0, 3)} ${selectedDay}`;
   const formattedTime = TIME_SLOTS_DISPLAY.find((t) => t.value === selectedTime)?.label || selectedTime;
@@ -131,7 +136,33 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
     return `${calYear}-${mm}-${dd}`;
   };
 
-  const handleConfirmBooking = () => {
+  const createLocalBooking = (): Booking => {
+    return bookingService.createBooking({
+      customerName: customerName.trim(),
+      customerPhone: customerPhone.trim(),
+      salonId: salon.id,
+      salonName: salon.name,
+      salonAddress: salon.address,
+      hairstyleId: selectedHairstyle?.id,
+      hairstyleName: selectedHairstyle?.name,
+      tryOnImageUrl: userPhotoUri || selectedHairstyle?.imageUrl,
+      serviceId: selectedServiceParam?.id || 'srv-1',
+      serviceName: activeService,
+      date: buildBookingDate(),
+      timeSlot: selectedTime,
+      totalPrice: selectedServiceParam?.price || 120000
+    });
+  };
+
+  const goToCreatedBooking = (createdBooking: Booking) => {
+    setConfirmed(true);
+
+    setTimeout(() => {
+      navigation.replace('BookingStatus', { bookingId: createdBooking.id });
+    }, 1200);
+  };
+
+  const handleConfirmBooking = async () => {
     if (!customerName.trim()) {
       Alert.alert('Thiếu thông tin', 'Vui lòng nhập tên người đặt!');
       return;
@@ -143,30 +174,47 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
 
     setIsConfirming(true);
 
-    setTimeout(() => {
-      const createdBooking = bookingService.createBooking({
-        customerName: customerName.trim(),
-        customerPhone: customerPhone.trim(),
-        salonId: salon.id,
-        salonName: salon.name,
-        salonAddress: salon.address,
-        hairstyleId: selectedHairstyle?.id,
-        hairstyleName: selectedHairstyle?.name,
-        tryOnImageUrl: userPhotoUri || selectedHairstyle?.imageUrl,
-        serviceId: selectedServiceParam?.id || 'srv-1',
-        serviceName: activeService,
-        date: buildBookingDate(),
-        timeSlot: selectedTime,
-        totalPrice: selectedServiceParam?.price || 120000
-      });
+    try {
+      if (
+        salon.apiId &&
+        selectedServiceParam?.apiId &&
+        activeStylist?.apiId &&
+        backendApi.isAuthenticated()
+      ) {
+        const backendBooking = await backendApi.createBooking({
+          salon,
+          service: selectedServiceParam,
+          stylist: activeStylist,
+          selectedDate: buildBookingDate(),
+          selectedTimeSlot: selectedTime,
+          hairstyle: selectedHairstyle,
+          userPhotoUri,
+          note: `Khách đặt từ StyleLock app. SĐT: ${customerPhone.trim()}`
+        });
+        bookingService.upsertBooking(backendBooking);
+        goToCreatedBooking(backendBooking);
+        return;
+      }
 
+      const createdBooking = createLocalBooking();
+      goToCreatedBooking(createdBooking);
+    } catch (error) {
       setIsConfirming(false);
-      setConfirmed(true);
+      const message = error instanceof Error ? error.message : 'Backend không tạo được booking.';
+      Alert.alert('Không tạo được booking backend', message, [
+        { text: 'Đóng', style: 'cancel' },
+        {
+          text: 'Lưu demo',
+          onPress: () => {
+            const createdBooking = createLocalBooking();
+            goToCreatedBooking(createdBooking);
+          }
+        }
+      ]);
+      return;
+    }
 
-      setTimeout(() => {
-        navigation.replace('BookingStatus', { bookingId: createdBooking.id });
-      }, 1200);
-    }, 1000);
+    setIsConfirming(false);
   };
 
   return (
@@ -217,7 +265,7 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Choose Stylist</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.stylistScroll}>
-            {STYLISTS.map((st) => {
+            {stylistsToDisplay.map((st) => {
               const isActive = activeStylistId === st.id;
               return (
                 <TouchableOpacity
@@ -227,7 +275,7 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
                   activeOpacity={0.8}
                 >
                   <View style={[styles.stylistAvatarWrap, isActive && styles.stylistAvatarActive]}>
-                    <Image source={{ uri: st.avatar }} style={styles.stylistAvatar} />
+                    <Image source={{ uri: st.avatar || salon.imageUrl }} style={styles.stylistAvatar} />
                     {isActive && (
                       <View style={styles.checkBadge}>
                         <Text style={styles.checkBadgeIcon}>✓</Text>

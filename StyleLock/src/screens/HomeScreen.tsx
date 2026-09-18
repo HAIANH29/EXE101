@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -13,6 +13,8 @@ import {
   Alert
 } from 'react-native';
 import { MOCK_HAIRSTYLES, MOCK_SALONS, INITIAL_BOOKINGS } from '../services/mockData';
+import { backendApi } from '../services/backendApi';
+import { Hairstyle, Salon } from '../types';
 
 interface HomeScreenProps {
   navigation: any;
@@ -23,7 +25,34 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeTab, setActiveTab] = useState<string>('Home');
+  const [hairstyles, setHairstyles] = useState<Hairstyle[]>(MOCK_HAIRSTYLES);
+  const [salons, setSalons] = useState<Salon[]>(MOCK_SALONS);
   const upcomingBooking = INITIAL_BOOKINGS[0];
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadBackendData = async () => {
+      try {
+        const [apiHairstyles, apiSalons] = await Promise.all([
+          backendApi.getHairstyles(),
+          backendApi.getSalons()
+        ]);
+
+        if (!isMounted) return;
+        if (apiHairstyles.length > 0) setHairstyles(apiHairstyles);
+        if (apiSalons.length > 0) setSalons(apiSalons);
+      } catch {
+        // Keep mock data when backend is unavailable or auth/CORS is not ready.
+      }
+    };
+
+    loadBackendData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -165,7 +194,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-          {MOCK_HAIRSTYLES.slice(0, 6).map((hair, index) => {
+          {hairstyles.slice(0, 6).map((hair, index) => {
             const matchPercent = 98 - index * 3;
             return (
               <TouchableOpacity

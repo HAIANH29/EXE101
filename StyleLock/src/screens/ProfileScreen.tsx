@@ -10,6 +10,7 @@ import {
   Switch,
   Alert
 } from 'react-native';
+import { backendApi } from '../services/backendApi';
 
 interface ProfileScreenProps {
   navigation: any;
@@ -18,6 +19,7 @@ interface ProfileScreenProps {
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   const [darkMode, setDarkMode] = useState<boolean>(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(true);
+  const currentUser = backendApi.getCurrentUser()?.user;
 
   const handleLogout = () => {
     Alert.alert('Đăng xuất', 'Bạn có chắc chắn muốn đăng xuất?', [
@@ -25,7 +27,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
       {
         text: 'Đăng xuất',
         style: 'destructive',
-        onPress: () => navigation.replace('Login')
+        onPress: () => {
+          backendApi.logout();
+          navigation.replace('Login');
+        }
       }
     ]);
   };
@@ -69,8 +74,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.userName}>Eleanor Vance</Text>
-          <Text style={styles.userEmail}>eleanor.v@example.com</Text>
+          <Text style={styles.userName}>{currentUser?.fullName || 'Eleanor Vance'}</Text>
+          <Text style={styles.userEmail}>{currentUser?.email || 'eleanor.v@example.com'}</Text>
 
           <TouchableOpacity
             style={styles.editProfileBtn}

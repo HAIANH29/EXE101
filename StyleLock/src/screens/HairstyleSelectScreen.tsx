@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -12,6 +12,7 @@ import {
   Dimensions
 } from 'react-native';
 import { MOCK_HAIRSTYLES } from '../services/mockData';
+import { backendApi } from '../services/backendApi';
 import { Hairstyle } from '../types';
 
 interface HairstyleSelectScreenProps {
@@ -30,12 +31,34 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
   const [selectedLength, setSelectedLength] = useState<string>('All');
   const [selectedStyleFilter, setSelectedStyleFilter] = useState<string>('All');
   const [favorites, setFavorites] = useState<{ [id: string]: boolean }>({});
+  const [hairstyles, setHairstyles] = useState<Hairstyle[]>(MOCK_HAIRSTYLES);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadHairstyles = async () => {
+      try {
+        const apiHairstyles = await backendApi.getHairstyles();
+        if (isMounted && apiHairstyles.length > 0) {
+          setHairstyles(apiHairstyles);
+        }
+      } catch {
+        // Keep mock hairstyles when backend catalog is unavailable.
+      }
+    };
+
+    loadHairstyles();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const toggleFavorite = (id: string) => {
     setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const filteredHairstyles = MOCK_HAIRSTYLES.filter((hair) => {
+  const filteredHairstyles = hairstyles.filter((hair) => {
     // Search query filter
     const matchesSearch =
       hair.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

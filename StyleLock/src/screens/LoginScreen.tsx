@@ -12,6 +12,7 @@ import {
   Platform,
   Alert
 } from 'react-native';
+import { backendApi } from '../services/backendApi';
 
 interface LoginScreenProps {
   navigation: any;
@@ -21,16 +22,55 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  const handleSignIn = () => {
-    // Navigate directly into main application Home flow
-    navigation.replace('Home');
+  const handleSignIn = async () => {
+    if (!email.trim() || !password.trim()) {
+      navigation.replace('Home');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await backendApi.login(email.trim(), password);
+      navigation.replace('Home');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Không thể kết nối backend.';
+      Alert.alert('Không đăng nhập được backend', message, [
+        { text: 'Ở lại', style: 'cancel' },
+        { text: 'Vào demo', onPress: () => navigation.replace('Home') }
+      ]);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSocialLogin = (provider: string) => {
     Alert.alert('Đăng nhập ' + provider, 'Đang đăng nhập qua ' + provider + '...', [
       { text: 'OK', onPress: () => navigation.replace('Home') }
     ]);
+  };
+
+  const handleSignUp = async () => {
+    if (!email.trim() || !password.trim()) {
+      Alert.alert('Đăng ký backend', 'Nhập email và password trước, rồi bấm Sign Up.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await backendApi.register({
+        email: email.trim(),
+        password,
+        fullName: email.split('@')[0] || 'StyleLock User'
+      });
+      navigation.replace('Home');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Không thể đăng ký backend.';
+      Alert.alert('Đăng ký thất bại', message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -116,11 +156,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
             {/* Sign In Button */}
             <TouchableOpacity
-              style={styles.signInBtn}
+              style={[styles.signInBtn, isSubmitting && styles.signInBtnDisabled]}
               activeOpacity={0.85}
               onPress={handleSignIn}
+              disabled={isSubmitting}
             >
-              <Text style={styles.signInBtnText}>Sign In</Text>
+              <Text style={styles.signInBtnText}>{isSubmitting ? 'Connecting...' : 'Sign In'}</Text>
             </TouchableOpacity>
 
             {/* Divider */}
@@ -157,7 +198,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           {/* Bottom Footer Signup Link */}
           <View style={styles.footerRow}>
             <Text style={styles.footerText}>Don't have an account? </Text>
-            <TouchableOpacity onPress={() => Alert.alert('Đăng ký', 'Chuyển sang màn hình tạo tài khoản mới!')}>
+            <TouchableOpacity onPress={handleSignUp} disabled={isSubmitting}>
               <Text style={styles.signUpLink}>Sign Up</Text>
             </TouchableOpacity>
           </View>
@@ -314,6 +355,9 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '700'
+  },
+  signInBtnDisabled: {
+    opacity: 0.7
   },
   dividerRow: {
     flexDirection: 'row',

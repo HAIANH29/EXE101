@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     StyleSheet,
     View,
@@ -9,6 +9,7 @@ import {
     Image,
     Alert
 } from 'react-native';
+import { backendApi } from '../services/backendApi';
 import { bookingService } from '../services/bookingService';
 import { Booking, BookingStatus } from '../types';
 
@@ -24,7 +25,31 @@ const TABS = [
 
 export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navigation }) => {
     const [activeTab, setActiveTab] = useState<string>('UPCOMING');
-    const allBookings = bookingService.getAllBookings();
+    const [allBookings, setAllBookings] = useState<Booking[]>(bookingService.getAllBookings());
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadBackendBookings = async () => {
+            if (!backendApi.isAuthenticated()) return;
+
+            try {
+                const apiBookings = await backendApi.getMyBookings();
+                apiBookings.forEach((booking) => bookingService.upsertBooking(booking));
+                if (isMounted) {
+                    setAllBookings(bookingService.getAllBookings());
+                }
+            } catch {
+                // Keep in-memory demo bookings when backend booking APIs are unavailable.
+            }
+        };
+
+        loadBackendBookings();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     const filteredBookings = allBookings.filter((b) => {
         if (activeTab === 'UPCOMING') {
@@ -65,9 +90,21 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
                 {
                     text: 'Xác nhận Hủy',
                     style: 'destructive',
-                    onPress: () => {
-                        bookingService.updateBookingStatus(bookingId, 'CANCELLED');
-                        Alert.alert('Đã hủy', 'Lịch hẹn của bạn đã được hủy thành công.');
+                    onPress: async () => {
+                        try {
+                            const booking = allBookings.find((item) => item.id === bookingId);
+                            if (booking?.apiId && backendApi.isAuthenticated()) {
+                                const cancelled = await backendApi.cancelBooking(bookingId, 'Khách hủy từ StyleLock app');
+                                bookingService.upsertBooking(cancelled);
+                            } else {
+                                bookingService.updateBookingStatus(bookingId, 'CANCELLED');
+                            }
+                            setAllBookings(bookingService.getAllBookings());
+                            Alert.alert('Đã hủy', 'Lịch hẹn của bạn đã được hủy thành công.');
+                        } catch (error) {
+                            const message = error instanceof Error ? error.message : 'Không thể hủy booking backend.';
+                            Alert.alert('Hủy thất bại', message);
+                        }
                     }
                 }
             ]
