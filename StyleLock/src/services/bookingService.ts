@@ -2,10 +2,14 @@ import { Booking, BookingStatus } from '../types';
 import { INITIAL_BOOKINGS } from './mockData';
 
 class BookingStore {
-  private bookings: Booking[] = [...INITIAL_BOOKINGS];
+  private bookings: Booking[] = [];
 
   public getAllBookings(): Booking[] {
     return [...this.bookings];
+  }
+
+  public getDemoBookings(): Booking[] {
+    return [...INITIAL_BOOKINGS];
   }
 
   public getBookingById(id: string): Booking | undefined {
@@ -27,13 +31,26 @@ class BookingStore {
       return booking;
     }
 
-    this.bookings[bookingIndex] = booking;
-    return booking;
+    const current = this.bookings[bookingIndex];
+    this.bookings[bookingIndex] = {
+      ...current,
+      ...booking,
+      salonAddress: booking.salonAddress || current.salonAddress,
+      serviceName: booking.serviceName || current.serviceName,
+      hairstyleName: booking.hairstyleName || current.hairstyleName,
+      tryOnImageUrl: booking.tryOnImageUrl || current.tryOnImageUrl,
+      qrCode: booking.qrCode || current.qrCode
+    };
+    return this.bookings[bookingIndex];
   }
 
   public replaceBookings(bookings: Booking[]): Booking[] {
     this.bookings = bookings;
     return this.getAllBookings();
+  }
+
+  public clear(): void {
+    this.bookings = [];
   }
 
   public createBooking(newBookingData: Omit<Booking, 'id' | 'createdAt' | 'status' | 'qrCode'>): Booking {

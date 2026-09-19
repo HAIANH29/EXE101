@@ -30,15 +30,14 @@ export const BookingStatusScreen: React.FC<BookingStatusScreenProps> = ({ naviga
       const updated = bookingService.getBookingById(bookingId);
       if (updated) {
         setBooking({ ...updated });
-        return;
       }
 
       if (!backendApi.isAuthenticated()) return;
 
       try {
         const backendBooking = await backendApi.getBookingDetail(bookingId);
-        bookingService.upsertBooking(backendBooking);
-        if (isMounted) setBooking({ ...backendBooking });
+        const merged = bookingService.upsertBooking(backendBooking);
+        if (isMounted) setBooking({ ...merged });
       } catch {
         // Keep not-found state when backend detail is unavailable.
       }
@@ -140,7 +139,7 @@ export const BookingStatusScreen: React.FC<BookingStatusScreenProps> = ({ naviga
         </View>
 
         {/* DEMO SIMULATION SHORTCUT (Allows Instant Testing of Salon Confirm) */}
-        {booking.status === 'PENDING' && (
+        {booking.status === 'PENDING' && !booking.apiId && (
           <View style={styles.demoBox}>
             <Text style={styles.demoTitle}>⚡ NÚT SIMULATOR (Dành cho Testing & Demo):</Text>
             <TouchableOpacity style={styles.demoBtn} onPress={handleSimulateApprove}>
@@ -149,7 +148,7 @@ export const BookingStatusScreen: React.FC<BookingStatusScreenProps> = ({ naviga
           </View>
         )}
 
-        {booking.status === 'CONFIRMED' && (
+        {booking.status === 'CONFIRMED' && !booking.apiId && (
           <View style={styles.demoBox}>
             <Text style={styles.demoTitle}>⚡ NÚT SIMULATOR (Dành cho Testing & Demo):</Text>
             <TouchableOpacity style={[styles.demoBtn, { backgroundColor: '#10B981' }]} onPress={handleSimulateComplete}>

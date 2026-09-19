@@ -49,6 +49,17 @@ type BackendSalon = {
   status?: string;
 };
 
+type BackendBusinessHour = {
+  dayOfWeek: number;
+  openTime?: string;
+  closeTime?: string;
+  closed: boolean;
+};
+
+type BackendSalonDetail = BackendSalon & {
+  businessHours?: BackendBusinessHour[];
+};
+
 type BackendService = {
   id: number;
   salonId: number;
@@ -62,6 +73,8 @@ type BackendService = {
 type BackendStylist = {
   id: number;
   userId: number;
+  fullName?: string;
+  avatarUrl?: string;
   salonId: number;
   bio?: string;
   experienceYears?: number;
@@ -73,7 +86,9 @@ type BackendBooking = {
   customerId: number;
   salonId: number;
   salonName?: string;
+  salonAddress?: string;
   stylistId: number;
+  stylistName?: string;
   serviceId: number;
   serviceName?: string;
   hairstyleId?: number;
@@ -86,10 +101,26 @@ type BackendBooking = {
   createdAt?: string;
 };
 
+type BackendPayment = {
+  id: number;
+  bookingId: number;
+  referenceCode?: string;
+  amount: number | string;
+  status: string;
+  paymentUrl?: string;
+};
+
+type BackendReviewSummary = {
+  salonId: number;
+  averageRating: number | string;
+  totalReviews: number;
+};
+
 type BookingContext = {
   salon?: Salon;
   service?: ServiceItem;
   hairstyle?: Hairstyle;
+  payment?: BackendPayment;
   userPhotoUri?: string;
 };
 
@@ -108,14 +139,21 @@ function mapGender(gender?: string): GenderCategory {
 
 function toDisplayTime(isoDate: string) {
   const date = new Date(isoDate);
+  const vietnamDate = new Date(date.getTime() + 7 * 60 * 60 * 1000);
   return {
-    date: date.toISOString().slice(0, 10),
-    timeSlot: date.toLocaleTimeString('vi-VN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    })
+    date: vietnamDate.toISOString().slice(0, 10),
+    timeSlot: vietnamDate.toISOString().slice(11, 16)
   };
+}
+
+function formatBusinessHours(hours?: BackendBusinessHour[]) {
+  if (!hours || hours.length === 0) return 'Liên hệ salon';
+
+  const openDays = hours.filter((hour) => !hour.closed && hour.openTime && hour.closeTime);
+  if (openDays.length === 0) return 'Tạm đóng cửa';
+
+  const first = openDays[0];
+  return `${first.openTime?.slice(0, 5)} - ${first.closeTime?.slice(0, 5)}`;
 }
 
 function formatPriceRange(services: ServiceItem[]) {
@@ -157,8 +195,9 @@ function mapStylist(item: BackendStylist): StylistItem {
   return {
     id: `api-st-${item.id}`,
     apiId: item.id,
-    name: `Stylist #${item.id}`,
-    role: item.bio || `${item.experienceYears || 0} năm kinh nghiệm`
+    name: item.fullName || `Stylist #${item.id}`,
+    role: item.bio || `${item.experienceYears || 0} năm kinh nghiệm`,
+    avatar: item.avatarUrl
   };
 }
 
@@ -166,20 +205,24 @@ function mapSalon(
   item: BackendSalon,
   services: ServiceItem[] = [],
   hairstyles: Hairstyle[] = [],
-  stylists: StylistItem[] = []
+  stylists: StylistItem[] = [],
+  detail?: BackendSalonDetail,
+  reviewSummary?: BackendReviewSummary
 ): Salon {
+  const rating = Number(reviewSummary?.averageRating || 0);
+
   return {
     id: `api-sal-${item.id}`,
     apiId: item.id,
     name: item.name,
     address: item.address || 'Chưa cập nhật địa chỉ',
     distance: 'Theo vị trí của bạn',
-    rating: 4.8,
-    reviewCount: 0,
+    rating: rating > 0 ? Number(rating.toFixed(1)) : 0,
+    reviewCount: reviewSummary?.totalReviews || 0,
     priceRange: formatPriceRange(services),
     phone: item.phone || '',
     imageUrl: item.imageUrl || FALLBACK_IMAGE,
-    openingHours: 'Liên hệ salon',
+    openingHours: formatBusinessHours(detail?.businessHours),
     supportedHairstyles: hairstyles.map((hair) => hair.id),
     services,
     stylists
@@ -197,7 +240,7 @@ function mapBooking(item: BackendBooking, context: BookingContext = {}): Booking
     customerPhone: user?.phone || '',
     salonId: context.salon?.id || `api-sal-${item.salonId}`,
     salonName: item.salonName || context.salon?.name || `Salon #${item.salonId}`,
-    salonAddress: context.salon?.address || '',
+    salonAddress: item.salonAddress || context.salon?.address || '',
     hairstyleId: context.hairstyle?.id || (item.hairstyleId ? `api-hs-${item.hairstyleId}` : undefined),
     hairstyleName: item.hairstyleName || context.hairstyle?.name,
     tryOnImageUrl: context.userPhotoUri || context.hairstyle?.imageUrl,
@@ -208,7 +251,7 @@ function mapBooking(item: BackendBooking, context: BookingContext = {}): Booking
     status: item.status,
     createdAt: item.createdAt || new Date().toISOString(),
     totalPrice: moneyToNumber(item.totalAmount),
-    qrCode: `STYLELOCK-${item.id}`
+    qrCode: context.payment?.referenceCode || `STYLELOCK-${item.id}`
   };
 }
 
@@ -245,8 +288,20 @@ export const backendApi = {
     return session;
   },
 
-  logout() {
+  async logout() {
+    const refreshToken = authSessionStore.get()?.refreshToken;
     authSessionStore.clear();
+    if (!refreshToken) return;
+
+    try {
+      await apiRequest<void>('/api/auth/logout', {
+        method: 'POST',
+        auth: false,
+        body: JSON.stringify({ refreshToken })
+      });
+    } catch {
+      // Local logout should still succeed when the backend is unavailable.
+    }
   },
 
   async getHairstyles() {
@@ -274,15 +329,29 @@ export const backendApi = {
 
     return Promise.all(
       items.map(async (salon) => {
-        const [services, hairstyles, stylists] = await Promise.all([
+        const [services, hairstyles, stylists, detail, reviewSummary] = await Promise.all([
           this.getServicesBySalon(salon.id).catch(() => []),
           this.getHairstylesBySalon(salon.id).catch(() => []),
-          this.getStylistsBySalon(salon.id).catch(() => [])
+          this.getStylistsBySalon(salon.id).catch(() => []),
+          this.getSalonDetail(salon.id).catch(() => undefined),
+          this.getSalonReviewSummary(salon.id).catch(() => undefined)
         ]);
 
-        return mapSalon(salon, services, hairstyles, stylists);
+        return mapSalon(salon, services, hairstyles, stylists, detail, reviewSummary);
       })
     );
+  },
+
+  async getSalonDetail(salonId: number) {
+    return apiRequest<BackendSalonDetail>(`/api/salons/${salonId}`);
+  },
+
+  async getSalonReviewSummary(salonId: number) {
+    return apiRequest<BackendReviewSummary>(`/api/salons/${salonId}/reviews/summary`);
+  },
+
+  async getPaymentByBooking(bookingId: string | number) {
+    return apiRequest<BackendPayment>(`/api/bookings/${bookingId}/payment`);
   },
 
   async createBooking(input: {
@@ -311,10 +380,18 @@ export const backendApi = {
       })
     });
 
+    let payment: BackendPayment | undefined;
+    try {
+      payment = await this.getPaymentByBooking(booking.id);
+    } catch {
+      payment = undefined;
+    }
+
     return mapBooking(booking, {
       salon: input.salon,
       service: input.service,
       hairstyle: input.hairstyle,
+      payment,
       userPhotoUri: input.userPhotoUri
     });
   },
@@ -326,7 +403,8 @@ export const backendApi = {
 
   async getBookingDetail(bookingId: string) {
     const booking = await apiRequest<BackendBooking>(`/api/bookings/${bookingId}`);
-    return mapBooking(booking);
+    const payment = await this.getPaymentByBooking(booking.id).catch(() => undefined);
+    return mapBooking(booking, { payment });
   },
 
   async cancelBooking(bookingId: string, reason?: string) {

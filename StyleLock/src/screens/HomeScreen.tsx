@@ -12,9 +12,9 @@ import {
   ImageBackground,
   Alert
 } from 'react-native';
-import { MOCK_HAIRSTYLES, MOCK_SALONS, INITIAL_BOOKINGS } from '../services/mockData';
+import { MOCK_HAIRSTYLES, MOCK_SALONS } from '../services/mockData';
 import { backendApi } from '../services/backendApi';
-import { Hairstyle, Salon } from '../types';
+import { Booking, Hairstyle, Salon } from '../types';
 
 interface HomeScreenProps {
   navigation: any;
@@ -27,7 +27,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState<string>('Home');
   const [hairstyles, setHairstyles] = useState<Hairstyle[]>(MOCK_HAIRSTYLES);
   const [salons, setSalons] = useState<Salon[]>(MOCK_SALONS);
-  const upcomingBooking = INITIAL_BOOKINGS[0];
+  const [upcomingBooking, setUpcomingBooking] = useState<Booking | undefined>();
 
   useEffect(() => {
     let isMounted = true;
@@ -42,6 +42,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         if (!isMounted) return;
         if (apiHairstyles.length > 0) setHairstyles(apiHairstyles);
         if (apiSalons.length > 0) setSalons(apiSalons);
+
+        if (backendApi.isAuthenticated()) {
+          const bookings = await backendApi.getMyBookings().catch(() => []);
+          const upcoming = bookings.find(
+            (booking) => booking.status === 'PENDING' || booking.status === 'CONFIRMED'
+          );
+          if (isMounted) setUpcomingBooking(upcoming);
+        }
       } catch {
         // Keep mock data when backend is unavailable or auth/CORS is not ready.
       }
@@ -167,17 +175,29 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         <TouchableOpacity
           style={styles.appointmentCard}
           activeOpacity={0.9}
-          onPress={() => navigation.navigate('BookingStatus', { bookingId: upcomingBooking.id })}
+          onPress={() =>
+            upcomingBooking
+              ? navigation.navigate('BookingStatus', { bookingId: upcomingBooking.id })
+              : navigation.navigate('SalonList')
+          }
         >
           <Image
-            source={{ uri: upcomingBooking.tryOnImageUrl || 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=300' }}
+            source={{
+              uri:
+                upcomingBooking?.tryOnImageUrl ||
+                'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=300'
+            }}
             style={styles.appointmentImg}
           />
           <View style={styles.appointmentInfo}>
-            <Text style={styles.appointmentTitle}>{upcomingBooking.hairstyleName || 'Balayage & Trim'}</Text>
-            <Text style={styles.appointmentTime}>Tomorrow, 2:00 PM</Text>
+            <Text style={styles.appointmentTitle}>
+              {upcomingBooking?.serviceName || upcomingBooking?.hairstyleName || 'Chưa có lịch hẹn sắp tới'}
+            </Text>
+            <Text style={styles.appointmentTime}>
+              {upcomingBooking ? `${upcomingBooking.date}, ${upcomingBooking.timeSlot}` : 'Đặt lịch với salon gần bạn'}
+            </Text>
             <Text style={styles.appointmentSub} numberOfLines={1}>
-              {upcomingBooking.salonName} • with Stylist
+              {upcomingBooking ? `${upcomingBooking.salonName} • ${upcomingBooking.status}` : 'Chọn kiểu tóc, salon và khung giờ phù hợp'}
             </Text>
           </View>
           <View style={styles.arrowCircle}>

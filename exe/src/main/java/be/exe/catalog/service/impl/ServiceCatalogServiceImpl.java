@@ -86,7 +86,7 @@ public class ServiceCatalogServiceImpl implements ServiceCatalogService {
     @Override
     @Transactional(readOnly = true)
     public Page<ServiceResponse> getServicesBySalon(Long salonId, Pageable pageable) {
-        return serviceOfferingRepository.findBySalonId(salonId, pageable)
+        return serviceOfferingRepository.findBySalonIdAndStatus(salonId, ServiceStatus.ACTIVE, pageable)
                 .map(ServiceOfferingMapper::toResponse);
     }
 

@@ -15,6 +15,7 @@ import be.exe.common.exception.BusinessException;
 import be.exe.common.exception.ErrorCode;
 import be.exe.common.exception.ForbiddenException;
 import be.exe.common.exception.ResourceNotFoundException;
+import be.exe.common.security.UserAccountPort;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -26,10 +27,14 @@ public class StylistServiceImpl implements StylistService {
 
     private final StylistRepository stylistRepository;
     private final SalonRepository salonRepository;
+    private final UserAccountPort userAccountPort;
 
-    public StylistServiceImpl(StylistRepository stylistRepository, SalonRepository salonRepository) {
+    public StylistServiceImpl(StylistRepository stylistRepository,
+                              SalonRepository salonRepository,
+                              UserAccountPort userAccountPort) {
         this.stylistRepository = stylistRepository;
         this.salonRepository = salonRepository;
+        this.userAccountPort = userAccountPort;
     }
 
     @Override
@@ -57,7 +62,7 @@ public class StylistServiceImpl implements StylistService {
         stylist.updateInfo(request.getBio(), request.getExperienceYears());
         stylistRepository.save(stylist);
 
-        return StylistMapper.toResponse(stylist);
+        return toResponse(stylist);
     }
 
     @Override
@@ -76,23 +81,29 @@ public class StylistServiceImpl implements StylistService {
             stylist.changeStatus(StylistStatus.valueOf(request.getStatus()));
         }
 
-        return StylistMapper.toResponse(stylist);
+        return toResponse(stylist);
     }
 
     @Override
     @Transactional(readOnly = true)
     public StylistResponse getStylist(Long stylistId) {
-        return StylistMapper.toResponse(findOrThrow(stylistId));
+        return toResponse(findOrThrow(stylistId));
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<StylistResponse> getStylistsBySalon(Long salonId, Pageable pageable) {
-        return stylistRepository.findBySalonId(salonId, pageable).map(StylistMapper::toResponse);
+        return stylistRepository.findBySalonIdAndStatus(salonId, StylistStatus.ACTIVE, pageable)
+                .map(this::toResponse);
     }
 
     private Stylist findOrThrow(Long stylistId) {
         return stylistRepository.findById(stylistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Stylist", stylistId));
+    }
+
+    private StylistResponse toResponse(Stylist stylist) {
+        var profile = userAccountPort.findPublicProfileById(stylist.getUserId()).orElse(null);
+        return StylistMapper.toResponse(stylist, profile);
     }
 }

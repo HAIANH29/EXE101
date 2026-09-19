@@ -22,8 +22,6 @@ interface QuickBookingScreenProps {
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const SERVICES = ['Haircut & Style', 'Coloring', 'Balayage', 'AI Consultation'];
-
 const STYLISTS: StylistItem[] = [
   {
     id: 'st-elena',
@@ -79,12 +77,17 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
   const selectedStylistParam: StylistItem | undefined = route.params?.selectedStylist;
   const selectedHairstyle: Hairstyle | undefined = route.params?.selectedHairstyle;
   const userPhotoUri: string | undefined = route.params?.userPhotoUri;
+  const serviceOptions = salon.services.length > 0
+    ? salon.services
+    : selectedServiceParam
+    ? [selectedServiceParam]
+    : [];
   const stylistsToDisplay = salon.stylists && salon.stylists.length > 0 ? salon.stylists : STYLISTS;
   const initialDate = selectedDateParam ? new Date(`${selectedDateParam}T00:00:00`) : new Date();
 
   // Service selection
-  const [activeService, setActiveService] = useState<string>(
-    selectedServiceParam?.name || salon.services[0]?.name || SERVICES[0]
+  const [activeServiceId, setActiveServiceId] = useState<string>(
+    selectedServiceParam?.id || serviceOptions[0]?.id || ''
   );
 
   // Stylist selection
@@ -107,6 +110,7 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
   const [confirmed, setConfirmed] = useState<boolean>(false);
 
   const calDays = buildCalendarDays(calYear, calMonth);
+  const activeService = serviceOptions.find((service) => service.id === activeServiceId) || serviceOptions[0];
   const activeStylist = stylistsToDisplay.find((s) => s.id === activeStylistId) || stylistsToDisplay[0];
 
   const formattedDate = `${MONTH_NAMES[calMonth].slice(0, 3)} ${selectedDay}`;
@@ -146,11 +150,11 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
       hairstyleId: selectedHairstyle?.id,
       hairstyleName: selectedHairstyle?.name,
       tryOnImageUrl: userPhotoUri || selectedHairstyle?.imageUrl,
-      serviceId: selectedServiceParam?.id || 'srv-1',
-      serviceName: activeService,
+      serviceId: activeService?.id,
+      serviceName: activeService?.name,
       date: buildBookingDate(),
       timeSlot: selectedTime,
-      totalPrice: selectedServiceParam?.price || 120000
+      totalPrice: activeService?.price || 120000
     });
   };
 
@@ -171,19 +175,23 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
       Alert.alert('Thiếu thông tin', 'Vui lòng nhập số điện thoại hợp lệ!');
       return;
     }
+    if (!activeService || !activeStylist) {
+      Alert.alert('Thiếu thông tin', 'Vui lòng chọn dịch vụ và stylist.');
+      return;
+    }
 
     setIsConfirming(true);
 
     try {
       if (
         salon.apiId &&
-        selectedServiceParam?.apiId &&
+        activeService.apiId &&
         activeStylist?.apiId &&
         backendApi.isAuthenticated()
       ) {
         const backendBooking = await backendApi.createBooking({
           salon,
-          service: selectedServiceParam,
+          service: activeService,
           stylist: activeStylist,
           selectedDate: buildBookingDate(),
           selectedTimeSlot: selectedTime,
@@ -196,21 +204,21 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
         return;
       }
 
+      if (salon.apiId && activeService.apiId && activeStylist?.apiId && !backendApi.isAuthenticated()) {
+        setIsConfirming(false);
+        Alert.alert('Cần đăng nhập', 'Vui lòng đăng nhập để đặt lịch với dữ liệu backend.', [
+          { text: 'Đóng', style: 'cancel' },
+          { text: 'Đăng nhập', onPress: () => navigation.navigate('Login') }
+        ]);
+        return;
+      }
+
       const createdBooking = createLocalBooking();
       goToCreatedBooking(createdBooking);
     } catch (error) {
       setIsConfirming(false);
       const message = error instanceof Error ? error.message : 'Backend không tạo được booking.';
-      Alert.alert('Không tạo được booking backend', message, [
-        { text: 'Đóng', style: 'cancel' },
-        {
-          text: 'Lưu demo',
-          onPress: () => {
-            const createdBooking = createLocalBooking();
-            goToCreatedBooking(createdBooking);
-          }
-        }
-      ]);
+      Alert.alert('Không tạo được booking backend', message);
       return;
     }
 
@@ -244,16 +252,16 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Select Service</Text>
           <View style={styles.serviceChipsWrap}>
-            {SERVICES.map((svc) => {
-              const isActive = activeService === svc;
+            {serviceOptions.map((svc) => {
+              const isActive = activeService?.id === svc.id;
               return (
                 <TouchableOpacity
-                  key={svc}
+                  key={svc.id}
                   style={[styles.serviceChip, isActive && styles.serviceChipActive]}
-                  onPress={() => setActiveService(svc)}
+                  onPress={() => setActiveServiceId(svc.id)}
                 >
                   <Text style={[styles.serviceChipText, isActive && styles.serviceChipTextActive]}>
-                    {svc}
+                    {svc.name}
                   </Text>
                 </TouchableOpacity>
               );
@@ -453,7 +461,7 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
           <View>
             <Text style={styles.totalLabel}>TOTAL</Text>
             <Text style={styles.totalPrice}>
-              ${((selectedServiceParam?.price || 120000) / 1000).toFixed(0)}.00
+              {(activeService?.price || 120000).toLocaleString('vi-VN')} đ
             </Text>
           </View>
           <View style={styles.summaryRight}>

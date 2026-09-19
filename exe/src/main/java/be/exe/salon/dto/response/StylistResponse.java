@@ -5,6 +5,8 @@ import java.time.Instant;
 public record StylistResponse(
         Long id,
         Long userId,
+        String fullName,
+        String avatarUrl,
         Long salonId,
         String bio,
         Integer experienceYears,

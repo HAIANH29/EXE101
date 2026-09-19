@@ -16,6 +16,8 @@ public interface UserAccountPort {
      */
     Optional<AccountInfo> findByEmail(String email);
 
+    Optional<PublicProfile> findPublicProfileById(Long userId);
+
     /**
      * Dữ liệu tối thiểu cần cho việc xác thực + phân quyền,
      * KHÔNG phải là toàn bộ User entity (tránh lộ field không cần thiết như password_hash ra ngoài).
@@ -26,6 +28,15 @@ public interface UserAccountPort {
             String passwordHash,
             boolean enabled,
             List<String> roles
+    ) {
+    }
+
+    record PublicProfile(
+            Long id,
+            String email,
+            String fullName,
+            String phone,
+            String avatarUrl
     ) {
     }
 }

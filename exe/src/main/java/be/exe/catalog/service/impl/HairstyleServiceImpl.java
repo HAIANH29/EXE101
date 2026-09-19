@@ -83,8 +83,8 @@ public class HairstyleServiceImpl implements HairstyleService {
     @Transactional(readOnly = true)
     public Page<HairstyleResponse> getHairstyles(Long categoryId, Pageable pageable) {
         Page<Hairstyle> page = (categoryId != null)
-                ? hairstyleRepository.findByCategoryId(categoryId, pageable)
-                : hairstyleRepository.findAll(pageable);
+                ? hairstyleRepository.findByCategoryIdAndStatus(categoryId, HairstyleStatus.ACTIVE, pageable)
+                : hairstyleRepository.findByStatus(HairstyleStatus.ACTIVE, pageable);
         return page.map(HairstyleMapper::toResponse);
     }
 
@@ -118,6 +118,7 @@ public class HairstyleServiceImpl implements HairstyleService {
     public List<HairstyleResponse> getHairstylesBySalon(Long salonId) {
         return salonHairstyleRepository.findBySalonId(salonId).stream()
                 .map(link -> findOrThrow(link.getHairstyleId()))
+                .filter(Hairstyle::isActive)
                 .map(HairstyleMapper::toResponse)
                 .toList();
     }

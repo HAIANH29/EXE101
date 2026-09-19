@@ -35,12 +35,12 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
 
             try {
                 const apiBookings = await backendApi.getMyBookings();
-                apiBookings.forEach((booking) => bookingService.upsertBooking(booking));
                 if (isMounted) {
-                    setAllBookings(bookingService.getAllBookings());
+                    setAllBookings(bookingService.replaceBookings(apiBookings));
                 }
-            } catch {
-                // Keep in-memory demo bookings when backend booking APIs are unavailable.
+            } catch (error) {
+                const message = error instanceof Error ? error.message : 'Không tải được lịch hẹn backend.';
+                Alert.alert('Không tải được lịch hẹn', message);
             }
         };
 
@@ -94,7 +94,7 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
                         try {
                             const booking = allBookings.find((item) => item.id === bookingId);
                             if (booking?.apiId && backendApi.isAuthenticated()) {
-                                const cancelled = await backendApi.cancelBooking(bookingId, 'Khách hủy từ StyleLock app');
+                                const cancelled = await backendApi.cancelBooking(booking.apiId.toString(), 'Khách hủy từ StyleLock app');
                                 bookingService.upsertBooking(cancelled);
                             } else {
                                 bookingService.updateBookingStatus(bookingId, 'CANCELLED');

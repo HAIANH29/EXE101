@@ -26,7 +26,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
   const handleSignIn = async () => {
     if (!email.trim() || !password.trim()) {
-      navigation.replace('Home');
+      Alert.alert('Thiếu thông tin', 'Vui lòng nhập email và password để đăng nhập backend.');
       return;
     }
 

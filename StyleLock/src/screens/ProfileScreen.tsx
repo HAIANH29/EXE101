@@ -11,6 +11,7 @@ import {
   Alert
 } from 'react-native';
 import { backendApi } from '../services/backendApi';
+import { bookingService } from '../services/bookingService';
 
 interface ProfileScreenProps {
   navigation: any;
@@ -27,8 +28,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
       {
         text: 'Đăng xuất',
         style: 'destructive',
-        onPress: () => {
-          backendApi.logout();
+        onPress: async () => {
+          await backendApi.logout();
+          bookingService.clear();
           navigation.replace('Login');
         }
       }

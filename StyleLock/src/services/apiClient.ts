@@ -23,12 +23,19 @@ type ApiEnvelope<T> = {
 
 type RequestOptions = RequestInit & {
   auth?: boolean;
+  skipRefresh?: boolean;
 };
 
-const API_BASE_URL = 'http://localhost:8080';
+const runtimeEnv =
+  typeof globalThis !== 'undefined'
+    ? ((globalThis as unknown as { process?: { env?: Record<string, string | undefined> } }).process?.env || {})
+    : {};
+
+export const API_BASE_URL = runtimeEnv.EXPO_PUBLIC_API_URL || 'http://localhost:8080';
 const AUTH_STORAGE_KEY = 'stylelock.auth.session';
 
 let authSession: StoredAuthSession | null = readStoredSession();
+let refreshPromise: Promise<StoredAuthSession> | null = null;
 
 function getStorage() {
   try {
@@ -94,37 +101,7 @@ export const authSessionStore = {
   }
 };
 
-export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const headers: Record<string, string> = {
-    Accept: 'application/json',
-    ...(options.headers as Record<string, string> | undefined)
-  };
-
-  if (options.body && !headers['Content-Type']) {
-    headers['Content-Type'] = 'application/json';
-  }
-
-  if (options.auth !== false && authSession?.accessToken) {
-    headers.Authorization = `${authSession.tokenType || 'Bearer'} ${authSession.accessToken}`;
-  }
-
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers
-  });
-
-  const text = await response.text();
-  const payload = text ? (JSON.parse(text) as ApiEnvelope<T> | T) : undefined;
-
-  if (!response.ok) {
-    const errorPayload = payload as ApiEnvelope<T> | undefined;
-    throw new ApiError(
-      errorPayload?.message || `API request failed with status ${response.status}`,
-      response.status,
-      errorPayload?.errorCode
-    );
-  }
-
+function readEnvelope<T>(payload: ApiEnvelope<T> | T | undefined): T {
   if (
     payload &&
     typeof payload === 'object' &&
@@ -135,4 +112,106 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   }
 
   return payload as T;
+}
+
+function parsePayload<T>(text: string): ApiEnvelope<T> | T | undefined {
+  if (!text) return undefined;
+
+  try {
+    return JSON.parse(text) as ApiEnvelope<T> | T;
+  } catch {
+    return undefined;
+  }
+}
+
+async function refreshAuthSession(): Promise<StoredAuthSession> {
+  if (!authSession?.refreshToken) {
+    throw new ApiError('Phiên đăng nhập đã hết hạn.', 401, 'AUTH_EXPIRED');
+  }
+
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ refreshToken: authSession?.refreshToken })
+    });
+
+    const text = await response.text();
+    const payload = parsePayload<Partial<StoredAuthSession>>(text);
+
+    if (!response.ok) {
+      authSessionStore.clear();
+      const errorPayload = payload as ApiEnvelope<Partial<StoredAuthSession>> | undefined;
+      throw new ApiError(
+        errorPayload?.message || 'Phiên đăng nhập đã hết hạn.',
+        response.status,
+        errorPayload?.errorCode
+      );
+    }
+
+    const token = readEnvelope<Partial<StoredAuthSession>>(payload);
+    if (!token?.accessToken || !token.refreshToken || !authSession) {
+      authSessionStore.clear();
+      throw new ApiError('Backend không trả token hợp lệ.', 401, 'AUTH_REFRESH_INVALID');
+    }
+
+    const nextSession: StoredAuthSession = {
+      ...authSession,
+      accessToken: token.accessToken,
+      refreshToken: token.refreshToken,
+      tokenType: token.tokenType || authSession.tokenType || 'Bearer',
+      expiresIn: token.expiresIn || authSession.expiresIn
+    };
+    authSessionStore.set(nextSession);
+    return nextSession;
+  })().finally(() => {
+    refreshPromise = null;
+  });
+
+  return refreshPromise;
+}
+
+export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const { auth, skipRefresh, ...fetchOptions } = options;
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    ...(fetchOptions.headers as Record<string, string> | undefined)
+  };
+
+  if (fetchOptions.body && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  if (auth !== false && authSession?.accessToken) {
+    headers.Authorization = `${authSession.tokenType || 'Bearer'} ${authSession.accessToken}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...fetchOptions,
+    headers
+  });
+
+  const text = await response.text();
+  const payload = parsePayload<T>(text);
+
+  if (response.status === 401 && auth !== false && !skipRefresh) {
+    await refreshAuthSession();
+    return apiRequest<T>(path, { ...options, skipRefresh: true });
+  }
+
+  if (!response.ok) {
+    const errorPayload = payload as ApiEnvelope<T> | undefined;
+    throw new ApiError(
+      errorPayload?.message || `Backend trả lỗi HTTP ${response.status}`,
+      response.status,
+      errorPayload?.errorCode
+    );
+  }
+
+  return readEnvelope<T>(payload);
 }
