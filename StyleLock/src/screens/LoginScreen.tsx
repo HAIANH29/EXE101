@@ -18,6 +18,16 @@ interface LoginScreenProps {
   navigation: any;
 }
 
+const SOCIAL_LOGOS = {
+  google: 'https://developers.google.com/identity/images/g-logo.png'
+};
+
+const APPLE_LOGO_URI =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><path fill="#1C1C18" d="M747.2 535.7c-.4-86.7 70.8-128.2 74-130.3-40.3-59-103.1-67.1-125.4-68-53.4-5.4-104.2 31.4-131.3 31.4-27 0-68.8-30.6-113.1-29.8-58.2.9-111.9 33.9-141.9 86.1-60.5 105-15.5 260.4 43.5 345.5 28.8 41.6 63.1 88.4 108.2 86.7 43.4-1.7 59.8-28.1 112.4-28.1s67.3 28.1 113.4 27.2c46.8-.9 76.5-42.4 105.1-84.2 33.1-48.4 46.7-95.2 47.5-97.6-1-.5-91.2-35-92.1-138.5zM660.8 281.1c23.9-29 40-69.2 35.6-109.1-34.5 1.4-76.2 23-100.9 52-22.1 25.6-41.5 66.6-36.2 105.9 38.5 3 77.6-19.5 101.5-48.8z"/></svg>'
+  );
+
 export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
@@ -179,7 +189,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                 activeOpacity={0.8}
                 onPress={() => handleSocialLogin('Google')}
               >
-                <Text style={styles.socialIcon}>🌐</Text>
+                <Image source={{ uri: SOCIAL_LOGOS.google }} style={styles.socialLogo} />
                 <Text style={styles.socialBtnText}>Google</Text>
               </TouchableOpacity>
 
@@ -189,7 +199,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                 activeOpacity={0.8}
                 onPress={() => handleSocialLogin('Apple')}
               >
-                <Text style={styles.socialIcon}>🍎</Text>
+                <Image source={{ uri: APPLE_LOGO_URI }} style={styles.socialLogo} />
                 <Text style={styles.socialBtnText}>Apple</Text>
               </TouchableOpacity>
             </View>
@@ -388,8 +398,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8
   },
-  socialIcon: {
-    fontSize: 18
+  socialLogo: {
+    width: 18,
+    height: 18,
+    resizeMode: 'contain'
   },
   socialBtnText: {
     color: '#1C1C18',
