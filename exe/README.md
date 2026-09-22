@@ -50,3 +50,27 @@ customer@stylelock.test
 owner@stylelock.test
 admin@stylelock.test
 ```
+
+## Password reset email
+
+The backend supports the forgot-password flow used by the frontend:
+
+```text
+POST /api/auth/forgot-password
+POST /api/auth/reset-password
+```
+
+For local development, reset email delivery is disabled by default and the backend logs the reset link.
+To send real Gmail SMTP email, set these values in `.env`:
+
+```properties
+PASSWORD_RESET_MAIL_ENABLED=true
+APP_FRONTEND_RESET_URL=http://localhost:8082/reset-password
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=your-gmail@gmail.com
+MAIL_PASSWORD=your-gmail-app-password
+MAIL_FROM=your-gmail@gmail.com
+```
+
+Use a Gmail App Password, not the normal Gmail account password.

@@ -288,6 +288,22 @@ export const backendApi = {
     return session;
   },
 
+  async requestPasswordReset(input: { email: string; redirectUrl?: string }) {
+    return apiRequest<void>('/api/auth/forgot-password', {
+      method: 'POST',
+      auth: false,
+      body: JSON.stringify(input)
+    });
+  },
+
+  async resetPassword(input: { token: string; newPassword: string }) {
+    return apiRequest<void>('/api/auth/reset-password', {
+      method: 'POST',
+      auth: false,
+      body: JSON.stringify(input)
+    });
+  },
+
   async logout() {
     const refreshToken = authSessionStore.get()?.refreshToken;
     authSessionStore.clear();

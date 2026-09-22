@@ -20,6 +20,7 @@ public enum ErrorCode {
     INVALID_CREDENTIALS("AUTH_002", "Email hoặc mật khẩu không đúng", HttpStatus.UNAUTHORIZED),
     INVALID_REFRESH_TOKEN("AUTH_003", "Refresh token không hợp lệ hoặc đã hết hạn", HttpStatus.UNAUTHORIZED),
     ACCOUNT_DISABLED("AUTH_004", "Tài khoản đã bị khóa", HttpStatus.FORBIDDEN),
+    INVALID_PASSWORD_RESET_TOKEN("AUTH_005", "Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn", HttpStatus.BAD_REQUEST),
 
     // ===== Booking =====
     BOOKING_SLOT_UNAVAILABLE("BOOKING_001", "Khung giờ này đã có người đặt", HttpStatus.CONFLICT),

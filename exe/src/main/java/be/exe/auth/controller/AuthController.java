@@ -1,10 +1,12 @@
 package be.exe.auth.controller;
 
 import be.exe.auth.dto.request.ChangePasswordRequest;
+import be.exe.auth.dto.request.ForgotPasswordRequest;
 import be.exe.auth.dto.request.GoogleLoginRequest;
 import be.exe.auth.dto.request.LoginRequest;
 import be.exe.auth.dto.request.RefreshTokenRequest;
 import be.exe.auth.dto.request.RegisterRequest;
+import be.exe.auth.dto.request.ResetPasswordRequest;
 import be.exe.auth.dto.response.LoginResponse;
 import be.exe.auth.dto.response.TokenResponse;
 import be.exe.auth.dto.response.UserResponse;
@@ -90,6 +92,21 @@ public class AuthController {
             @AuthenticationPrincipal CustomUserDetails principal,
             @Valid @RequestBody ChangePasswordRequest request) {
         authService.changePassword(principal.getUserId(), request);
+        return ResponseEntity.ok(ApiResponse.success("Đổi mật khẩu thành công"));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest request) {
+        authService.requestPasswordReset(request);
+        return ResponseEntity.ok(ApiResponse.success(
+                "Nếu email tồn tại, hệ thống đã gửi link đặt lại mật khẩu"));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
         return ResponseEntity.ok(ApiResponse.success("Đổi mật khẩu thành công"));
     }
 }

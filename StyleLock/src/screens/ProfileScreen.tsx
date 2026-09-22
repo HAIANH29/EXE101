@@ -8,7 +8,8 @@ import {
   ScrollView,
   Image,
   Switch,
-  Alert
+  Alert,
+  Platform
 } from 'react-native';
 import { backendApi } from '../services/backendApi';
 import { bookingService } from '../services/bookingService';
@@ -20,18 +21,43 @@ interface ProfileScreenProps {
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   const [darkMode, setDarkMode] = useState<boolean>(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(true);
+  const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false);
   const currentUser = backendApi.getCurrentUser()?.user;
 
+  const performLogout = async () => {
+    if (isLoggingOut) return;
+
+    setIsLoggingOut(true);
+    try {
+      await backendApi.logout();
+    } finally {
+      bookingService.clear();
+      setIsLoggingOut(false);
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }]
+      });
+    }
+  };
+
   const handleLogout = () => {
+    if (Platform.OS === 'web') {
+      const confirmed =
+        typeof window === 'undefined' || window.confirm('Bạn có chắc chắn muốn đăng xuất?');
+
+      if (confirmed) {
+        void performLogout();
+      }
+      return;
+    }
+
     Alert.alert('Đăng xuất', 'Bạn có chắc chắn muốn đăng xuất?', [
       { text: 'Hủy', style: 'cancel' },
       {
         text: 'Đăng xuất',
         style: 'destructive',
-        onPress: async () => {
-          await backendApi.logout();
-          bookingService.clear();
-          navigation.replace('Login');
+        onPress: () => {
+          void performLogout();
         }
       }
     ]);
@@ -157,12 +183,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           </View>
 
           {/* Logout */}
-          <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
+          <TouchableOpacity style={styles.menuItem} onPress={handleLogout} disabled={isLoggingOut}>
             <View style={styles.menuLeft}>
               <View style={[styles.menuIconBg, styles.logoutIconBg]}>
                 <Text style={styles.logoutIconText}>🚪</Text>
               </View>
-              <Text style={styles.logoutTitle}>Logout</Text>
+              <Text style={styles.logoutTitle}>{isLoggingOut ? 'Logging out...' : 'Logout'}</Text>
             </View>
           </TouchableOpacity>
         </View>

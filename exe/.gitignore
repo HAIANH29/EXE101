@@ -1,7 +1,7 @@
 target/
+.m2/
 logs/
 *.log
 .env
 .env.*
 !.env.example
-

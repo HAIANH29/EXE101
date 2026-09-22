@@ -1,9 +1,11 @@
 package be.exe.auth.service;
 
 import be.exe.auth.dto.request.ChangePasswordRequest;
+import be.exe.auth.dto.request.ForgotPasswordRequest;
 import be.exe.auth.dto.request.LoginRequest;
 import be.exe.auth.dto.request.RefreshTokenRequest;
 import be.exe.auth.dto.request.RegisterRequest;
+import be.exe.auth.dto.request.ResetPasswordRequest;
 import be.exe.auth.dto.response.LoginResponse;
 import be.exe.auth.dto.response.TokenResponse;
 import be.exe.auth.dto.response.UserResponse;
@@ -27,6 +29,10 @@ public interface AuthService {
     UserResponse getCurrentUser(Long userId);
 
     void changePassword(Long userId, ChangePasswordRequest request);
+
+    void requestPasswordReset(ForgotPasswordRequest request);
+
+    void resetPassword(ResetPasswordRequest request);
 
     /**
      * Đăng nhập qua Google OAuth2 - nếu email chưa tồn tại thì tự tạo tài khoản mới (role CUSTOMER),
