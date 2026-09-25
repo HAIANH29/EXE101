@@ -27,7 +27,12 @@ public enum ErrorCode {
 
     // ===== Payment =====
     PAYMENT_ALREADY_PAID("PAYMENT_001", "Đơn hàng này đã được thanh toán", HttpStatus.CONFLICT),
-    PAYMENT_WEBHOOK_INVALID("PAYMENT_002", "Chữ ký webhook không hợp lệ", HttpStatus.BAD_REQUEST);
+    PAYMENT_WEBHOOK_INVALID("PAYMENT_002", "Chữ ký webhook không hợp lệ", HttpStatus.BAD_REQUEST),
+
+    // ===== TryOn =====
+    TRYON_INVALID_FILE("TRYON_001", "File ảnh không hợp lệ", HttpStatus.BAD_REQUEST),
+    TRYON_AI_SERVICE_FAILED("TRYON_002", "Xử lý thử tóc thất bại, vui lòng thử lại", HttpStatus.INTERNAL_SERVER_ERROR),
+    TRYON_RESULT_NOT_FOUND("TRYON_003", "Không tìm thấy kết quả thử tóc", HttpStatus.NOT_FOUND);
 
     private final String code;
     private final String defaultMessage;
