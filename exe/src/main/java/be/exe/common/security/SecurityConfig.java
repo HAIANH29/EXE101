@@ -15,6 +15,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import jakarta.servlet.http.HttpServletResponse;
+
 /**
  * Cấu hình Spring Security tổng thể:
  * - Stateless (không dùng session, mọi request xác thực qua JWT)
@@ -47,7 +49,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public - không cần đăng nhập
                         .requestMatchers(
-                                "/api/auth/**",
+                            "/api/auth/register",
+                            "/api/auth/login",
+                            "/api/auth/google",
+                            "/api/auth/refresh",
+                            "/api/auth/logout",
                                 "/api/public/**",
                                 "/api/payment/webhook/**",
                                 "/swagger-ui/**",
@@ -56,6 +62,9 @@ public class SecurityConfig {
                         // Còn lại bắt buộc phải đăng nhập
                         .anyRequest().authenticated()
                 )
+                    .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, exception) ->
+                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED)))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -79,7 +88,8 @@ public class SecurityConfig {
     @Bean
     public DaoAuthenticationProvider authenticationProvider(
             CustomUserDetailsService userDetailsService, PasswordEncoder passwordEncoder) {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setUserDetailsService(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder);
         return provider;
     }

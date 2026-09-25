@@ -1,0 +1,47 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:salon-test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
+  flyway:
+    enabled: false
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: test-client
+            client-secret: test-secret
+
+app:
+  jwt:
+    secret: test-secret-key-that-is-at-least-32-characters-long
+    access-token-expiration-ms: 900000
+    refresh-token-expiration-ms: 604800000
+    issuer: salon-backend-test
+
+  sepay:
+    base-url: http://localhost:8081
+    api-token: test-token
+    account-number: test-account
+    bank-code: test-bank
+
+  openai:
+    api-key: test-key
+    base-url: http://localhost:8082
+    model: test-model
+    timeout-ms: 1000
+
+  oauth2:
+    google-client-id: test-client
+    redirect-uri: http://localhost:3000/oauth2/redirect

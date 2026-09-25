@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Tạo và verify JWT access token / refresh token.
@@ -41,6 +42,7 @@ public class JwtService {
 
         return Jwts.builder()
                 .subject(String.valueOf(userId))
+            .id(UUID.randomUUID().toString())
                 .claims(Map.of("email", email, "roles", roles, "type", "ACCESS"))
                 .issuer(jwtProperties.getIssuer())
                 .issuedAt(now)
@@ -55,6 +57,7 @@ public class JwtService {
 
         return Jwts.builder()
                 .subject(String.valueOf(userId))
+            .id(UUID.randomUUID().toString())
                 .claims(Map.of("type", "REFRESH"))
                 .issuer(jwtProperties.getIssuer())
                 .issuedAt(now)

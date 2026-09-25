@@ -22,6 +22,10 @@ spring:
     baseline-on-migrate: true
     locations: classpath:db/migration
 
+app:
+  jwt:
+    secret: ${JWT_SECRET:dev-only-jwt-secret-change-this-to-a-random-64-character-value}
+
 logging:
   level:
     root: INFO
