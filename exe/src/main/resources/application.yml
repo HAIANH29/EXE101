@@ -1,9 +1,9 @@
 spring:
-  application:
-    name: salon-backend
-
   config:
     import: optional:file:.env[.properties]
+
+  application:
+    name: salon-backend
 
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
@@ -60,10 +60,8 @@ spring:
             user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
             user-name-attribute: sub
 
-
 server:
   port: ${SERVER_PORT:8080}
-
 
 app:
   cors:
@@ -103,6 +101,14 @@ app:
     public-base-url: ${APP_PUBLIC_BASE_URL:http://localhost:8080}
     avatar-max-size-bytes: ${APP_AVATAR_MAX_SIZE_BYTES:5242880}
 
+  cloudinary:
+    cloud-name: ${CLOUDINARY_CLOUD_NAME:}
+    api-key: ${CLOUDINARY_API_KEY:}
+    api-secret: ${CLOUDINARY_API_SECRET:}
+
+  ai:
+    tryon:
+      base-url: ${AI_TRYON_BASE_URL:http://localhost:8000}
 
 springdoc:
   api-docs:

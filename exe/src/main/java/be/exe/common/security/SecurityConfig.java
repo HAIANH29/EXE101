@@ -17,6 +17,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import jakarta.servlet.http.HttpServletResponse;
+
 /**
  * Cấu hình Spring Security tổng thể:
  * - Stateless (không dùng session, mọi request xác thực qua JWT)
@@ -77,6 +79,9 @@ public class SecurityConfig {
                         // Còn lại bắt buộc phải đăng nhập
                         .anyRequest().authenticated()
                 )
+                    .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, exception) ->
+                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED)))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
