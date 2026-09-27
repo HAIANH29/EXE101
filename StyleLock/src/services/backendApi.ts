@@ -1,5 +1,5 @@
 import { Booking, BookingStatus, GenderCategory, Hairstyle, NotificationItem, Salon, ServiceItem, StylistItem } from '../types';
-import { apiRequest, authSessionStore } from './apiClient';
+import { ApiError, apiRequest, authSessionStore } from './apiClient';
 
 type PageResponse<T> = {
   content: T[];
@@ -309,6 +309,23 @@ function inferAvatarFileName(input: AvatarUploadInput) {
 export const backendApi = {
   isAuthenticated: authSessionStore.isAuthenticated,
   getCurrentUser: authSessionStore.get,
+
+  async validateSession() {
+    if (!authSessionStore.isAuthenticated()) {
+      return false;
+    }
+
+    try {
+      await this.getMe();
+      return true;
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        authSessionStore.clear('expired');
+        return false;
+      }
+      return true;
+    }
+  },
 
   async getMe() {
     const user = await apiRequest<BackendUser>('/api/auth/me');

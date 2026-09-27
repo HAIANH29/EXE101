@@ -1,4 +1,4 @@
-type StoredAuthSession = {
+export type StoredAuthSession = {
   accessToken: string;
   refreshToken: string;
   tokenType: string;
@@ -27,6 +27,12 @@ type RequestOptions = RequestInit & {
   skipRefresh?: boolean;
 };
 
+type AuthSessionClearReason = 'manual' | 'expired';
+type AuthSessionEvent =
+  | { type: 'set'; session: StoredAuthSession }
+  | { type: 'clear'; reason: AuthSessionClearReason };
+type AuthSessionListener = (event: AuthSessionEvent) => void;
+
 const runtimeEnv =
   typeof globalThis !== 'undefined'
     ? ((globalThis as unknown as { process?: { env?: Record<string, string | undefined> } }).process?.env || {})
@@ -37,6 +43,7 @@ const AUTH_STORAGE_KEY = 'stylelock.auth.session';
 
 let authSession: StoredAuthSession | null = readStoredSession();
 let refreshPromise: Promise<StoredAuthSession> | null = null;
+const authSessionListeners = new Set<AuthSessionListener>();
 
 function getStorage() {
   try {
@@ -73,6 +80,10 @@ function persistSession(session: StoredAuthSession | null) {
   storage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
 }
 
+function notifyAuthSessionListeners(event: AuthSessionEvent) {
+  authSessionListeners.forEach((listener) => listener(event));
+}
+
 export class ApiError extends Error {
   public readonly status: number;
   public readonly code?: string;
@@ -92,13 +103,21 @@ export const authSessionStore = {
   set(session: StoredAuthSession) {
     authSession = session;
     persistSession(session);
+    notifyAuthSessionListeners({ type: 'set', session });
   },
-  clear() {
+  clear(reason: AuthSessionClearReason = 'manual') {
     authSession = null;
     persistSession(null);
+    notifyAuthSessionListeners({ type: 'clear', reason });
   },
   isAuthenticated() {
     return Boolean(authSession?.accessToken);
+  },
+  subscribe(listener: AuthSessionListener) {
+    authSessionListeners.add(listener);
+    return () => {
+      authSessionListeners.delete(listener);
+    };
   }
 };
 
@@ -146,7 +165,7 @@ async function refreshAuthSession(): Promise<StoredAuthSession> {
     const payload = parsePayload<Partial<StoredAuthSession>>(text);
 
     if (!response.ok) {
-      authSessionStore.clear();
+      authSessionStore.clear('expired');
       const errorPayload = payload as ApiEnvelope<Partial<StoredAuthSession>> | undefined;
       throw new ApiError(
         errorPayload?.message || 'Phiên đăng nhập đã hết hạn.',
@@ -157,7 +176,7 @@ async function refreshAuthSession(): Promise<StoredAuthSession> {
 
     const token = readEnvelope<Partial<StoredAuthSession>>(payload);
     if (!token?.accessToken || !token.refreshToken || !authSession) {
-      authSessionStore.clear();
+      authSessionStore.clear('expired');
       throw new ApiError('Backend không trả token hợp lệ.', 401, 'AUTH_REFRESH_INVALID');
     }
 
@@ -209,6 +228,9 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   if (!response.ok) {
     const errorPayload = payload as ApiEnvelope<T> | undefined;
+    if (response.status === 401 && auth !== false) {
+      authSessionStore.clear('expired');
+    }
     throw new ApiError(
       errorPayload?.message || `Backend trả lỗi HTTP ${response.status}`,
       response.status,

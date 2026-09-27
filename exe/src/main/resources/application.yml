@@ -70,7 +70,7 @@ app:
   jwt:
     secret: ${JWT_SECRET:local-dev-secret-change-me-local-dev-secret-change-me}
     access-token-expiration-ms: ${JWT_ACCESS_EXPIRATION_MS:${JWT_ACCESS_TOKEN_EXPIRATION:900000}}
-    refresh-token-expiration-ms: ${JWT_REFRESH_TOKEN_EXPIRATION_MS:${JWT_REFRESH_TOKEN_EXPIRATION:604800000}}
+    refresh-token-expiration-ms: ${JWT_REFRESH_TOKEN_EXPIRATION_MS:${JWT_REFRESH_TOKEN_EXPIRATION:2592000000}}
     issuer: salon-backend
 
   sepay:
