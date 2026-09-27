@@ -72,6 +72,11 @@ public class User {
         this.passwordHash = newPasswordHash;
     }
 
+    public void updateProfile(String fullName, String phone) {
+        this.fullName = fullName;
+        this.phone = phone;
+    }
+
     // ===== Getters =====
 
     public Long getId() {

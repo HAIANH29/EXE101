@@ -6,11 +6,13 @@ import be.exe.auth.dto.request.LoginRequest;
 import be.exe.auth.dto.request.RefreshTokenRequest;
 import be.exe.auth.dto.request.RegisterRequest;
 import be.exe.auth.dto.request.ResetPasswordRequest;
+import be.exe.auth.dto.request.UpdateProfileRequest;
 import be.exe.auth.dto.response.LoginResponse;
 import be.exe.auth.dto.response.TokenResponse;
 import be.exe.auth.dto.response.UserResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
 
@@ -27,6 +29,10 @@ public interface AuthService {
     void logoutAllDevices(Long userId);
 
     UserResponse getCurrentUser(Long userId);
+
+    UserResponse updateCurrentUser(Long userId, UpdateProfileRequest request);
+
+    UserResponse uploadAvatar(Long userId, MultipartFile file);
 
     void changePassword(Long userId, ChangePasswordRequest request);
 

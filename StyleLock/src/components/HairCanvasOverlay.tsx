@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, Image, Text, TouchableOpacity, Dimensions } from 'react-native';
 import { Hairstyle } from '../types';
+import { AppIcon } from './AppIcon';
 
 interface HairCanvasOverlayProps {
   userPhotoUri: string;
@@ -58,7 +59,7 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
 
         {/* Face Guide Frame indicator */}
         <View style={styles.guideBadge}>
-          <Text style={styles.guideBadgeText}>💡 Di chuyển & chỉnh tỉ lệ cho khớp với khuôn mặt</Text>
+          <View style={styles.guideBadgeRow}><AppIcon name="lightbulb" size={14} color="#E2E8F0" /><Text style={styles.guideBadgeText}>Di chuyển & chỉnh tỉ lệ cho khớp với khuôn mặt</Text></View>
         </View>
       </View>
 
@@ -69,43 +70,43 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
         <View style={styles.buttonRow}>
           {/* Zoom In / Out */}
           <TouchableOpacity style={styles.controlBtn} onPress={() => onScaleChange(Math.min(scale + 0.1, 2.5))}>
-            <Text style={styles.controlBtnText}>🔍 Phóng to</Text>
+            <AppIcon name="zoomIn" size={14} color="#FFFFFF" /><Text style={styles.controlBtnText}>Phóng to</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.controlBtn} onPress={() => onScaleChange(Math.max(scale - 0.1, 0.4))}>
-            <Text style={styles.controlBtnText}>🔎 Thu nhỏ</Text>
+            <AppIcon name="zoomOut" size={14} color="#FFFFFF" /><Text style={styles.controlBtnText}>Thu nhỏ</Text>
           </TouchableOpacity>
 
           {/* Rotate Left / Right */}
           <TouchableOpacity style={styles.controlBtn} onPress={() => onRotationChange(rotation - 5)}>
-            <Text style={styles.controlBtnText}>↺ Xoay trái</Text>
+            <AppIcon name="rotateLeft" size={14} color="#FFFFFF" /><Text style={styles.controlBtnText}>Xoay trái</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.controlBtn} onPress={() => onRotationChange(rotation + 5)}>
-            <Text style={styles.controlBtnText}>↻ Xoay phải</Text>
+            <AppIcon name="refresh" size={14} color="#FFFFFF" /><Text style={styles.controlBtnText}>Xoay phải</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.buttonRow}>
           {/* Move Up / Down / Left / Right */}
           <TouchableOpacity style={styles.controlBtnSmall} onPress={() => onOffsetYChange(offsetY - 10)}>
-            <Text style={styles.controlBtnText}>⬆ Lên</Text>
+            <AppIcon name="arrowLeft" size={13} color="#FFFFFF" style={{ transform: [{ rotate: '90deg' }] }} /><Text style={styles.controlBtnText}>Lên</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.controlBtnSmall} onPress={() => onOffsetYChange(offsetY + 10)}>
-            <Text style={styles.controlBtnText}>⬇ Xuống</Text>
+            <AppIcon name="arrowLeft" size={13} color="#FFFFFF" style={{ transform: [{ rotate: '-90deg' }] }} /><Text style={styles.controlBtnText}>Xuống</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.controlBtnSmall} onPress={() => onOffsetXChange(offsetX - 10)}>
-            <Text style={styles.controlBtnText}>⬅ Trái</Text>
+            <AppIcon name="arrowLeft" size={13} color="#FFFFFF" /><Text style={styles.controlBtnText}>Trái</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.controlBtnSmall} onPress={() => onOffsetXChange(offsetX + 10)}>
-            <Text style={styles.controlBtnText}>➡ Phải</Text>
+            <AppIcon name="arrowRight" size={13} color="#FFFFFF" /><Text style={styles.controlBtnText}>Phải</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={[styles.controlBtnSmall, styles.resetBtn]} onPress={onReset}>
-            <Text style={styles.resetBtnText}>↺ Đặt lại</Text>
+            <AppIcon name="refresh" size={13} color="#FFFFFF" /><Text style={styles.resetBtnText}>Đặt lại</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -161,6 +162,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center'
   },
+  guideBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
+  },
   guideBadgeText: {
     color: '#E2E8F0',
     fontSize: 12,
@@ -190,6 +196,9 @@ const styles = StyleSheet.create({
   },
   controlBtn: {
     flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 5,
     backgroundColor: '#0EA5E9',
     paddingVertical: 8,
     paddingHorizontal: 4,
@@ -198,6 +207,9 @@ const styles = StyleSheet.create({
   },
   controlBtnSmall: {
     flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 4,
     backgroundColor: '#0284C7',
     paddingVertical: 8,
     paddingHorizontal: 2,

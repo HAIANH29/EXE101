@@ -1,4 +1,4 @@
-import { Booking, BookingStatus, GenderCategory, Hairstyle, Salon, ServiceItem, StylistItem } from '../types';
+import { Booking, BookingStatus, GenderCategory, Hairstyle, NotificationItem, Salon, ServiceItem, StylistItem } from '../types';
 import { apiRequest, authSessionStore } from './apiClient';
 
 type PageResponse<T> = {
@@ -26,6 +26,7 @@ type BackendUser = {
   avatarUrl?: string;
   status?: string;
   roles?: string[];
+  createdAt?: string;
 };
 
 type BackendHairstyle = {
@@ -110,6 +111,15 @@ type BackendPayment = {
   paymentUrl?: string;
 };
 
+type BackendNotification = {
+  id: number;
+  type: string;
+  title: string;
+  content: string;
+  read: boolean;
+  createdAt: string;
+};
+
 type BackendReviewSummary = {
   salonId: number;
   averageRating: number | string;
@@ -122,6 +132,12 @@ type BookingContext = {
   hairstyle?: Hairstyle;
   payment?: BackendPayment;
   userPhotoUri?: string;
+};
+
+type AvatarUploadInput = {
+  uri: string;
+  fileName?: string | null;
+  mimeType?: string | null;
 };
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600';
@@ -255,6 +271,17 @@ function mapBooking(item: BackendBooking, context: BookingContext = {}): Booking
   };
 }
 
+function mapNotification(item: BackendNotification): NotificationItem {
+  return {
+    id: item.id,
+    type: item.type as NotificationItem['type'],
+    title: item.title,
+    content: item.content,
+    read: item.read,
+    createdAt: item.createdAt
+  };
+}
+
 function buildStartAt(date: string, timeSlot: string) {
   return new Date(`${date}T${timeSlot}:00+07:00`).toISOString();
 }
@@ -264,9 +291,72 @@ async function getPage<T>(path: string): Promise<T[]> {
   return page.content || [];
 }
 
+function inferAvatarMimeType(input: AvatarUploadInput) {
+  if (input.mimeType) return input.mimeType;
+  const value = (input.fileName || input.uri).toLowerCase();
+  if (value.endsWith('.png')) return 'image/png';
+  if (value.endsWith('.webp')) return 'image/webp';
+  return 'image/jpeg';
+}
+
+function inferAvatarFileName(input: AvatarUploadInput) {
+  if (input.fileName) return input.fileName;
+  const mimeType = inferAvatarMimeType(input);
+  const extension = mimeType === 'image/png' ? 'png' : mimeType === 'image/webp' ? 'webp' : 'jpg';
+  return `avatar-${Date.now()}.${extension}`;
+}
+
 export const backendApi = {
   isAuthenticated: authSessionStore.isAuthenticated,
   getCurrentUser: authSessionStore.get,
+
+  async getMe() {
+    const user = await apiRequest<BackendUser>('/api/auth/me');
+    const session = authSessionStore.get();
+    if (session) {
+      authSessionStore.set({ ...session, user });
+    }
+    return user;
+  },
+
+  async updateProfile(input: { fullName: string; phone?: string }) {
+    const user = await apiRequest<BackendUser>('/api/auth/me', {
+      method: 'PATCH',
+      body: JSON.stringify(input)
+    });
+    const session = authSessionStore.get();
+    if (session) {
+      authSessionStore.set({ ...session, user });
+    }
+    return user;
+  },
+
+  async uploadAvatar(input: AvatarUploadInput) {
+    const formData = new FormData();
+    const fileName = inferAvatarFileName(input);
+    const mimeType = inferAvatarMimeType(input);
+
+    if (input.uri.startsWith('blob:') || input.uri.startsWith('data:')) {
+      const blob = await fetch(input.uri).then((response) => response.blob());
+      formData.append('file', blob, fileName);
+    } else {
+      formData.append('file', {
+        uri: input.uri,
+        name: fileName,
+        type: mimeType
+      } as unknown as Blob);
+    }
+
+    const user = await apiRequest<BackendUser>('/api/auth/me/avatar', {
+      method: 'POST',
+      body: formData
+    });
+    const session = authSessionStore.get();
+    if (session) {
+      authSessionStore.set({ ...session, user });
+    }
+    return user;
+  },
 
   async login(email: string, password: string) {
     const session = await apiRequest<BackendLoginResponse>('/api/auth/login', {
@@ -304,6 +394,13 @@ export const backendApi = {
     });
   },
 
+  async changePassword(input: { oldPassword: string; newPassword: string }) {
+    return apiRequest<void>('/api/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify(input)
+    });
+  },
+
   async logout() {
     const refreshToken = authSessionStore.get()?.refreshToken;
     authSessionStore.clear();
@@ -318,6 +415,27 @@ export const backendApi = {
     } catch {
       // Local logout should still succeed when the backend is unavailable.
     }
+  },
+
+  async getNotifications(page = 0, size = 30) {
+    const items = await getPage<BackendNotification>(`/api/notifications?page=${page}&size=${size}`);
+    return items.map(mapNotification);
+  },
+
+  async getUnreadNotificationCount() {
+    return apiRequest<number>('/api/notifications/unread-count');
+  },
+
+  async markNotificationAsRead(notificationId: number) {
+    return apiRequest<void>(`/api/notifications/${notificationId}/read`, {
+      method: 'PATCH'
+    });
+  },
+
+  async markAllNotificationsAsRead() {
+    return apiRequest<void>('/api/notifications/read-all', {
+      method: 'PATCH'
+    });
   },
 
   async getHairstyles() {

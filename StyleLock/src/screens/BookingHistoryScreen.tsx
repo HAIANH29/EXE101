@@ -10,8 +10,11 @@ import {
     Alert
 } from 'react-native';
 import { backendApi } from '../services/backendApi';
+import { AppIcon, IconBadge } from '../components/AppIcon';
 import { bookingService } from '../services/bookingService';
+import { BottomNavBar } from '../components/BottomNavBar';
 import { Booking, BookingStatus } from '../types';
+import { NotificationBellButton } from '../components/NotificationBellButton';
 
 interface BookingHistoryScreenProps {
     navigation: any;
@@ -137,14 +140,12 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
             {/* Top App Bar */}
             <View style={styles.topAppBar}>
                 <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()}>
-                    <Text style={styles.topIcon}>☰</Text>
+                    <AppIcon name="menu" size={22} color="#005C55" />
                 </TouchableOpacity>
 
                 <Text style={styles.brandTitle}>StyleLock</Text>
 
-                <TouchableOpacity style={styles.iconBtn} onPress={() => Alert.alert('Thông báo', 'Không có thông báo mới')}>
-                    <Text style={styles.topIcon}>🔔</Text>
-                </TouchableOpacity>
+                <NotificationBellButton navigation={navigation} style={styles.iconBtn} />
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -172,14 +173,14 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
                 {/* Bookings List */}
                 {filteredBookings.length === 0 ? (
                     <View style={styles.emptyCard}>
-                        <Text style={styles.emptyIcon}>📅</Text>
+                        <IconBadge name="calendar" size={24} containerStyle={styles.emptyIconBadge} />
                         <Text style={styles.emptyTitle}>Chưa có lịch hẹn nào</Text>
                         <Text style={styles.emptySub}>Khám phá các kiểu tóc mới và đặt lịch giữ chỗ ngay hôm nay!</Text>
                         <TouchableOpacity
                             style={styles.exploreBtn}
                             onPress={() => navigation.navigate('HairstyleSelect')}
                         >
-                            <Text style={styles.exploreBtnText}>Khám phá kiểu tóc ➔</Text>
+                            <Text style={styles.exploreBtnText}>Khám phá kiểu tóc</Text>
                         </TouchableOpacity>
                     </View>
                 ) : (
@@ -217,12 +218,12 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
                                             </Text>
 
                                             <View style={styles.metaRow}>
-                                                <Text style={styles.metaIcon}>📅</Text>
+                                                <AppIcon name="calendar" size={13} color="#64748B" />
                                                 <Text style={styles.metaText}>{b.date}</Text>
                                             </View>
 
                                             <View style={styles.metaRow}>
-                                                <Text style={styles.metaIcon}>🕒</Text>
+                                                <AppIcon name="clock" size={13} color="#64748B" />
                                                 <Text style={styles.metaText}>{b.timeSlot}</Text>
                                             </View>
                                         </View>
@@ -236,7 +237,7 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
                                                 style={styles.cancelBtn}
                                                 onPress={() => handleCancelBooking(b.id)}
                                             >
-                                                <Text style={styles.cancelBtnIcon}>✕</Text>
+                                                <AppIcon name="close" size={18} color="#BA1A1A" />
                                             </TouchableOpacity>
                                         )}
 
@@ -263,33 +264,7 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
                 <View style={{ height: 100 }} />
             </ScrollView>
 
-            {/* Bottom Navigation Bar */}
-            <View style={styles.bottomBar}>
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Home')}>
-                    <Text style={styles.navIcon}>🏠</Text>
-                    <Text style={styles.navLabel}>Home</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('HairstyleSelect')}>
-                    <Text style={styles.navIcon}>🔍</Text>
-                    <Text style={styles.navLabel}>Explore</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CameraUpload')}>
-                    <Text style={styles.navIcon}>✨</Text>
-                    <Text style={styles.navLabel}>AI Camera</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={[styles.navItem, styles.navItemActive]}>
-                    <Text style={[styles.navIcon, styles.navIconActive]}>📅</Text>
-                    <Text style={[styles.navLabel, styles.navLabelActive]}>Bookings</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Profile')}>
-                    <Text style={styles.navIcon}>👤</Text>
-                    <Text style={styles.navLabel}>Profile</Text>
-                </TouchableOpacity>
-            </View>
+            <BottomNavBar active="Bookings" navigation={navigation} />
         </SafeAreaView>
     );
 };
@@ -494,6 +469,12 @@ const styles = StyleSheet.create({
     },
     emptyIcon: {
         fontSize: 48,
+        marginBottom: 12
+    },
+    emptyIconBadge: {
+        width: 58,
+        height: 58,
+        borderRadius: 29,
         marginBottom: 12
     },
     emptyTitle: {

@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Hairstyle } from '../types';
 import { MOCK_HAIRSTYLES } from '../services/mockData';
+import { AppIcon } from '../components/AppIcon';
 
 interface HairstyleDetailScreenProps {
   navigation: any;
@@ -47,15 +48,15 @@ export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ na
       {/* Top Floating Navigation Header */}
       <View style={styles.floatingHeader}>
         <TouchableOpacity style={styles.circleBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.headerIcon}>◀</Text>
+          <AppIcon name="arrowLeft" size={18} color="#121C2A" />
         </TouchableOpacity>
 
         <View style={styles.rightHeaderGroup}>
           <TouchableOpacity style={styles.circleBtn} onPress={() => Alert.alert('Share', `Sharing ${hair.name}...`)}>
-            <Text style={styles.headerIcon}>🔗</Text>
+            <AppIcon name="share" size={18} color="#121C2A" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.circleBtn} onPress={() => setIsFavorite(!isFavorite)}>
-            <Text style={styles.headerIcon}>{isFavorite ? '❤️' : '🤍'}</Text>
+            <AppIcon name="heart" size={18} color={isFavorite ? "#BA1A1A" : "#121C2A"} />
           </TouchableOpacity>
         </View>
       </View>
@@ -104,7 +105,7 @@ export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ na
           {/* Specs Grid (2x2) */}
           <View style={styles.specsGrid}>
             <View style={styles.specCard}>
-              <Text style={styles.specIcon}>👤</Text>
+              <AppIcon name="user" size={22} color="#005C55" />
               <View style={styles.specTextGroup}>
                 <Text style={styles.specLabel}>Face Shapes</Text>
                 <Text style={styles.specValue}>{hair.suitableFace}</Text>
@@ -112,7 +113,7 @@ export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ na
             </View>
 
             <View style={styles.specCard}>
-              <Text style={styles.specIcon}>🛠️</Text>
+              <AppIcon name="tool" size={22} color="#005C55" />
               <View style={styles.specTextGroup}>
                 <Text style={styles.specLabel}>Maintenance</Text>
                 <Text style={styles.specValue}>Low</Text>
@@ -120,7 +121,7 @@ export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ na
             </View>
 
             <View style={styles.specCard}>
-              <Text style={styles.specIcon}>✂️</Text>
+              <AppIcon name="scissors" size={22} color="#005C55" />
               <View style={styles.specTextGroup}>
                 <Text style={styles.specLabel}>Hair Type</Text>
                 <Text style={styles.specValue}>Straight, Wavy</Text>
@@ -128,7 +129,7 @@ export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ na
             </View>
 
             <View style={styles.specCard}>
-              <Text style={styles.specIcon}>⏱️</Text>
+              <AppIcon name="clock" size={22} color="#005C55" />
               <View style={styles.specTextGroup}>
                 <Text style={styles.specLabel}>Styling Time</Text>
                 <Text style={styles.specValue}>15 mins</Text>
@@ -166,7 +167,7 @@ export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ na
                 onPress={() => Alert.alert('Texture Spray', 'Sản phẩm gợi ý chăm sóc kiểu tóc này ($28)')}
               >
                 <View style={styles.productImgBox}>
-                  <Text style={styles.productEmoji}>🧴</Text>
+                  <AppIcon name="bottle" size={40} color="#005C55" />
                 </View>
                 <Text style={styles.productName} numberOfLines={1}>Texture Spray</Text>
                 <Text style={styles.productPrice}>$28</Text>
@@ -177,7 +178,7 @@ export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ na
                 onPress={() => Alert.alert('Matte Pomade', 'Sản phẩm gợi ý giữ nếp kiểu tóc này ($32)')}
               >
                 <View style={styles.productImgBox}>
-                  <Text style={styles.productEmoji}>💈</Text>
+                  <AppIcon name="scissors" size={40} color="#005C55" />
                 </View>
                 <Text style={styles.productName} numberOfLines={1}>Matte Pomade</Text>
                 <Text style={styles.productPrice}>$32</Text>
@@ -188,7 +189,7 @@ export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ na
                 onPress={() => Alert.alert('Hydrating Serum', 'Tinh chất dưỡng tóc mềm mượt ($35)')}
               >
                 <View style={styles.productImgBox}>
-                  <Text style={styles.productEmoji}>✨</Text>
+                  <AppIcon name="sparkle" size={40} color="#005C55" />
                 </View>
                 <Text style={styles.productName} numberOfLines={1}>Hydrating Serum</Text>
                 <Text style={styles.productPrice}>$35</Text>
@@ -207,7 +208,7 @@ export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ na
           activeOpacity={0.85}
           onPress={handleTryOn}
         >
-          <Text style={styles.tryOnIcon}>📸</Text>
+          <AppIcon name="camera" size={18} color="#1C1C18" />
           <Text style={styles.tryOnText}>TRY ON</Text>
         </TouchableOpacity>
 

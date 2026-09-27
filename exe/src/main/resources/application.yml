@@ -35,6 +35,11 @@ spring:
           starttls:
             enable: true
 
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+
   security:
     oauth2:
       client:
@@ -92,6 +97,11 @@ app:
     mail-enabled: ${PASSWORD_RESET_MAIL_ENABLED:false}
     frontend-reset-url: ${APP_FRONTEND_RESET_URL:http://localhost:8082/reset-password}
     mail-from: ${MAIL_FROM:${MAIL_USERNAME:}}
+
+  upload:
+    root-dir: ${APP_UPLOAD_ROOT_DIR:uploads}
+    public-base-url: ${APP_PUBLIC_BASE_URL:http://localhost:8080}
+    avatar-max-size-bytes: ${APP_AVATAR_MAX_SIZE_BYTES:5242880}
 
 
 springdoc:

@@ -12,6 +12,7 @@ import be.exe.auth.dto.request.LoginRequest;
 import be.exe.auth.dto.request.RefreshTokenRequest;
 import be.exe.auth.dto.request.RegisterRequest;
 import be.exe.auth.dto.request.ResetPasswordRequest;
+import be.exe.auth.dto.request.UpdateProfileRequest;
 import be.exe.auth.dto.response.LoginResponse;
 import be.exe.auth.dto.response.TokenResponse;
 import be.exe.auth.dto.response.UserResponse;
@@ -43,14 +44,22 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
 
 @Service
 @Transactional
@@ -58,6 +67,11 @@ public class AuthServiceImpl implements AuthService {
 
     private static final Logger log = LoggerFactory.getLogger(AuthServiceImpl.class);
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final Set<String> ALLOWED_AVATAR_TYPES = Set.of(
+            "image/jpeg",
+            "image/png",
+            "image/webp"
+    );
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -79,6 +93,15 @@ public class AuthServiceImpl implements AuthService {
 
     @Value("${app.password-reset.mail-from:}")
     private String passwordResetMailFrom;
+
+    @Value("${app.upload.root-dir:uploads}")
+    private String uploadRootDir;
+
+    @Value("${app.upload.public-base-url:http://localhost:8080}")
+    private String uploadPublicBaseUrl;
+
+    @Value("${app.upload.avatar-max-size-bytes:5242880}")
+    private long avatarMaxSizeBytes;
 
     public AuthServiceImpl(UserRepository userRepository,
                            RoleRepository roleRepository,
@@ -210,6 +233,58 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException("User", userId));
 
+        return UserMapper.toResponse(user);
+    }
+
+    @Override
+    public UserResponse updateCurrentUser(Long userId, UpdateProfileRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("User", userId));
+
+        user.updateProfile(
+                request.getFullName().trim(),
+                normalizeOptionalText(request.getPhone())
+        );
+
+        return UserMapper.toResponse(user);
+    }
+
+    @Override
+    public UserResponse uploadAvatar(Long userId, MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Vui lòng chọn ảnh đại diện");
+        }
+
+        if (file.getSize() > avatarMaxSizeBytes) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Ảnh đại diện không được vượt quá 5MB");
+        }
+
+        String contentType = file.getContentType() != null
+                ? file.getContentType().toLowerCase(Locale.ROOT)
+                : "";
+        if (!ALLOWED_AVATAR_TYPES.contains(contentType)) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Chỉ hỗ trợ ảnh JPG, PNG hoặc WEBP");
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("User", userId));
+
+        String extension = extensionFromContentType(contentType);
+        String filename = "user-" + userId + "-" + UUID.randomUUID() + extension;
+        Path avatarDir = Path.of(uploadRootDir, "avatars").toAbsolutePath().normalize();
+        Path target = avatarDir.resolve(filename).normalize();
+
+        try {
+            Files.createDirectories(avatarDir);
+            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException ex) {
+            log.error("Could not store avatar for user {}", userId, ex);
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "Không lưu được ảnh đại diện");
+        }
+
+        user.setAvatarUrl(buildPublicUploadUrl("/uploads/avatars/" + filename));
         return UserMapper.toResponse(user);
     }
 
@@ -498,6 +573,31 @@ public class AuthServiceImpl implements AuthService {
 
     private String urlEncode(String value) {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+    private String normalizeOptionalText(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        String trimmed = value.trim();
+        return trimmed.isBlank() ? null : trimmed;
+    }
+
+    private String extensionFromContentType(String contentType) {
+        return switch (contentType) {
+            case "image/png" -> ".png";
+            case "image/webp" -> ".webp";
+            default -> ".jpg";
+        };
+    }
+
+    private String buildPublicUploadUrl(String path) {
+        String baseUrl = uploadPublicBaseUrl == null ? "" : uploadPublicBaseUrl.trim();
+        if (baseUrl.endsWith("/")) {
+            baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
+        }
+        return baseUrl + path;
     }
 
     private void sendPasswordResetEmail(User user, String resetUrl) {

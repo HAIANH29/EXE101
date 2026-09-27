@@ -14,6 +14,7 @@ import {
 import { backendApi } from '../services/backendApi';
 import { bookingService } from '../services/bookingService';
 import { Salon, ServiceItem, Hairstyle, StylistItem, Booking } from '../types';
+import { AppIcon } from '../components/AppIcon';
 
 interface QuickBookingScreenProps {
   navigation: any;
@@ -230,7 +231,7 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
       {/* Fixed Top App Bar */}
       <View style={styles.topAppBar}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.backIcon}>◀</Text>
+          <AppIcon name="arrowLeft" size={21} color="#3E4947" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Booking</Text>
         <View style={{ width: 40 }} />
@@ -239,7 +240,7 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
       {/* Success Toast */}
       {confirmed && (
         <View style={styles.successToast}>
-          <Text style={styles.toastIcon}>✅</Text>
+          <AppIcon name="check" size={18} color="#005C55" />
           <Text style={styles.toastText}>Booking Confirmed!</Text>
         </View>
       )}
@@ -286,7 +287,7 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
                     <Image source={{ uri: st.avatar || salon.imageUrl }} style={styles.stylistAvatar} />
                     {isActive && (
                       <View style={styles.checkBadge}>
-                        <Text style={styles.checkBadgeIcon}>✓</Text>
+                        <AppIcon name="check" size={12} color="#FFFFFF" />
                       </View>
                     )}
                   </View>
@@ -308,7 +309,7 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
                 styles.anyoneAvatarWrap,
                 activeStylistId === 'anyone' && styles.stylistAvatarActive
               ]}>
-                <Text style={styles.anyoneIcon}>🔍</Text>
+                <AppIcon name="search" size={22} color="#005C55" />
               </View>
               <Text style={[
                 styles.stylistName,
@@ -329,13 +330,13 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
             {/* Month Navigation Header */}
             <View style={styles.calendarHeader}>
               <TouchableOpacity onPress={handlePrevMonth} style={styles.calNavBtn}>
-                <Text style={styles.calNavIcon}>‹</Text>
+                <AppIcon name="arrowLeft" size={20} color="#3E4947" />
               </TouchableOpacity>
               <Text style={styles.calMonthTitle}>
                 {MONTH_NAMES[calMonth]} {calYear}
               </Text>
               <TouchableOpacity onPress={handleNextMonth} style={styles.calNavBtn}>
-                <Text style={styles.calNavIcon}>›</Text>
+                <AppIcon name="arrowRight" size={20} color="#3E4947" />
               </TouchableOpacity>
             </View>
 
@@ -480,7 +481,7 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
           disabled={isConfirming || confirmed}
         >
           <Text style={styles.confirmBtnText}>
-            {isConfirming ? 'Confirming...' : confirmed ? 'Booking Confirmed! ✓' : 'Confirm Booking'}
+            {isConfirming ? 'Confirming...' : confirmed ? 'Booking Confirmed!' : 'Confirm Booking'}
           </Text>
         </TouchableOpacity>
       </View>

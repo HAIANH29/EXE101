@@ -12,6 +12,7 @@ import {
 import { bookingService } from '../services/bookingService';
 import { MOCK_SALONS } from '../services/mockData';
 import { Booking, BookingStatus } from '../types';
+import { AppIcon, IconBadge } from '../components/AppIcon';
 
 interface SalonDashboardScreenProps {
   navigation: any;
@@ -47,7 +48,7 @@ export const SalonDashboardScreen: React.FC<SalonDashboardScreenProps> = ({ navi
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Text style={styles.backBtnText}>◀ Về App Khách</Text>
+            <View style={styles.backRow}><AppIcon name="arrowLeft" size={15} color="#0F766E" /><Text style={styles.backBtnText}>Về App Khách</Text></View>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Salon Merchant Dashboard</Text>
           <View style={{ width: 60 }} />
@@ -71,7 +72,7 @@ export const SalonDashboardScreen: React.FC<SalonDashboardScreenProps> = ({ navi
 
         {/* DOUBLE BOOKING PROTECTION BANNER */}
         <View style={styles.protectionCard}>
-          <Text style={styles.protectionTitle}>🛡️ Cơ chế Double-Booking Protection:</Text>
+          <View style={styles.protectionTitleRow}><IconBadge name="shield" size={17} containerStyle={styles.protectionIconBadge} /><Text style={styles.protectionTitle}>Cơ chế Double-Booking Protection:</Text></View>
           <Text style={styles.protectionText}>
             Vui lòng kiểm tra thợ & ghế trống tại Salon trước khi bấm <Text style={{ fontWeight: '800', color: '#10B981' }}>[CONFIRM]</Text>. Khách hàng đang chờ phản hồi xác nhận.
           </Text>
@@ -84,7 +85,7 @@ export const SalonDashboardScreen: React.FC<SalonDashboardScreenProps> = ({ navi
             onPress={() => setStatusFilter('PENDING')}
           >
             <Text style={[styles.filterTabText, statusFilter === 'PENDING' && styles.activeTabText]}>
-              ⏳ Chờ duyệt ({salonBookings.filter((b) => b.status === 'PENDING').length})
+              Chờ duyệt ({salonBookings.filter((b) => b.status === 'PENDING').length})
             </Text>
           </TouchableOpacity>
 
@@ -93,7 +94,7 @@ export const SalonDashboardScreen: React.FC<SalonDashboardScreenProps> = ({ navi
             onPress={() => setStatusFilter('CONFIRMED')}
           >
             <Text style={[styles.filterTabText, statusFilter === 'CONFIRMED' && styles.activeTabText]}>
-              ✅ Đã duyệt ({salonBookings.filter((b) => b.status === 'CONFIRMED').length})
+              Đã duyệt ({salonBookings.filter((b) => b.status === 'CONFIRMED').length})
             </Text>
           </TouchableOpacity>
 
@@ -102,7 +103,7 @@ export const SalonDashboardScreen: React.FC<SalonDashboardScreenProps> = ({ navi
             onPress={() => setStatusFilter('COMPLETED')}
           >
             <Text style={[styles.filterTabText, statusFilter === 'COMPLETED' && styles.activeTabText]}>
-              🎉 Hoàn tất ({salonBookings.filter((b) => b.status === 'COMPLETED').length})
+              Hoàn tất ({salonBookings.filter((b) => b.status === 'COMPLETED').length})
             </Text>
           </TouchableOpacity>
         </View>
@@ -110,7 +111,7 @@ export const SalonDashboardScreen: React.FC<SalonDashboardScreenProps> = ({ navi
         {/* BOOKING REQUEST CARDS */}
         {filteredBookings.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyIcon}>💈</Text>
+            <IconBadge name="calendar" size={24} containerStyle={styles.emptyIconBadge} />
             <Text style={styles.emptyText}>Không có lịch hẹn nào ở mục [{statusFilter}]</Text>
           </View>
         ) : (
@@ -126,15 +127,15 @@ export const SalonDashboardScreen: React.FC<SalonDashboardScreenProps> = ({ navi
               {/* Customer & Appointment Info */}
               <View style={styles.cardMain}>
                 <View style={styles.customerBox}>
-                  <Text style={styles.custName}>👤 Khách hàng: {b.customerName}</Text>
-                  <Text style={styles.custPhone}>📞 SĐT: {b.customerPhone}</Text>
+                  <Text style={styles.custName}>Khách hàng: {b.customerName}</Text>
+                  <Text style={styles.custPhone}>SĐT: {b.customerPhone}</Text>
                   <Text style={styles.appointmentTime}>
-                    🕒 Khung giờ hẹn: <Text style={styles.timeHighlight}>{b.timeSlot} ngày {b.date}</Text>
+                    Khung giờ hẹn: <Text style={styles.timeHighlight}>{b.timeSlot} ngày {b.date}</Text>
                   </Text>
-                  <Text style={styles.serviceText}>💇 Dịch vụ chọn: {b.serviceName || 'Cắt tạo kiểu'}</Text>
+                  <Text style={styles.serviceText}>Dịch vụ chọn: {b.serviceName || 'Cắt tạo kiểu'}</Text>
                   {b.totalPrice && (
                     <Text style={styles.priceText}>
-                      💰 Tổng thu: {b.totalPrice.toLocaleString('vi-VN')} đ
+                      Tổng thu: {b.totalPrice.toLocaleString('vi-VN')} đ
                     </Text>
                   )}
                 </View>
@@ -158,14 +159,14 @@ export const SalonDashboardScreen: React.FC<SalonDashboardScreenProps> = ({ navi
                       style={styles.cancelBtn}
                       onPress={() => handleUpdateStatus(b.id, 'CANCELLED')}
                     >
-                      <Text style={styles.cancelBtnText}>❌ HỦY LỊCH</Text>
+                      <Text style={styles.cancelBtnText}>HỦY LỊCH</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
                       style={styles.confirmBtn}
                       onPress={() => handleUpdateStatus(b.id, 'CONFIRMED')}
                     >
-                      <Text style={styles.confirmBtnText}>✅ DUYỆT GIỮ CHỖ</Text>
+                      <Text style={styles.confirmBtnText}>DUYỆT GIỮ CHỖ</Text>
                     </TouchableOpacity>
                   </>
                 )}
@@ -176,21 +177,21 @@ export const SalonDashboardScreen: React.FC<SalonDashboardScreenProps> = ({ navi
                       style={styles.cancelBtn}
                       onPress={() => handleUpdateStatus(b.id, 'CANCELLED')}
                     >
-                      <Text style={styles.cancelBtnText}>❌ Khách No-show</Text>
+                      <Text style={styles.cancelBtnText}>Khách No-show</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
                       style={styles.completeBtn}
                       onPress={() => handleUpdateStatus(b.id, 'COMPLETED')}
                     >
-                      <Text style={styles.completeBtnText}>💳 XÁC NHẬN THANH TOÁN</Text>
+                      <Text style={styles.completeBtnText}>XÁC NHẬN THANH TOÁN</Text>
                     </TouchableOpacity>
                   </>
                 )}
 
                 {b.status === 'COMPLETED' && (
                   <View style={styles.completedBadge}>
-                    <Text style={styles.completedBadgeText}>✓ Đã hoàn tất & Đã thu tiền</Text>
+                    <Text style={styles.completedBadgeText}>Đã hoàn tất & Đã thu tiền</Text>
                   </View>
                 )}
 
@@ -211,7 +212,7 @@ export const SalonDashboardScreen: React.FC<SalonDashboardScreenProps> = ({ navi
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A'
+    backgroundColor: '#F6F8F7'
   },
   scrollContent: {
     padding: 16
@@ -226,17 +227,22 @@ const styles = StyleSheet.create({
     paddingVertical: 4
   },
   backBtnText: {
-    color: '#38BDF8',
+    color: '#0F766E',
     fontSize: 13,
     fontWeight: '600'
+  },
+  backRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
   },
   headerTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#F8FAFC'
+    color: '#0F172A'
   },
   sectionLabel: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 12,
     marginBottom: 6
   },
@@ -244,43 +250,54 @@ const styles = StyleSheet.create({
     marginBottom: 14
   },
   salonPill: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 10,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: '#334155'
+    borderColor: '#DDE7E3'
   },
   activeSalonPill: {
-    backgroundColor: '#F59E0B',
-    borderColor: '#FBBF24'
+    backgroundColor: '#B45309',
+    borderColor: '#FDE68A'
   },
   salonPillText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 12,
     fontWeight: '600'
   },
   activeSalonPillText: {
-    color: '#0F172A',
+    color: '#FFFFFF',
     fontWeight: '800'
   },
   protectionCard: {
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    backgroundColor: '#FFF7ED',
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)'
+    borderColor: '#FDBA74'
+  },
+  protectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 4
+  },
+  protectionIconBadge: {
+    width: 34,
+    height: 34,
+    borderRadius: 17
   },
   protectionTitle: {
-    color: '#F59E0B',
+    color: '#B45309',
     fontSize: 12,
     fontWeight: '800',
     marginBottom: 2
   },
   protectionText: {
-    color: '#FCD34D',
+    color: '#92400E',
     fontSize: 11,
     lineHeight: 16
   },
@@ -291,27 +308,27 @@ const styles = StyleSheet.create({
   },
   filterTab: {
     flex: 1,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     paddingVertical: 10,
     borderRadius: 10,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155'
+    borderColor: '#DDE7E3'
   },
   activePendingTab: {
-    backgroundColor: '#F59E0B',
-    borderColor: '#FBBF24'
+    backgroundColor: '#B45309',
+    borderColor: '#FDE68A'
   },
   activeConfirmedTab: {
-    backgroundColor: '#10B981',
-    borderColor: '#34D399'
+    backgroundColor: '#0F766E',
+    borderColor: '#6EE7B7'
   },
   activeCompletedTab: {
-    backgroundColor: '#0EA5E9',
-    borderColor: '#38BDF8'
+    backgroundColor: '#2563EB',
+    borderColor: '#93C5FD'
   },
   filterTabText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 11,
     fontWeight: '700'
   },
@@ -320,28 +337,34 @@ const styles = StyleSheet.create({
     fontWeight: '800'
   },
   emptyCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 30,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155'
+    borderColor: '#DDE7E3'
   },
   emptyIcon: {
     fontSize: 36,
     marginBottom: 8
   },
+  emptyIconBadge: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    marginBottom: 10
+  },
   emptyText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 13
   },
   requestCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 14,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#334155'
+    borderColor: '#DDE7E3'
   },
   cardHeader: {
     flexDirection: 'row',
@@ -350,13 +373,13 @@ const styles = StyleSheet.create({
     marginBottom: 10
   },
   badgePending: {
-    backgroundColor: '#334155',
+    backgroundColor: '#E7F7F4',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6
   },
   badgePendingText: {
-    color: '#38BDF8',
+    color: '#0F766E',
     fontSize: 11,
     fontWeight: '700'
   },
@@ -372,19 +395,19 @@ const styles = StyleSheet.create({
     flex: 1
   },
   custName: {
-    color: '#F8FAFC',
+    color: '#0F172A',
     fontSize: 14,
     fontWeight: '700',
     marginBottom: 2
   },
   custPhone: {
-    color: '#38BDF8',
+    color: '#0F766E',
     fontSize: 13,
     fontWeight: '700',
     marginBottom: 4
   },
   appointmentTime: {
-    color: '#CBD5E1',
+    color: '#334155',
     fontSize: 12,
     marginBottom: 2
   },
@@ -393,7 +416,7 @@ const styles = StyleSheet.create({
     fontWeight: '800'
   },
   serviceText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 12,
     marginBottom: 2
   },
@@ -412,11 +435,11 @@ const styles = StyleSheet.create({
     width: 65,
     height: 65,
     borderRadius: 10,
-    backgroundColor: '#334155',
+    backgroundColor: '#E7F7F4',
     marginBottom: 4
   },
   tryOnTag: {
-    color: '#38BDF8',
+    color: '#0F766E',
     fontSize: 9,
     fontWeight: '700',
     textAlign: 'center'
@@ -435,16 +458,16 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#EF4444'
+    borderColor: '#FCA5A5'
   },
   cancelBtnText: {
-    color: '#EF4444',
+    color: '#DC2626',
     fontSize: 12,
     fontWeight: '800'
   },
   confirmBtn: {
     flex: 1.5,
-    backgroundColor: '#10B981',
+    backgroundColor: '#0F766E',
     borderRadius: 10,
     paddingVertical: 10,
     alignItems: 'center'
@@ -456,7 +479,7 @@ const styles = StyleSheet.create({
   },
   completeBtn: {
     flex: 1.5,
-    backgroundColor: '#0EA5E9',
+    backgroundColor: '#2563EB',
     borderRadius: 10,
     paddingVertical: 10,
     alignItems: 'center'
@@ -474,7 +497,7 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   completedBadgeText: {
-    color: '#38BDF8',
+    color: '#0F766E',
     fontSize: 12,
     fontWeight: '700'
   },
@@ -486,7 +509,7 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   cancelledBadgeText: {
-    color: '#EF4444',
+    color: '#DC2626',
     fontSize: 12,
     fontWeight: '700'
   }

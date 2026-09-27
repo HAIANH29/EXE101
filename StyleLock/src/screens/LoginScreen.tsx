@@ -13,6 +13,7 @@ import {
   Alert
 } from 'react-native';
 import { backendApi } from '../services/backendApi';
+import { AppIcon } from '../components/AppIcon';
 
 interface LoginScreenProps {
   navigation: any;
@@ -92,7 +93,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           {/* Top Skip / Back option */}
           <View style={styles.topBar}>
             <TouchableOpacity onPress={() => navigation.replace('Home')} style={styles.skipBtn}>
-              <Text style={styles.skipText}>Bỏ qua ➔</Text>
+              <Text style={styles.skipText}>Bỏ qua</Text>
             </TouchableOpacity>
           </View>
 
@@ -107,7 +108,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                 style={styles.logoImage}
               />
               <View style={styles.logoOverlay}>
-                <Text style={styles.logoEmoji}>✂️</Text>
+                <AppIcon name="scissors" size={34} color="#FFFFFF" />
               </View>
             </View>
 
@@ -157,7 +158,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                   style={styles.eyeBtn}
                   onPress={() => setShowPassword(!showPassword)}
                 >
-                  <Text style={styles.eyeIcon}>{showPassword ? '👁️' : '🙈'}</Text>
+                  <AppIcon name={showPassword ? "eyeOff" : "eye"} size={18} color="#005C55" />
                 </TouchableOpacity>
               </View>
             </View>

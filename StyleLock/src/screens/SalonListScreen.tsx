@@ -13,6 +13,9 @@ import {
 import { MOCK_SALONS } from '../services/mockData';
 import { backendApi } from '../services/backendApi';
 import { Hairstyle, Salon } from '../types';
+import { AppIcon } from '../components/AppIcon';
+import { BottomNavBar } from '../components/BottomNavBar';
+import { NotificationBellButton } from '../components/NotificationBellButton';
 
 interface SalonListScreenProps {
   navigation: any;
@@ -76,17 +79,12 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
       {/* Top App Bar */}
       <View style={styles.topAppBar}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.topIcon}>◀</Text>
+          <AppIcon name="arrowLeft" size={22} color="#005C55" />
         </TouchableOpacity>
 
         <Text style={styles.brandTitle}>StyleLock</Text>
 
-        <TouchableOpacity
-          style={styles.iconBtn}
-          onPress={() => navigation.navigate('BookingHistory')}
-        >
-          <Text style={styles.topIcon}>🔔</Text>
-        </TouchableOpacity>
+        <NotificationBellButton navigation={navigation} style={styles.iconBtn} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -105,7 +103,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
         {/* Search & Filter Area */}
         <View style={styles.searchSection}>
           <View style={styles.searchBox}>
-            <Text style={styles.searchIcon}>🔍</Text>
+            <AppIcon name="search" size={18} color="#6E7977" style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search salons near you..."
@@ -122,7 +120,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
               style={[styles.filterChip, activeFilter === 'Distance' && styles.activeChip]}
               onPress={() => setActiveFilter(activeFilter === 'Distance' ? 'All' : 'Distance')}
             >
-              <Text style={styles.chipIcon}>📍</Text>
+              <AppIcon name="pin" size={14} color={activeFilter === "Distance" ? "#FFFFFF" : "#3E4947"} style={styles.chipIcon} />
               <Text style={[styles.chipText, activeFilter === 'Distance' && styles.activeChipText]}>
                 Distance
               </Text>
@@ -133,7 +131,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
               style={[styles.filterChip, activeFilter === 'Rating' && styles.activeChip]}
               onPress={() => setActiveFilter(activeFilter === 'Rating' ? 'All' : 'Rating')}
             >
-              <Text style={styles.chipIcon}>⭐</Text>
+              <AppIcon name="star" size={14} color={activeFilter === "Rating" ? "#FFFFFF" : "#3E4947"} style={styles.chipIcon} />
               <Text style={[styles.chipText, activeFilter === 'Rating' && styles.activeChipText]}>
                 Rating
               </Text>
@@ -144,7 +142,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
               style={[styles.filterChip, activeFilter === 'Price' && styles.activeChip]}
               onPress={() => setActiveFilter(activeFilter === 'Price' ? 'All' : 'Price')}
             >
-              <Text style={styles.chipIcon}>💵</Text>
+              <AppIcon name="money" size={14} color={activeFilter === "Price" ? "#FFFFFF" : "#3E4947"} style={styles.chipIcon} />
               <Text style={[styles.chipText, activeFilter === 'Price' && styles.activeChipText]}>
                 Price
               </Text>
@@ -155,7 +153,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
               style={[styles.filterChip, styles.openNowChip, activeFilter === 'Open Now' && styles.activeChip]}
               onPress={() => setActiveFilter(activeFilter === 'Open Now' ? 'All' : 'Open Now')}
             >
-              <Text style={[styles.chipIcon, { color: '#005C55' }]}>🕒</Text>
+              <AppIcon name="clock" size={14} color={activeFilter === "Open Now" ? "#FFFFFF" : "#005C55"} style={styles.chipIcon} />
               <Text style={[styles.chipText, { color: '#005C55', fontWeight: '700' }]}>Open Now</Text>
             </TouchableOpacity>
           </ScrollView>
@@ -178,7 +176,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
                     style={styles.favBtn}
                     onPress={() => toggleFavorite(salon.id)}
                   >
-                    <Text style={styles.favIcon}>{isFav ? '❤️' : '🤍'}</Text>
+                    <AppIcon name="heart" size={17} color={isFav ? "#BA1A1A" : "#005C55"} />
                   </TouchableOpacity>
                 </View>
 
@@ -188,7 +186,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
                   <View style={styles.titleRow}>
                     <Text style={styles.salonName}>{salon.name}</Text>
                     <View style={styles.ratingBadge}>
-                      <Text style={styles.starIcon}>⭐</Text>
+                      <AppIcon name="star" size={13} color="#B45309" style={styles.starIcon} />
                       <Text style={styles.ratingScore}>{salon.rating}</Text>
                     </View>
                   </View>
@@ -199,7 +197,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
 
                   {/* Distance & Location */}
                   <View style={styles.locationRow}>
-                    <Text style={styles.locationIcon}>📍</Text>
+                    <AppIcon name="pin" size={14} color="#64748B" style={styles.locationIcon} />
                     <Text style={styles.locationText}>
                       {salon.distance} away • {salon.address.split(',')[1] || 'Center'}
                     </Text>
@@ -219,7 +217,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
                           isSupported ? styles.matchSupportedText : styles.matchWarningText
                         ]}
                       >
-                        {isSupported ? '✅ Nhận làm chuẩn mẫu tóc này' : '⚠️ Tham vấn thợ trước khi làm'}
+                        {isSupported ? 'Nhận làm chuẩn mẫu tóc này' : 'Tham vấn thợ trước khi làm'}
                       </Text>
                     </View>
                   )}
@@ -239,11 +237,11 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
                       onPress={() =>
                         Alert.alert(
                           salon.name,
-                          `📍 Địa chỉ: ${salon.address}\n📞 SĐT: ${salon.phone}\n🕒 Giờ làm việc: ${salon.openingHours}`
+                          `Địa chỉ: ${salon.address}\nSĐT: ${salon.phone}\nGiờ làm việc: ${salon.openingHours}`
                         )
                       }
                     >
-                      <Text style={styles.infoBtnIcon}>ℹ️</Text>
+                      <AppIcon name="info" size={19} color="#005C55" />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -255,33 +253,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
         <View style={{ height: 90 }} />
       </ScrollView>
 
-      {/* Bottom Navigation Bar */}
-      <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Home')}>
-          <Text style={styles.navIcon}>🏠</Text>
-          <Text style={styles.navLabel}>Home</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('HairstyleSelect')}>
-          <Text style={styles.navIcon}>🔍</Text>
-          <Text style={styles.navLabel}>Explore</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CameraUpload')}>
-          <Text style={styles.navIcon}>✨</Text>
-          <Text style={styles.navLabel}>AI Camera</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={[styles.navItem, styles.navItemActive]}>
-          <Text style={[styles.navIcon, styles.navIconActive]}>📅</Text>
-          <Text style={[styles.navLabel, styles.navLabelActive]}>Bookings</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Profile')}>
-          <Text style={styles.navIcon}>👤</Text>
-          <Text style={styles.navLabel}>Profile</Text>
-        </TouchableOpacity>
-      </View>
+      <BottomNavBar active="Bookings" navigation={navigation} />
     </SafeAreaView>
   );
 };

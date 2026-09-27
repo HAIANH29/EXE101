@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { backendApi } from '../services/backendApi';
 import { Salon, Hairstyle, ServiceItem, StylistItem } from '../types';
+import { AppIcon } from '../components/AppIcon';
 
 interface SalonDetailScreenProps {
   navigation: any;
@@ -133,7 +134,7 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
       {/* Top App Bar */}
       <View style={styles.topAppBar}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.topIcon}>◀</Text>
+          <AppIcon name="arrowLeft" size={21} color="#005C55" />
         </TouchableOpacity>
 
         <Text style={styles.brandTitle}>Salon Detail</Text>
@@ -142,7 +143,7 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
           style={styles.iconBtn}
           onPress={() => Alert.alert('Share', `Sharing ${salon.name}...`)}
         >
-          <Text style={styles.topIcon}>🔗</Text>
+          <AppIcon name="share" size={19} color="#005C55" />
         </TouchableOpacity>
       </View>
 
@@ -154,12 +155,12 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
               <Text style={styles.salonTitle}>{salon.name}</Text>
 
               <View style={styles.locationRow}>
-                <Text style={styles.locIcon}>📍</Text>
+                <AppIcon name="pin" size={14} color="rgba(255, 255, 255, 0.9)" style={styles.locIcon} />
                 <Text style={styles.locText}>{salon.address}</Text>
               </View>
 
               <View style={styles.ratingPill}>
-                <Text style={styles.starIcon}>⭐</Text>
+                <AppIcon name="star" size={13} color="#FFE08E" style={styles.starIcon} />
                 <Text style={styles.ratingText}>
                   {salon.rating} ({salon.reviewCount} reviews)
                 </Text>
@@ -241,7 +242,7 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
                       Full dimensional service with custom conditioning & signature styling.
                     </Text>
                     <View style={styles.durationRow}>
-                      <Text style={styles.durIcon}>⏱️</Text>
+                      <AppIcon name="clock" size={12} color="#3E4947" style={styles.durIcon} />
                       <Text style={styles.durText}>{srv.durationMinutes} min</Text>
                     </View>
                   </View>
@@ -249,7 +250,7 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
                   <View style={styles.serviceRight}>
                     <Text style={styles.priceText}>{srv.price.toLocaleString('vi-VN')} đ</Text>
                     <Text style={[styles.selectBtnText, isSelected && styles.selectedBtnText]}>
-                      {isSelected ? '✓ Selected' : 'Select'}
+                      {isSelected ? 'Selected' : 'Select'}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -306,7 +307,7 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
               style={styles.mapImg}
             />
             <View style={styles.mapPinOverlay}>
-              <Text style={styles.mapPinIcon}>📍</Text>
+              <AppIcon name="pin" size={38} color="#005C55" />
             </View>
           </View>
           <Text style={styles.mapAddress}>{salon.address}</Text>
@@ -324,7 +325,7 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
             Alert.alert('Message Salon', `Sending direct message to ${salon.name}...`)
           }
         >
-          <Text style={styles.msgIcon}>💬</Text>
+          <AppIcon name="message" size={17} color="#1C1C18" />
           <Text style={styles.msgText}>Message</Text>
         </TouchableOpacity>
 

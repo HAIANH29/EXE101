@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
+  ActivityIndicator,
   StyleSheet,
   View,
   Text,
@@ -7,22 +8,240 @@ import {
   SafeAreaView,
   ScrollView,
   Image,
-  Switch,
   Alert,
+  Modal,
+  TextInput,
   Platform
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import * as ImagePicker from 'expo-image-picker';
 import { backendApi } from '../services/backendApi';
+import { AppIcon } from '../components/AppIcon';
 import { bookingService } from '../services/bookingService';
+import { BottomNavBar } from '../components/BottomNavBar';
+import { NotificationBellButton } from '../components/NotificationBellButton';
 
 interface ProfileScreenProps {
   navigation: any;
 }
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
-  const [darkMode, setDarkMode] = useState<boolean>(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(true);
+  const [currentUser, setCurrentUser] = useState(backendApi.getCurrentUser()?.user);
+  const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(false);
+  const [profileError, setProfileError] = useState<string | undefined>();
   const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false);
-  const currentUser = backendApi.getCurrentUser()?.user;
+  const [editProfileModalVisible, setEditProfileModalVisible] = useState<boolean>(false);
+  const [profileFullName, setProfileFullName] = useState<string>('');
+  const [profilePhone, setProfilePhone] = useState<string>('');
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState<boolean>(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState<boolean>(false);
+  const [passwordModalVisible, setPasswordModalVisible] = useState<boolean>(false);
+  const [oldPassword, setOldPassword] = useState<string>('');
+  const [newPassword, setNewPassword] = useState<string>('');
+  const [confirmPassword, setConfirmPassword] = useState<string>('');
+  const [isChangingPassword, setIsChangingPassword] = useState<boolean>(false);
+
+  const isAuthenticated = backendApi.isAuthenticated();
+
+  const goToLogin = () => {
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Login' }]
+    });
+
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.history.replaceState(null, '', '/');
+    }
+  };
+
+  const loadProfile = useCallback(() => {
+    let active = true;
+
+    const run = async () => {
+      if (!backendApi.isAuthenticated()) {
+        if (active) {
+          setCurrentUser(undefined);
+          setProfileError('Bạn chưa đăng nhập.');
+          setIsLoadingProfile(false);
+        }
+        return;
+      }
+
+      setIsLoadingProfile(true);
+      try {
+        const user = await backendApi.getMe();
+        if (active) {
+          setCurrentUser(user);
+          setProfileError(undefined);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Không tải được hồ sơ.';
+        if (active) setProfileError(message);
+      } finally {
+        if (active) setIsLoadingProfile(false);
+      }
+    };
+
+    run();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useFocusEffect(loadProfile);
+
+  const resetPasswordForm = () => {
+    setOldPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+  };
+
+  const openEditProfileModal = () => {
+    if (!currentUser) {
+      goToLogin();
+      return;
+    }
+
+    setProfileFullName(currentUser.fullName || '');
+    setProfilePhone(currentUser.phone || '');
+    setEditProfileModalVisible(true);
+  };
+
+  const handleUpdateProfile = async () => {
+    if (!isAuthenticated) {
+      Alert.alert('Cần đăng nhập', 'Vui lòng đăng nhập trước khi chỉnh sửa hồ sơ.');
+      return;
+    }
+
+    const fullName = profileFullName.trim();
+    if (!fullName) {
+      Alert.alert('Thiếu họ tên', 'Họ tên không được để trống.');
+      return;
+    }
+
+    try {
+      setIsUpdatingProfile(true);
+      const user = await backendApi.updateProfile({
+        fullName,
+        phone: profilePhone.trim()
+      });
+      setCurrentUser(user);
+      setEditProfileModalVisible(false);
+      Alert.alert('Đã cập nhật', 'Hồ sơ của bạn đã được lưu thành công.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Không cập nhật được hồ sơ.';
+      Alert.alert('Cập nhật thất bại', message);
+    } finally {
+      setIsUpdatingProfile(false);
+    }
+  };
+
+  const handlePickAvatar = async () => {
+    if (!isAuthenticated) {
+      Alert.alert('Cần đăng nhập', 'Vui lòng đăng nhập trước khi cập nhật ảnh đại diện.');
+      return;
+    }
+
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Quyền truy cập ảnh', 'Vui lòng cấp quyền truy cập thư viện ảnh để chọn avatar.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.85
+      });
+
+      if (result.canceled || !result.assets[0]?.uri) {
+        return;
+      }
+
+      const asset = result.assets[0];
+      setIsUploadingAvatar(true);
+      const user = await backendApi.uploadAvatar({
+        uri: asset.uri,
+        fileName: asset.fileName,
+        mimeType: asset.mimeType
+      });
+      setCurrentUser(user);
+      Alert.alert('Đã cập nhật', 'Ảnh đại diện của bạn đã được lưu.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Không upload được ảnh đại diện.';
+      Alert.alert('Upload thất bại', message);
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!isAuthenticated) {
+      Alert.alert('Cần đăng nhập', 'Vui lòng đăng nhập trước khi đổi mật khẩu.');
+      return;
+    }
+
+    if (!oldPassword.trim() || !newPassword.trim() || !confirmPassword.trim()) {
+      Alert.alert('Thiếu thông tin', 'Vui lòng nhập đầy đủ mật khẩu hiện tại và mật khẩu mới.');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      Alert.alert('Mật khẩu quá ngắn', 'Mật khẩu mới cần ít nhất 6 ký tự.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Mật khẩu không khớp', 'Vui lòng nhập lại xác nhận mật khẩu mới.');
+      return;
+    }
+
+    try {
+      setIsChangingPassword(true);
+      await backendApi.changePassword({ oldPassword, newPassword });
+      setPasswordModalVisible(false);
+      resetPasswordForm();
+      Alert.alert('Đổi mật khẩu thành công', 'Mật khẩu tài khoản của bạn đã được cập nhật.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Không đổi được mật khẩu.';
+      Alert.alert('Đổi mật khẩu thất bại', message);
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  const initials = (currentUser?.fullName || currentUser?.email || 'SL')
+    .split(' ')
+    .map((part) => part.trim()[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
+  const roleLabel = currentUser?.roles?.includes('ADMIN')
+    ? 'Quản trị viên'
+    : currentUser?.roles?.includes('SALON_OWNER')
+      ? 'Chủ salon'
+      : currentUser?.roles?.includes('STYLIST')
+        ? 'Stylist'
+        : currentUser?.roles?.includes('CUSTOMER')
+          ? 'Khách hàng'
+          : 'Chưa xác định';
+
+  const statusLabel = currentUser?.status === 'ACTIVE'
+    ? 'Đang hoạt động'
+    : currentUser?.status || 'Chưa có trạng thái';
+
+  const memberSince = currentUser?.createdAt
+    ? new Date(currentUser.createdAt).toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      })
+    : 'Chưa có dữ liệu';
 
   const performLogout = async () => {
     if (isLoggingOut) return;
@@ -33,21 +252,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
     } finally {
       bookingService.clear();
       setIsLoggingOut(false);
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Login' }]
-      });
+      goToLogin();
     }
   };
 
   const handleLogout = () => {
     if (Platform.OS === 'web') {
-      const confirmed =
-        typeof window === 'undefined' || window.confirm('Bạn có chắc chắn muốn đăng xuất?');
-
-      if (confirmed) {
-        void performLogout();
-      }
+      void performLogout();
       return;
     }
 
@@ -68,48 +279,83 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
       {/* Top App Bar */}
       <View style={styles.topAppBar}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.topIcon}>☰</Text>
+          <AppIcon name="menu" size={22} color="#005C55" />
         </TouchableOpacity>
 
         <Text style={styles.brandTitle}>StyleLock</Text>
 
-        <TouchableOpacity
-          style={styles.iconBtn}
-          onPress={() => Alert.alert('Thông báo', 'Bạn có 2 thông báo mới từ Salon Luxe Studio')}
-        >
-          <View style={styles.bellBadgeWrap}>
-            <Text style={styles.topIcon}>🔔</Text>
-            <View style={styles.redDot} />
-          </View>
-        </TouchableOpacity>
+        <NotificationBellButton navigation={navigation} style={styles.iconBtn} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Profile Header Section */}
         <View style={styles.headerSection}>
           <View style={styles.avatarWrapper}>
-            <Image
-              source={{
-                uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400'
-              }}
-              style={styles.avatarImg}
-            />
+            {currentUser?.avatarUrl ? (
+              <Image
+                source={{ uri: currentUser.avatarUrl }}
+                style={styles.avatarImg}
+              />
+            ) : (
+              <View style={[styles.avatarImg, styles.avatarFallback]}>
+                <Text style={styles.avatarInitials}>{initials}</Text>
+              </View>
+            )}
             <TouchableOpacity
               style={styles.editAvatarBtn}
-              onPress={() => Alert.alert('Thay đổi ảnh', 'Chọn ảnh chân dung mới cho tài khoản')}
+              onPress={handlePickAvatar}
+              disabled={isUploadingAvatar}
             >
-              <Text style={styles.editAvatarIcon}>✏️</Text>
+              {isUploadingAvatar ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <AppIcon name="camera" size={15} color="#FFFFFF" />
+              )}
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.userName}>{currentUser?.fullName || 'Eleanor Vance'}</Text>
-          <Text style={styles.userEmail}>{currentUser?.email || 'eleanor.v@example.com'}</Text>
+          <Text style={styles.userName}>{currentUser?.fullName || 'Bạn chưa đăng nhập'}</Text>
+          <Text style={styles.userEmail}>
+            {currentUser?.email || 'Đăng nhập để đồng bộ hồ sơ'}
+          </Text>
+
+          {isLoadingProfile && (
+            <View style={styles.profileStatusRow}>
+              <ActivityIndicator size="small" color="#005C55" />
+              <Text style={styles.profileStatusText}>Đang đồng bộ hồ sơ...</Text>
+            </View>
+          )}
+
+          {profileError && !isLoadingProfile && (
+            <TouchableOpacity style={styles.profileErrorPill} onPress={() => loadProfile()}>
+              <Text style={styles.profileErrorText}>{profileError}</Text>
+            </TouchableOpacity>
+          )}
+
+          <View style={styles.profileInfoGrid}>
+            <View style={styles.infoPill}>
+              <Text style={styles.infoLabel}>Vai trò</Text>
+              <Text style={styles.infoValue}>{roleLabel}</Text>
+            </View>
+            <View style={styles.infoPill}>
+              <Text style={styles.infoLabel}>Trạng thái</Text>
+              <Text style={styles.infoValue}>{statusLabel}</Text>
+            </View>
+            <View style={styles.infoPill}>
+              <Text style={styles.infoLabel}>Số điện thoại</Text>
+              <Text style={styles.infoValue}>{currentUser?.phone || 'Chưa cập nhật'}</Text>
+            </View>
+            <View style={styles.infoPill}>
+              <Text style={styles.infoLabel}>Ngày tạo</Text>
+              <Text style={styles.infoValue}>{memberSince}</Text>
+            </View>
+          </View>
 
           <TouchableOpacity
             style={styles.editProfileBtn}
-            onPress={() => Alert.alert('Chỉnh sửa thông tin', 'Chức năng cập nhật hồ sơ cá nhân')}
+            onPress={openEditProfileModal}
           >
-            <Text style={styles.editProfileText}>Edit Profile</Text>
+            <Text style={styles.editProfileText}>{currentUser ? 'Edit Profile' : 'Sign In'}</Text>
           </TouchableOpacity>
         </View>
 
@@ -122,11 +368,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           >
             <View style={styles.menuLeft}>
               <View style={styles.menuIconBg}>
-                <Text style={styles.menuIconText}>❤️</Text>
+                <AppIcon name="heart" size={19} color="#005C55" />
               </View>
               <Text style={styles.menuTitle}>Favorite Hairstyles</Text>
             </View>
-            <Text style={styles.chevronIcon}>›</Text>
+            <AppIcon name="arrowRight" size={18} color="#3E4947" />
           </TouchableOpacity>
 
           {/* Saved Salons */}
@@ -136,96 +382,192 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           >
             <View style={styles.menuLeft}>
               <View style={styles.menuIconBg}>
-                <Text style={styles.menuIconText}>🏪</Text>
+                <AppIcon name="salon" size={19} color="#005C55" />
               </View>
               <Text style={styles.menuTitle}>Saved Salons</Text>
             </View>
-            <Text style={styles.chevronIcon}>›</Text>
+            <AppIcon name="arrowRight" size={18} color="#3E4947" />
           </TouchableOpacity>
 
-          {/* Notification Settings */}
+          {/* Notifications */}
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => {
-              setNotificationsEnabled(!notificationsEnabled);
-              Alert.alert(
-                'Thông báo',
-                !notificationsEnabled ? 'Đã bật nhận thông báo' : 'Đã tắt nhận thông báo'
-              );
-            }}
+            onPress={() => navigation.navigate('Notifications')}
           >
             <View style={styles.menuLeft}>
               <View style={styles.menuIconBg}>
-                <Text style={styles.menuIconText}>🔔</Text>
+                <AppIcon name="bell" size={19} color="#005C55" />
               </View>
-              <Text style={styles.menuTitle}>Notification Settings</Text>
+              <Text style={styles.menuTitle}>Notifications</Text>
             </View>
-            <Text style={styles.chevronIcon}>›</Text>
+            <AppIcon name="arrowRight" size={18} color="#3E4947" />
           </TouchableOpacity>
         </View>
 
         {/* Menu Section Group 2 */}
         <View style={styles.menuGroup}>
-          {/* Dark Mode Toggle */}
-          <View style={[styles.menuItem, styles.menuItemBorder]}>
+          {/* Change Password */}
+          <TouchableOpacity
+            style={[styles.menuItem, styles.menuItemBorder]}
+            onPress={() =>
+              isAuthenticated
+                ? setPasswordModalVisible(true)
+                : Alert.alert('Cần đăng nhập', 'Vui lòng đăng nhập để đổi mật khẩu.')
+            }
+          >
             <View style={styles.menuLeft}>
               <View style={styles.menuIconBg}>
-                <Text style={styles.menuIconText}>🌙</Text>
+                <AppIcon name="shield" size={19} color="#005C55" />
               </View>
-              <Text style={styles.menuTitle}>Dark Mode</Text>
+              <Text style={styles.menuTitle}>Change Password</Text>
             </View>
-            <Switch
-              value={darkMode}
-              onValueChange={setDarkMode}
-              trackColor={{ false: '#BDC9C6', true: '#005C55' }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
+            <AppIcon name="arrowRight" size={18} color="#3E4947" />
+          </TouchableOpacity>
 
           {/* Logout */}
-          <TouchableOpacity style={styles.menuItem} onPress={handleLogout} disabled={isLoggingOut}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={isAuthenticated ? handleLogout : goToLogin}
+            disabled={isLoggingOut}
+          >
             <View style={styles.menuLeft}>
               <View style={[styles.menuIconBg, styles.logoutIconBg]}>
-                <Text style={styles.logoutIconText}>🚪</Text>
+                <AppIcon name={isAuthenticated ? 'logout' : 'user'} size={19} color="#BA1A1A" />
               </View>
-              <Text style={styles.logoutTitle}>{isLoggingOut ? 'Logging out...' : 'Logout'}</Text>
+              <Text style={styles.logoutTitle}>
+                {isAuthenticated ? (isLoggingOut ? 'Logging out...' : 'Logout') : 'Sign In'}
+              </Text>
             </View>
           </TouchableOpacity>
         </View>
 
-        {/* App Version Info */}
-        <Text style={styles.versionText}>StyleLock v2.4.1</Text>
-
         <View style={{ height: 90 }} />
       </ScrollView>
 
-      {/* Bottom Navigation Bar */}
-      <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Home')}>
-          <Text style={styles.navIcon}>🏠</Text>
-          <Text style={styles.navLabel}>Home</Text>
-        </TouchableOpacity>
+      <Modal
+        visible={editProfileModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEditProfileModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Chỉnh sửa hồ sơ</Text>
+            <Text style={styles.modalSub}>
+              Cập nhật thông tin cá nhân đang lưu trong backend.
+            </Text>
 
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('HairstyleSelect')}>
-          <Text style={styles.navIcon}>🔍</Text>
-          <Text style={styles.navLabel}>Explore</Text>
-        </TouchableOpacity>
+            <Text style={styles.inputLabel}>Họ tên</Text>
+            <TextInput
+              style={styles.passwordInput}
+              placeholder="Nguyen Van A"
+              placeholderTextColor="#94A3B8"
+              value={profileFullName}
+              onChangeText={setProfileFullName}
+              autoCapitalize="words"
+            />
 
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CameraUpload')}>
-          <Text style={styles.navIcon}>✨</Text>
-          <Text style={styles.navLabel}>AI Camera</Text>
-        </TouchableOpacity>
+            <Text style={styles.inputLabel}>Số điện thoại</Text>
+            <TextInput
+              style={styles.passwordInput}
+              placeholder="0988123456"
+              placeholderTextColor="#94A3B8"
+              value={profilePhone}
+              onChangeText={setProfilePhone}
+              keyboardType="phone-pad"
+            />
 
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('BookingHistory')}>
-          <Text style={styles.navIcon}>📅</Text>
-          <Text style={styles.navLabel}>Bookings</Text>
-        </TouchableOpacity>
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalSecondaryBtn}
+                onPress={() => setEditProfileModalVisible(false)}
+                disabled={isUpdatingProfile}
+              >
+                <Text style={styles.modalSecondaryText}>Hủy</Text>
+              </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.navItem, styles.navItemActive]}>
-          <Text style={[styles.navIcon, styles.navIconActive]}>👤</Text>
-          <Text style={[styles.navLabel, styles.navLabelActive]}>Profile</Text>
-        </TouchableOpacity>
-      </View>
+              <TouchableOpacity
+                style={[styles.modalPrimaryBtn, isUpdatingProfile && styles.modalPrimaryBtnDisabled]}
+                onPress={handleUpdateProfile}
+                disabled={isUpdatingProfile}
+              >
+                <Text style={styles.modalPrimaryText}>
+                  {isUpdatingProfile ? 'Đang lưu...' : 'Lưu hồ sơ'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={passwordModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setPasswordModalVisible(false);
+          resetPasswordForm();
+        }}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Đổi mật khẩu</Text>
+            <Text style={styles.modalSub}>
+              Nhập mật khẩu hiện tại để cập nhật mật khẩu mới cho tài khoản.
+            </Text>
+
+            <TextInput
+              style={styles.passwordInput}
+              placeholder="Mật khẩu hiện tại"
+              placeholderTextColor="#94A3B8"
+              value={oldPassword}
+              onChangeText={setOldPassword}
+              secureTextEntry
+            />
+            <TextInput
+              style={styles.passwordInput}
+              placeholder="Mật khẩu mới"
+              placeholderTextColor="#94A3B8"
+              value={newPassword}
+              onChangeText={setNewPassword}
+              secureTextEntry
+            />
+            <TextInput
+              style={styles.passwordInput}
+              placeholder="Nhập lại mật khẩu mới"
+              placeholderTextColor="#94A3B8"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalSecondaryBtn}
+                onPress={() => {
+                  setPasswordModalVisible(false);
+                  resetPasswordForm();
+                }}
+                disabled={isChangingPassword}
+              >
+                <Text style={styles.modalSecondaryText}>Hủy</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalPrimaryBtn, isChangingPassword && styles.modalPrimaryBtnDisabled]}
+                onPress={handleChangePassword}
+                disabled={isChangingPassword}
+              >
+                <Text style={styles.modalPrimaryText}>
+                  {isChangingPassword ? 'Đang lưu...' : 'Cập nhật'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <BottomNavBar active="Profile" navigation={navigation} />
     </SafeAreaView>
   );
 };
@@ -295,6 +637,16 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF',
     backgroundColor: '#E6EEFF'
   },
+  avatarFallback: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#E7F7F4'
+  },
+  avatarInitials: {
+    color: '#005C55',
+    fontSize: 34,
+    fontWeight: '800'
+  },
   editAvatarBtn: {
     position: 'absolute',
     bottom: 0,
@@ -322,6 +674,63 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#3E4947',
     marginBottom: 16
+  },
+  profileStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12
+  },
+  profileStatusText: {
+    fontSize: 13,
+    color: '#3E4947',
+    fontWeight: '600'
+  },
+  profileErrorPill: {
+    maxWidth: '100%',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+    marginBottom: 12
+  },
+  profileErrorText: {
+    color: '#B45309',
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center'
+  },
+  profileInfoGrid: {
+    width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 16
+  },
+  infoPill: {
+    flexGrow: 1,
+    flexBasis: '46%',
+    minHeight: 64,
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E6EEFF'
+  },
+  infoLabel: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '800',
+    marginBottom: 4
+  },
+  infoValue: {
+    fontSize: 14,
+    color: '#121C2A',
+    fontWeight: '700'
   },
   editProfileBtn: {
     backgroundColor: '#E6E2DC',
@@ -400,6 +809,89 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6E7977',
     marginTop: 12
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(18, 28, 42, 0.36)',
+    justifyContent: 'center',
+    paddingHorizontal: 22
+  },
+  modalCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 22,
+    borderWidth: 1,
+    borderColor: '#E6EEFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 8
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#121C2A',
+    marginBottom: 6
+  },
+  modalSub: {
+    fontSize: 13,
+    color: '#64748B',
+    lineHeight: 19,
+    marginBottom: 16
+  },
+  inputLabel: {
+    fontSize: 12,
+    color: '#3E4947',
+    fontWeight: '800',
+    marginBottom: 6
+  },
+  passwordInput: {
+    height: 50,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 14,
+    fontSize: 14,
+    color: '#121C2A',
+    marginBottom: 10
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 8
+  },
+  modalSecondaryBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#BDC9C6',
+    backgroundColor: '#FFFFFF'
+  },
+  modalSecondaryText: {
+    color: '#3E4947',
+    fontSize: 14,
+    fontWeight: '800'
+  },
+  modalPrimaryBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#005C55'
+  },
+  modalPrimaryBtnDisabled: {
+    opacity: 0.7
+  },
+  modalPrimaryText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800'
   },
   bottomBar: {
     position: 'absolute',

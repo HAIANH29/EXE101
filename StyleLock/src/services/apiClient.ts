@@ -11,6 +11,7 @@ type StoredAuthSession = {
     avatarUrl?: string;
     status?: string;
     roles?: string[];
+    createdAt?: string;
   };
 };
 
@@ -182,8 +183,10 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     Accept: 'application/json',
     ...(fetchOptions.headers as Record<string, string> | undefined)
   };
+  const isFormDataBody =
+    typeof FormData !== 'undefined' && fetchOptions.body instanceof FormData;
 
-  if (fetchOptions.body && !headers['Content-Type']) {
+  if (fetchOptions.body && !headers['Content-Type'] && !isFormDataBody) {
     headers['Content-Type'] = 'application/json';
   }
 

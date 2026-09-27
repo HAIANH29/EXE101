@@ -2,6 +2,7 @@ target/
 .m2/
 logs/
 *.log
+uploads/
 .env
 .env.*
 !.env.example

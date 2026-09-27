@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { HairCanvasOverlay } from '../components/HairCanvasOverlay';
 import { Hairstyle } from '../types';
+import { AppIcon } from '../components/AppIcon';
 
 interface TryOnEditorScreenProps {
   navigation: any;
@@ -45,14 +46,14 @@ export const TryOnEditorScreen: React.FC<TryOnEditorScreenProps> = ({ navigation
         {/* Header Navigation */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Text style={styles.backBtnText}>◀ Đổi ảnh khác</Text>
+            <View style={styles.backRow}><AppIcon name="arrowLeft" size={15} color="#0F766E" /><Text style={styles.backBtnText}>Đổi ảnh khác</Text></View>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Chỉnh ghép kiểu tóc</Text>
           <TouchableOpacity
             onPress={() => navigation.navigate('HairstyleSelect', { userPhotoUri })}
             style={styles.changeHairBtn}
           >
-            <Text style={styles.changeHairText}>Đổi mẫu tóc ✂️</Text>
+            <View style={styles.changeHairRow}><Text style={styles.changeHairText}>Đổi mẫu tóc</Text><AppIcon name="scissors" size={14} color="#0F766E" /></View>
           </TouchableOpacity>
         </View>
 
@@ -82,7 +83,7 @@ export const TryOnEditorScreen: React.FC<TryOnEditorScreenProps> = ({ navigation
 
         {/* TRY-ON DISCLAIMER - MANDATORY REQUIREMENT */}
         <View style={styles.disclaimerCard}>
-          <Text style={styles.disclaimerIcon}>⚠️</Text>
+          <AppIcon name="warning" size={22} color="#B45309" style={styles.disclaimerIcon} />
           <View style={styles.disclaimerContent}>
             <Text style={styles.disclaimerTitle}>LƯU Ý TRẢI NGHIỆM THỬ TÓC:</Text>
             <Text style={styles.disclaimerBody}>
@@ -97,7 +98,7 @@ export const TryOnEditorScreen: React.FC<TryOnEditorScreenProps> = ({ navigation
           activeOpacity={0.85}
           onPress={handleProceedToFindSalon}
         >
-          <Text style={styles.findSalonBtnIcon}>🏪</Text>
+          <AppIcon name="salon" size={20} color="#FFFFFF" style={styles.findSalonBtnIcon} />
           <Text style={styles.findSalonBtnText}>TÌM TIỆM LÀM KIỂU NÀY</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -108,7 +109,7 @@ export const TryOnEditorScreen: React.FC<TryOnEditorScreenProps> = ({ navigation
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A'
+    backgroundColor: '#F6F8F7'
   },
   scrollContent: {
     padding: 16
@@ -122,38 +123,48 @@ const styles = StyleSheet.create({
   backBtn: {
     paddingVertical: 4
   },
+  backRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
+  },
   backBtnText: {
-    color: '#38BDF8',
+    color: '#0F766E',
     fontSize: 13,
     fontWeight: '600'
   },
   headerTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#F8FAFC'
+    color: '#0F172A'
   },
   changeHairBtn: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#334155'
+    borderColor: '#DDE7E3'
+  },
+  changeHairRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
   },
   changeHairText: {
-    color: '#38BDF8',
+    color: '#0F766E',
     fontSize: 12,
     fontWeight: '700'
   },
   hairstyleInfoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 10,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#334155'
+    borderColor: '#DDE7E3'
   },
   thumbImage: {
     width: 44,
@@ -166,24 +177,24 @@ const styles = StyleSheet.create({
     flex: 1
   },
   hairName: {
-    color: '#F8FAFC',
+    color: '#0F172A',
     fontSize: 14,
     fontWeight: '700'
   },
   hairCategory: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 11,
     marginTop: 2
   },
   disclaimerCard: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    backgroundColor: '#FFF7ED',
     borderRadius: 14,
     padding: 12,
     marginTop: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)'
+    borderColor: '#FDBA74'
   },
   disclaimerIcon: {
     fontSize: 20,
@@ -193,25 +204,25 @@ const styles = StyleSheet.create({
     flex: 1
   },
   disclaimerTitle: {
-    color: '#F59E0B',
+    color: '#B45309',
     fontSize: 11,
     fontWeight: '800',
     marginBottom: 2
   },
   disclaimerBody: {
-    color: '#FCD34D',
+    color: '#92400E',
     fontSize: 11,
     lineHeight: 16,
     fontStyle: 'italic'
   },
   findSalonBtn: {
-    backgroundColor: '#0EA5E9',
+    backgroundColor: '#0F766E',
     borderRadius: 16,
     paddingVertical: 16,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#0EA5E9',
+    shadowColor: '#0F766E',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.4,
     shadowRadius: 10,

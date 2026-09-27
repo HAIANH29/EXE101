@@ -67,3 +67,19 @@ export interface Booking {
   totalPrice?: number;
   qrCode?: string;
 }
+
+export type NotificationType =
+  | 'BOOKING_CREATED'
+  | 'BOOKING_CONFIRMED'
+  | 'BOOKING_CANCELLED'
+  | 'BOOKING_COMPLETED'
+  | 'PAYMENT_COMPLETED';
+
+export interface NotificationItem {
+  id: number;
+  type: NotificationType;
+  title: string;
+  content: string;
+  read: boolean;
+  createdAt: string;
+}

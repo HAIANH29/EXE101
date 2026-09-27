@@ -14,6 +14,8 @@ import {
 import { MOCK_HAIRSTYLES } from '../services/mockData';
 import { backendApi } from '../services/backendApi';
 import { Hairstyle } from '../types';
+import { AppIcon } from '../components/AppIcon';
+import { BottomNavBar } from '../components/BottomNavBar';
 
 interface HairstyleSelectScreenProps {
   navigation: any;
@@ -108,7 +110,7 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
       {/* Sticky Search & Filter Header */}
       <View style={styles.stickyHeader}>
         <View style={styles.searchContainer}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <AppIcon name="search" size={17} color="#64748B" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search hairstyles, colors, trends..."
@@ -122,7 +124,7 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
           style={styles.filterBtn}
           onPress={() => setShowFilterModal(true)}
         >
-          <Text style={styles.filterIcon}>⚙️</Text>
+          <AppIcon name="settings" size={20} color="#005C55" />
         </TouchableOpacity>
       </View>
 
@@ -155,7 +157,7 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
                     style={styles.favBtn}
                     onPress={() => toggleFavorite(hair.id)}
                   >
-                    <Text style={styles.favIcon}>{isFav ? '❤️' : '🤍'}</Text>
+                    <AppIcon name="heart" size={19} color={isFav ? "#BA1A1A" : "#005C55"} />
                   </TouchableOpacity>
                 </TouchableOpacity>
 
@@ -187,33 +189,7 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
         <View style={{ height: 90 }} />
       </ScrollView>
 
-      {/* Bottom Navigation Bar */}
-      <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Home')}>
-          <Text style={styles.navIcon}>🏠</Text>
-          <Text style={styles.navLabel}>Home</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={[styles.navItem, styles.navItemActive]}>
-          <Text style={[styles.navIcon, styles.navIconActive]}>🔍</Text>
-          <Text style={[styles.navLabel, styles.navLabelActive]}>Explore</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CameraUpload')}>
-          <Text style={styles.navIcon}>✨</Text>
-          <Text style={styles.navLabel}>AI Camera</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('BookingHistory')}>
-          <Text style={styles.navIcon}>📅</Text>
-          <Text style={styles.navLabel}>Bookings</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Login')}>
-          <Text style={styles.navIcon}>👤</Text>
-          <Text style={styles.navLabel}>Profile</Text>
-        </TouchableOpacity>
-      </View>
+      <BottomNavBar active="Explore" navigation={navigation} />
 
       {/* FILTER BOTTOM SHEET MODAL */}
       <Modal
@@ -237,7 +213,7 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Filters</Text>
               <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-                <Text style={styles.closeBtnText}>✕</Text>
+                <AppIcon name="close" size={22} color="#3E4947" />
               </TouchableOpacity>
             </View>
 

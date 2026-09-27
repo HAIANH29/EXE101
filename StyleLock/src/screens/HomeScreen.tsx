@@ -9,12 +9,14 @@ import {
   SafeAreaView,
   TextInput,
   Dimensions,
-  ImageBackground,
-  Alert
+  ImageBackground
 } from 'react-native';
 import { MOCK_HAIRSTYLES, MOCK_SALONS } from '../services/mockData';
 import { backendApi } from '../services/backendApi';
+import { AppIcon, IconBadge } from '../components/AppIcon';
 import { Booking, Hairstyle, Salon } from '../types';
+import { BottomNavBar } from '../components/BottomNavBar';
+import { NotificationBellButton } from '../components/NotificationBellButton';
 
 interface HomeScreenProps {
   navigation: any;
@@ -70,17 +72,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           style={styles.iconBtn}
           onPress={() => navigation.navigate('AdminDashboard')}
         >
-          <Text style={styles.topIcon}>☰</Text>
+          <AppIcon name="menu" size={22} color="#005C55" />
         </TouchableOpacity>
 
         <Text style={styles.brandTitle}>StyleLock</Text>
 
-        <TouchableOpacity
-          style={styles.iconBtn}
-          onPress={() => navigation.navigate('BookingHistory')}
-        >
-          <Text style={styles.topIcon}>🔔</Text>
-        </TouchableOpacity>
+        <NotificationBellButton navigation={navigation} />
       </View>
 
       <ScrollView
@@ -93,7 +90,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           <Text style={styles.greetingSub}>Find your next signature look.</Text>
 
           <View style={styles.searchBox}>
-            <Text style={styles.searchIcon}>🔍</Text>
+            <AppIcon name="search" size={18} color="#64748B" style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search styles, salons, or stylists..."
@@ -139,7 +136,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             onPress={() => navigation.navigate('CameraUpload')}
           >
             <View style={styles.quickIconCircle}>
-              <Text style={styles.actionEmoji}>✨</Text>
+              <AppIcon name="sparkle" size={22} color="#005C55" />
             </View>
             <Text style={styles.quickActionText}>Try Hairstyle</Text>
           </TouchableOpacity>
@@ -150,7 +147,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             onPress={() => navigation.navigate('SalonList')}
           >
             <View style={styles.quickIconCircle}>
-              <Text style={styles.actionEmoji}>🏪</Text>
+              <AppIcon name="salon" size={22} color="#005C55" />
             </View>
             <Text style={styles.quickActionText}>Book Salon</Text>
           </TouchableOpacity>
@@ -161,7 +158,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             onPress={() => navigation.navigate('SalonDashboard')}
           >
             <View style={styles.quickIconCircle}>
-              <Text style={styles.actionEmoji}>🤖</Text>
+              <AppIcon name="bot" size={22} color="#005C55" />
             </View>
             <Text style={styles.quickActionText}>AI Consult</Text>
           </TouchableOpacity>
@@ -201,7 +198,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             </Text>
           </View>
           <View style={styles.arrowCircle}>
-            <Text style={styles.arrowIcon}>➔</Text>
+            <AppIcon name="arrowRight" size={18} color="#FFFFFF" />
           </View>
         </TouchableOpacity>
 
@@ -225,7 +222,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 <View style={styles.recommendImgWrapper}>
                   <Image source={{ uri: hair.imageUrl }} style={styles.recommendImg} />
                   <TouchableOpacity style={styles.favBadge}>
-                    <Text style={styles.favHeart}>🤍</Text>
+                    <AppIcon name="heart" size={15} color="#005C55" />
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.recommendName} numberOfLines={1}>
@@ -240,67 +237,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         <View style={{ height: 90 }} />
       </ScrollView>
 
-      {/* Bottom Navigation Bar */}
-      <View style={styles.bottomBar}>
-        {/* Home */}
-        <TouchableOpacity
-          style={[styles.navItem, activeTab === 'Home' && styles.navItemActive]}
-          onPress={() => {
-            setActiveTab('Home');
-          }}
-        >
-          <Text style={[styles.navIcon, activeTab === 'Home' && styles.navIconActive]}>🏠</Text>
-          <Text style={[styles.navLabel, activeTab === 'Home' && styles.navLabelActive]}>Home</Text>
-        </TouchableOpacity>
-
-        {/* Explore */}
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => {
-            setActiveTab('Explore');
-            navigation.navigate('HairstyleSelect');
-          }}
-        >
-          <Text style={styles.navIcon}>🔍</Text>
-          <Text style={styles.navLabel}>Explore</Text>
-        </TouchableOpacity>
-
-        {/* AI Camera */}
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => {
-            setActiveTab('AICamera');
-            navigation.navigate('CameraUpload');
-          }}
-        >
-          <Text style={styles.navIcon}>✨</Text>
-          <Text style={styles.navLabel}>AI Camera</Text>
-        </TouchableOpacity>
-
-        {/* Bookings */}
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => {
-            setActiveTab('Bookings');
-            navigation.navigate('BookingHistory');
-          }}
-        >
-          <Text style={styles.navIcon}>📅</Text>
-          <Text style={styles.navLabel}>Bookings</Text>
-        </TouchableOpacity>
-
-        {/* Profile / Login */}
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => {
-            setActiveTab('Profile');
-            navigation.navigate('Profile');
-          }}
-        >
-          <Text style={styles.navIcon}>👤</Text>
-          <Text style={styles.navLabel}>Profile</Text>
-        </TouchableOpacity>
-      </View>
+      <BottomNavBar active="Home" navigation={navigation} />
     </SafeAreaView>
   );
 };

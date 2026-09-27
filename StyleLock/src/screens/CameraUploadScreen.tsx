@@ -15,6 +15,9 @@ import * as ImagePicker from 'expo-image-picker';
 import { CameraView, useCameraPermissions, CameraType } from 'expo-camera';
 import { MOCK_HAIRSTYLES } from '../services/mockData';
 import { Hairstyle } from '../types';
+import { AppIcon } from '../components/AppIcon';
+import { BottomNavBar } from '../components/BottomNavBar';
+import { NotificationBellButton } from '../components/NotificationBellButton';
 
 interface CameraUploadScreenProps {
   navigation: any;
@@ -186,17 +189,12 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
       {/* Top App Bar */}
       <View style={styles.topAppBar}>
         <TouchableOpacity style={styles.topBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.topBtnIcon}>☰</Text>
+          <AppIcon name="menu" size={22} color="#005C55" />
         </TouchableOpacity>
 
         <Text style={styles.brandTitle}>StyleLock</Text>
 
-        <TouchableOpacity
-          style={styles.topBtn}
-          onPress={() => navigation.navigate('BookingHistory')}
-        >
-          <Text style={styles.topBtnIcon}>🔔</Text>
-        </TouchableOpacity>
+        <NotificationBellButton navigation={navigation} style={styles.topBtn} />
       </View>
 
       {/* Full-Screen Camera Canvas */}
@@ -227,11 +225,11 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
             {/* Quick Action Buttons */}
             <View style={styles.quickActions}>
               <TouchableOpacity style={styles.quickActionBtn} onPress={handleTakePhoto}>
-                <Text style={styles.quickActionIcon}>{selectedPhoto ? '↺' : '🔄'}</Text>
+                <AppIcon name="refresh" size={18} color="#FFFFFF" />
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.quickActionBtn} onPress={handlePickFromGallery}>
-                <Text style={styles.quickActionIcon}>📤</Text>
+                <AppIcon name="upload" size={18} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
           </View>
@@ -240,7 +238,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
           <View style={styles.analysisOverlay}>
             <View style={styles.analysisCard}>
               <View style={styles.analysisLabelRow}>
-                <Text style={styles.analysisLabelIcon}>👤</Text>
+                <AppIcon name="user" size={14} color="#005C55" />
                 <Text style={styles.analysisLabelText}>DETECTED SHAPE</Text>
               </View>
               <Text style={styles.analysisValue}>Oval</Text>
@@ -248,7 +246,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
 
             <View style={styles.analysisCard}>
               <View style={styles.analysisLabelRow}>
-                <Text style={styles.analysisLabelIcon}>📊</Text>
+                <AppIcon name="barChart" size={14} color="#005C55" />
                 <Text style={styles.analysisLabelText}>CONFIDENCE</Text>
               </View>
               <View style={styles.confidenceRow}>
@@ -295,7 +293,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
                     {/* Recommended Star Badge */}
                     {item.recommended && (
                       <View style={styles.starBadge}>
-                        <Text style={styles.starBadgeText}>⭐</Text>
+                        <AppIcon name="star" size={10} color="#FFFFFF" />
                       </View>
                     )}
                   </TouchableOpacity>
@@ -314,7 +312,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
               >
                 <View style={styles.captureRing}>
                   <View style={styles.captureInner}>
-                    <Text style={styles.captureIcon}>{selectedPhoto ? '✓' : '📷'}</Text>
+                    <AppIcon name={selectedPhoto ? "check" : "camera"} size={28} color="#FFFFFF" />
                   </View>
                 </View>
               </TouchableOpacity>
@@ -329,39 +327,13 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
                 onPress={handleBookThisHairstyle}
               >
                 <Text style={styles.bookCtaText}>Book This Hairstyle</Text>
-                <Text style={styles.bookCtaArrow}>→</Text>
+                <AppIcon name="arrowRight" size={18} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
           </View>
       </View>
 
-      {/* Bottom Navigation Bar */}
-      <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Home')}>
-          <Text style={styles.navIcon}>🏠</Text>
-          <Text style={styles.navLabel}>Home</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('HairstyleSelect')}>
-          <Text style={styles.navIcon}>🔍</Text>
-          <Text style={styles.navLabel}>Explore</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={[styles.navItem, styles.navItemActive]}>
-          <Text style={[styles.navIcon, styles.navIconActive]}>✨</Text>
-          <Text style={[styles.navLabel, styles.navLabelActive]}>AI Camera</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('BookingHistory')}>
-          <Text style={styles.navIcon}>📅</Text>
-          <Text style={styles.navLabel}>Bookings</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Profile')}>
-          <Text style={styles.navIcon}>👤</Text>
-          <Text style={styles.navLabel}>Profile</Text>
-        </TouchableOpacity>
-      </View>
+      <BottomNavBar active="AICamera" navigation={navigation} />
     </SafeAreaView>
   );
 };

@@ -20,7 +20,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 /**
  * Cấu hình Spring Security tổng thể:
  * - Stateless (không dùng session, mọi request xác thực qua JWT)
- * - Public endpoint: /api/auth/**, /api/public/**, Swagger, webhook SePay
+ * - Public endpoint: login/register/reset password, /api/public/**, Swagger, webhook SePay, uploaded files
  * - Còn lại: bắt buộc phải có JWT hợp lệ
  *
  * GHI CHÚ VỀ GOOGLE LOGIN: không dùng oauth2Login() của Spring Security (redirect-based,
@@ -50,13 +50,22 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public - không cần đăng nhập
                         .requestMatchers(
-                                "/api/auth/**",
                                 "/api/public/**",
                                 "/api/payment/webhook/**",
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
                                 "/api-docs/**",
-                                "/v3/api-docs/**"
+                                "/v3/api-docs/**",
+                                "/uploads/**"
+                        ).permitAll()
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/auth/register",
+                                "/api/auth/login",
+                                "/api/auth/google",
+                                "/api/auth/refresh",
+                                "/api/auth/logout",
+                                "/api/auth/forgot-password",
+                                "/api/auth/reset-password"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET,
                                 "/api/salons",

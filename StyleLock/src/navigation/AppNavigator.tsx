@@ -14,6 +14,7 @@ import { SalonDetailScreen } from '../screens/SalonDetailScreen';
 import { QuickBookingScreen } from '../screens/QuickBookingScreen';
 import { BookingStatusScreen } from '../screens/BookingStatusScreen';
 import { BookingHistoryScreen } from '../screens/BookingHistoryScreen';
+import { NotificationsScreen } from '../screens/NotificationsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { SalonDashboardScreen } from '../screens/SalonDashboardScreen';
 import { AdminDashboardScreen } from '../screens/AdminDashboardScreen';
@@ -44,6 +45,7 @@ export const AppNavigator = () => {
       <Stack.Screen name="QuickBooking" component={QuickBookingScreen} />
       <Stack.Screen name="BookingStatus" component={BookingStatusScreen} />
       <Stack.Screen name="BookingHistory" component={BookingHistoryScreen} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="SalonDashboard" component={SalonDashboardScreen} />
       <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />

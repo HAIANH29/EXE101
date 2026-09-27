@@ -13,6 +13,7 @@ import {
   View
 } from 'react-native';
 import { backendApi } from '../services/backendApi';
+import { AppIcon } from '../components/AppIcon';
 
 interface ResetPasswordScreenProps {
   navigation: any;
@@ -93,7 +94,7 @@ export const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ naviga
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.topBar}>
             <TouchableOpacity style={styles.backBtn} onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.backText}>‹ Login</Text>
+              <View style={styles.backRow}><AppIcon name="arrowLeft" size={16} color="#005C55" /><Text style={styles.backText}>Login</Text></View>
             </TouchableOpacity>
           </View>
 
@@ -104,7 +105,7 @@ export const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ naviga
                 style={styles.logoImage}
               />
               <View style={styles.logoOverlay}>
-                <Text style={styles.logoEmoji}>✓</Text>
+                <AppIcon name="check" size={32} color="#FFFFFF" />
               </View>
             </View>
             <Text style={styles.brandTitle}>New Password</Text>
@@ -193,6 +194,11 @@ const styles = StyleSheet.create({
   backBtn: {
     paddingVertical: 8,
     paddingRight: 12
+  },
+  backRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
   },
   backText: {
     color: '#005C55',

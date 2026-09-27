@@ -13,6 +13,7 @@ import {
   View
 } from 'react-native';
 import { backendApi } from '../services/backendApi';
+import { AppIcon } from '../components/AppIcon';
 
 interface ForgotPasswordScreenProps {
   navigation: any;
@@ -69,7 +70,7 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navi
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.topBar}>
             <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-              <Text style={styles.backText}>‹ Back</Text>
+              <View style={styles.backRow}><AppIcon name="arrowLeft" size={16} color="#005C55" /><Text style={styles.backText}>Back</Text></View>
             </TouchableOpacity>
           </View>
 
@@ -175,6 +176,11 @@ const styles = StyleSheet.create({
   backBtn: {
     paddingVertical: 8,
     paddingRight: 12
+  },
+  backRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
   },
   backText: {
     color: '#005C55',
