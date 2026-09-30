@@ -1,9 +1,11 @@
 package be.exe.tryon.service;
 
+import be.exe.common.exception.ResourceNotFoundException;
 import be.exe.common.storage.StorageService;
 import be.exe.tryon.client.AiTryOnClient;
 import be.exe.tryon.domain.TryOnRequest;
 import be.exe.tryon.domain.TryOnResult;
+import be.exe.tryon.dto.TryOnFinalizeResponseDto;
 import be.exe.tryon.dto.TryOnResponseDto;
 import be.exe.tryon.mapper.TryOnMapper;
 import be.exe.tryon.repository.TryOnRequestRepository;
@@ -38,6 +40,10 @@ public class TryOnService {
         this.mapper = mapper;
     }
 
+    /**
+     * Bước 1: upload ảnh gốc + gọi AI tính vị trí overlay.
+     * Chưa tạo TryOnResult — chỉ có TryOnRequest ở trạng thái READY_FOR_ADJUST.
+     */
     public TryOnResponseDto process(MultipartFile file, Long hairstyleId, Long userId) {
         validator.validate(file);
 
@@ -51,7 +57,25 @@ public class TryOnService {
         request.setCreatedAt(OffsetDateTime.now());
         requestRepository.save(request);
 
-        String resultUrl = aiTryOnClient.process(inputUrl, hairstyleId);
+        AiTryOnClient.AiOverlayResponse overlay = aiTryOnClient.computeOverlay(inputUrl, hairstyleId);
+
+        request.setStatus("READY_FOR_ADJUST");
+        requestRepository.save(request);
+
+        return mapper.toDto(request, overlay);
+    }
+
+    /**
+     * Bước 2: khách chỉnh xong (kéo/resize/xoay) bên FE, FE tự merge ảnh bằng
+     * canvas rồi gửi file ảnh cuối lên đây để lưu.
+     */
+    public TryOnFinalizeResponseDto finalize(Long requestId, MultipartFile resultImage) {
+        validator.validate(resultImage);
+
+        TryOnRequest request = requestRepository.findById(requestId)
+                .orElseThrow(() -> new ResourceNotFoundException("TryOnRequest", requestId));
+
+        String resultUrl = storageService.upload(resultImage, "tryon/results");
 
         TryOnResult result = new TryOnResult();
         result.setRequestId(request.getId());
@@ -63,6 +87,6 @@ public class TryOnService {
         request.setCompletedAt(OffsetDateTime.now());
         requestRepository.save(request);
 
-        return mapper.toDto(request, resultUrl);
+        return mapper.toFinalizeDto(request, result);
     }
 }
