@@ -2,10 +2,6 @@ package be.exe.common.exception;
 
 import org.springframework.http.HttpStatus;
 
-/**
- * Liệt kê toàn bộ mã lỗi nghiệp vụ trong hệ thống.
- * Mỗi module có thể thêm mã lỗi riêng vào đây (prefix theo tên module cho dễ tra).
- */
 public enum ErrorCode {
 
     // ===== Chung =====

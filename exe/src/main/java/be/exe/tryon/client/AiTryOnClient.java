@@ -16,23 +16,33 @@ public class AiTryOnClient {
         this.restClient = RestClient.builder().baseUrl(baseUrl).build();
     }
 
-    public String process(String originalImageUrl, Long hairstyleId) {
+    /**
+     * Gọi Python AI service để tính vị trí đặt tóc (KHÔNG ghép ảnh).
+     * Trả về tọa độ overlay để FE tự dựng layer chỉnh sửa.
+     */
+    public AiOverlayResponse computeOverlay(String originalImageUrl, Long hairstyleId) {
         try {
-            AiTryOnResponse response = restClient.post()
+            AiOverlayResponse response = restClient.post()
                     .uri("/tryon")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(new AiTryOnRequest(originalImageUrl, hairstyleId))
+                    .body(new AiOverlayRequest(originalImageUrl, hairstyleId))
                     .retrieve()
-                    .body(AiTryOnResponse.class);
-            return response.resultImageUrl();
+                    .body(AiOverlayResponse.class);
+            return response;
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.TRYON_AI_SERVICE_FAILED);
         }
     }
 
-    record AiTryOnRequest(String imageUrl, Long hairstyleId) {
+    record AiOverlayRequest(String imageUrl, Long hairstyleId) {
     }
 
-    record AiTryOnResponse(String resultImageUrl) {
+    public record AiOverlayResponse(
+            String hairstyleImageUrl,
+            int x,
+            int y,
+            int width,
+            int height
+    ) {
     }
 }
