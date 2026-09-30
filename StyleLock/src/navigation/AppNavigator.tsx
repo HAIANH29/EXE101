@@ -18,6 +18,7 @@ import { NotificationsScreen } from '../screens/NotificationsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { SalonDashboardScreen } from '../screens/SalonDashboardScreen';
 import { AdminDashboardScreen } from '../screens/AdminDashboardScreen';
+import { palette } from '../theme/palette';
 
 const Stack = createNativeStackNavigator();
 
@@ -27,7 +28,7 @@ export const AppNavigator = () => {
       initialRouteName="Login"
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: '#0F172A' },
+        contentStyle: { backgroundColor: palette.background },
         animation: 'slide_from_right'
       }}
     >

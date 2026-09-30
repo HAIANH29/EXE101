@@ -2,15 +2,14 @@ import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
-  Text,
   TouchableOpacity,
   Image,
   SafeAreaView,
   ScrollView,
-  TextInput,
   Modal,
   Dimensions
 } from 'react-native';
+import { LocalizedText as Text, LocalizedTextInput as TextInput } from '../i18n/LocalizedComponents';
 import { MOCK_HAIRSTYLES } from '../services/mockData';
 import { backendApi } from '../services/backendApi';
 import { Hairstyle } from '../types';
@@ -110,11 +109,11 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
       {/* Sticky Search & Filter Header */}
       <View style={styles.stickyHeader}>
         <View style={styles.searchContainer}>
-          <AppIcon name="search" size={17} color="#64748B" style={styles.searchIcon} />
+          <AppIcon name="search" size={17} color="#9A8A7A" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search hairstyles, colors, trends..."
-            placeholderTextColor="#3E4947"
+            placeholderTextColor="#6F6256"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -124,7 +123,7 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
           style={styles.filterBtn}
           onPress={() => setShowFilterModal(true)}
         >
-          <AppIcon name="settings" size={20} color="#005C55" />
+          <AppIcon name="settings" size={20} color="#A97845" />
         </TouchableOpacity>
       </View>
 
@@ -157,7 +156,7 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
                     style={styles.favBtn}
                     onPress={() => toggleFavorite(hair.id)}
                   >
-                    <AppIcon name="heart" size={19} color={isFav ? "#BA1A1A" : "#005C55"} />
+                    <AppIcon name="heart" size={19} color={isFav ? "#B65A4B" : "#A97845"} />
                   </TouchableOpacity>
                 </TouchableOpacity>
 
@@ -213,7 +212,7 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Filters</Text>
               <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-                <AppIcon name="close" size={22} color="#3E4947" />
+                <AppIcon name="close" size={22} color="#6F6256" />
               </TouchableOpacity>
             </View>
 
@@ -298,7 +297,7 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA'
+    backgroundColor: '#F6EFE6'
   },
   stickyHeader: {
     flexDirection: 'row',
@@ -307,7 +306,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     backgroundColor: 'rgba(250, 250, 250, 0.95)',
     borderBottomWidth: 1,
-    borderBottomColor: '#E6EEFF',
+    borderBottomColor: '#EFE2D2',
     gap: 12,
     zIndex: 10
   },
@@ -320,7 +319,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     height: 48,
     borderWidth: 1,
-    borderColor: '#BDC9C6'
+    borderColor: '#B89062'
   },
   searchIcon: {
     fontSize: 16,
@@ -329,7 +328,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: '#121C2A'
+    color: '#2A211C'
   },
   filterBtn: {
     width: 48,
@@ -337,7 +336,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#BDC9C6',
+    borderColor: '#B89062',
     justifyContent: 'center',
     alignItems: 'center'
   },
@@ -354,14 +353,14 @@ const styles = StyleSheet.create({
   mainTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#121C2A',
+    color: '#2A211C',
     letterSpacing: -0.5,
     marginBottom: 4
   },
   subTitle: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#121C2A'
+    color: '#2A211C'
   },
   grid: {
     gap: 20
@@ -382,7 +381,7 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 4 / 5,
     position: 'relative',
-    backgroundColor: '#E6EEFF'
+    backgroundColor: '#EFE2D2'
   },
   hairImg: {
     width: '100%',
@@ -408,18 +407,18 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#121C2A',
+    color: '#2A211C',
     marginBottom: 4
   },
   cardDesc: {
     fontSize: 14,
-    color: '#3E4947',
+    color: '#6F6256',
     lineHeight: 20,
     marginBottom: 16
   },
   tryNowBtn: {
     height: 52,
-    backgroundColor: '#005C55',
+    backgroundColor: '#A97845',
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center'
@@ -442,7 +441,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: '#DDCDB9',
     elevation: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
@@ -457,7 +456,7 @@ const styles = StyleSheet.create({
     borderRadius: 20
   },
   navItemActive: {
-    backgroundColor: 'rgba(15, 118, 110, 0.15)'
+    backgroundColor: 'rgba(169, 120, 69, 0.16)'
   },
   navIcon: {
     fontSize: 18,
@@ -469,10 +468,10 @@ const styles = StyleSheet.create({
   navLabel: {
     fontSize: 11,
     fontWeight: '500',
-    color: '#3E4947'
+    color: '#6F6256'
   },
   navLabelActive: {
-    color: '#005C55',
+    color: '#A97845',
     fontWeight: '700'
   },
   modalOverlay: {
@@ -496,7 +495,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#BDC9C6'
+    backgroundColor: '#B89062'
   },
   modalHeader: {
     flexDirection: 'row',
@@ -504,17 +503,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: '#EFE6DA',
     marginBottom: 16
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#121C2A'
+    color: '#2A211C'
   },
   closeBtnText: {
     fontSize: 20,
-    color: '#3E4947',
+    color: '#6F6256',
     padding: 4
   },
   modalBody: {
@@ -523,7 +522,7 @@ const styles = StyleSheet.create({
   filterCategoryLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#3E4947',
+    color: '#6F6256',
     letterSpacing: 0.8,
     marginBottom: 8,
     marginTop: 8
@@ -539,20 +538,20 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#BDC9C6',
+    borderColor: '#B89062',
     backgroundColor: '#FFFFFF'
   },
   activePill: {
-    backgroundColor: 'rgba(0, 92, 85, 0.1)',
-    borderColor: '#005C55'
+    backgroundColor: 'rgba(169, 120, 69, 0.12)',
+    borderColor: '#A97845'
   },
   pillText: {
     fontSize: 13,
-    color: '#121C2A',
+    color: '#2A211C',
     fontWeight: '500'
   },
   activePillText: {
-    color: '#005C55',
+    color: '#A97845',
     fontWeight: '700'
   },
   modalFooter: {
@@ -575,7 +574,7 @@ const styles = StyleSheet.create({
   applyBtn: {
     flex: 1,
     height: 52,
-    backgroundColor: '#005C55',
+    backgroundColor: '#A97845',
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center'

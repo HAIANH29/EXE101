@@ -2,20 +2,19 @@ import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
-  Text,
   TouchableOpacity,
   Image,
   SafeAreaView,
-  ScrollView,
-  TextInput,
-  Alert
+  ScrollView
 } from 'react-native';
+import { LocalizedText as Text, LocalizedTextInput as TextInput, LocalizedAlert as Alert } from '../i18n/LocalizedComponents';
 import { MOCK_SALONS } from '../services/mockData';
 import { backendApi } from '../services/backendApi';
 import { Hairstyle, Salon } from '../types';
 import { AppIcon } from '../components/AppIcon';
 import { BottomNavBar } from '../components/BottomNavBar';
 import { NotificationBellButton } from '../components/NotificationBellButton';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface SalonListScreenProps {
   navigation: any;
@@ -23,6 +22,7 @@ interface SalonListScreenProps {
 }
 
 export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, route }) => {
+  const { language } = useLanguage();
   const selectedHairstyle: Hairstyle | undefined = route?.params?.selectedHairstyle;
   const userPhotoUri: string | undefined = route?.params?.userPhotoUri;
 
@@ -79,7 +79,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
       {/* Top App Bar */}
       <View style={styles.topAppBar}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()}>
-          <AppIcon name="arrowLeft" size={22} color="#005C55" />
+          <AppIcon name="arrowLeft" size={22} color="#A97845" />
         </TouchableOpacity>
 
         <Text style={styles.brandTitle}>StyleLock</Text>
@@ -103,11 +103,11 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
         {/* Search & Filter Area */}
         <View style={styles.searchSection}>
           <View style={styles.searchBox}>
-            <AppIcon name="search" size={18} color="#6E7977" style={styles.searchIcon} />
+            <AppIcon name="search" size={18} color="#9A8A7A" style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search salons near you..."
-              placeholderTextColor="#6E7977"
+              placeholderTextColor="#9A8A7A"
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
@@ -120,7 +120,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
               style={[styles.filterChip, activeFilter === 'Distance' && styles.activeChip]}
               onPress={() => setActiveFilter(activeFilter === 'Distance' ? 'All' : 'Distance')}
             >
-              <AppIcon name="pin" size={14} color={activeFilter === "Distance" ? "#FFFFFF" : "#3E4947"} style={styles.chipIcon} />
+              <AppIcon name="pin" size={14} color={activeFilter === "Distance" ? "#FFFFFF" : "#6F6256"} style={styles.chipIcon} />
               <Text style={[styles.chipText, activeFilter === 'Distance' && styles.activeChipText]}>
                 Distance
               </Text>
@@ -131,7 +131,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
               style={[styles.filterChip, activeFilter === 'Rating' && styles.activeChip]}
               onPress={() => setActiveFilter(activeFilter === 'Rating' ? 'All' : 'Rating')}
             >
-              <AppIcon name="star" size={14} color={activeFilter === "Rating" ? "#FFFFFF" : "#3E4947"} style={styles.chipIcon} />
+              <AppIcon name="star" size={14} color={activeFilter === "Rating" ? "#FFFFFF" : "#6F6256"} style={styles.chipIcon} />
               <Text style={[styles.chipText, activeFilter === 'Rating' && styles.activeChipText]}>
                 Rating
               </Text>
@@ -142,7 +142,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
               style={[styles.filterChip, activeFilter === 'Price' && styles.activeChip]}
               onPress={() => setActiveFilter(activeFilter === 'Price' ? 'All' : 'Price')}
             >
-              <AppIcon name="money" size={14} color={activeFilter === "Price" ? "#FFFFFF" : "#3E4947"} style={styles.chipIcon} />
+              <AppIcon name="money" size={14} color={activeFilter === "Price" ? "#FFFFFF" : "#6F6256"} style={styles.chipIcon} />
               <Text style={[styles.chipText, activeFilter === 'Price' && styles.activeChipText]}>
                 Price
               </Text>
@@ -153,8 +153,8 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
               style={[styles.filterChip, styles.openNowChip, activeFilter === 'Open Now' && styles.activeChip]}
               onPress={() => setActiveFilter(activeFilter === 'Open Now' ? 'All' : 'Open Now')}
             >
-              <AppIcon name="clock" size={14} color={activeFilter === "Open Now" ? "#FFFFFF" : "#005C55"} style={styles.chipIcon} />
-              <Text style={[styles.chipText, { color: '#005C55', fontWeight: '700' }]}>Open Now</Text>
+              <AppIcon name="clock" size={14} color={activeFilter === "Open Now" ? "#FFFFFF" : "#A97845"} style={styles.chipIcon} />
+              <Text style={[styles.chipText, { color: '#A97845', fontWeight: '700' }]}>Open Now</Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -176,7 +176,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
                     style={styles.favBtn}
                     onPress={() => toggleFavorite(salon.id)}
                   >
-                    <AppIcon name="heart" size={17} color={isFav ? "#BA1A1A" : "#005C55"} />
+                    <AppIcon name="heart" size={17} color={isFav ? "#B65A4B" : "#A97845"} />
                   </TouchableOpacity>
                 </View>
 
@@ -186,20 +186,22 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
                   <View style={styles.titleRow}>
                     <Text style={styles.salonName}>{salon.name}</Text>
                     <View style={styles.ratingBadge}>
-                      <AppIcon name="star" size={13} color="#B45309" style={styles.starIcon} />
+                      <AppIcon name="star" size={13} color="#A97845" style={styles.starIcon} />
                       <Text style={styles.ratingScore}>{salon.rating}</Text>
                     </View>
                   </View>
 
                   <Text style={styles.serviceDesc}>
-                    Premium hair styling & color ({salon.priceRange})
+                    {language === 'vi'
+                      ? `Dịch vụ tạo kiểu tóc & màu cao cấp (${salon.priceRange})`
+                      : `Premium hair styling & color (${salon.priceRange})`}
                   </Text>
 
                   {/* Distance & Location */}
                   <View style={styles.locationRow}>
-                    <AppIcon name="pin" size={14} color="#64748B" style={styles.locationIcon} />
+                    <AppIcon name="pin" size={14} color="#9A8A7A" style={styles.locationIcon} />
                     <Text style={styles.locationText}>
-                      {salon.distance} away • {salon.address.split(',')[1] || 'Center'}
+                      {language === 'vi' ? `Cách ${salon.distance}` : `${salon.distance} away`} • {salon.address.split(',')[1] || 'Center'}
                     </Text>
                   </View>
 
@@ -241,7 +243,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
                         )
                       }
                     >
-                      <AppIcon name="info" size={19} color="#005C55" />
+                      <AppIcon name="info" size={19} color="#A97845" />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -261,7 +263,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA'
+    backgroundColor: '#F6EFE6'
   },
   topAppBar: {
     height: 60,
@@ -271,7 +273,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     backgroundColor: 'rgba(250, 250, 250, 0.95)',
     borderBottomWidth: 1,
-    borderBottomColor: '#E6EEFF',
+    borderBottomColor: '#EFE2D2',
     zIndex: 10
   },
   iconBtn: {
@@ -283,12 +285,12 @@ const styles = StyleSheet.create({
   },
   topIcon: {
     fontSize: 18,
-    color: '#005C55'
+    color: '#A97845'
   },
   brandTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#005C55',
+    color: '#A97845',
     letterSpacing: -0.5
   },
   scrollContent: {
@@ -303,7 +305,7 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#005C55',
+    borderColor: '#A97845',
     elevation: 2
   },
   contextImg: {
@@ -311,25 +313,25 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 10,
     marginRight: 12,
-    backgroundColor: '#E6EEFF'
+    backgroundColor: '#EFE2D2'
   },
   contextText: {
     flex: 1
   },
   contextTitle: {
-    color: '#005C55',
+    color: '#A97845',
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.5
   },
   contextName: {
-    color: '#121C2A',
+    color: '#2A211C',
     fontSize: 14,
     fontWeight: '700',
     marginVertical: 2
   },
   contextSub: {
-    color: '#3E4947',
+    color: '#6F6256',
     fontSize: 11
   },
   searchSection: {
@@ -343,7 +345,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     height: 52,
     borderWidth: 1,
-    borderColor: '#BDC9C6',
+    borderColor: '#B89062',
     marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -358,7 +360,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: '#121C2A'
+    color: '#2A211C'
   },
   chipScroll: {
     marginHorizontal: -20,
@@ -372,16 +374,16 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#BDC9C6',
+    borderColor: '#B89062',
     marginRight: 8
   },
   openNowChip: {
-    borderColor: '#005C55',
-    backgroundColor: 'rgba(0, 92, 85, 0.05)'
+    borderColor: '#A97845',
+    backgroundColor: 'rgba(169, 120, 69, 0.10)'
   },
   activeChip: {
-    backgroundColor: '#005C55',
-    borderColor: '#005C55'
+    backgroundColor: '#A97845',
+    borderColor: '#A97845'
   },
   chipIcon: {
     fontSize: 14,
@@ -390,7 +392,7 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#121C2A'
+    color: '#2A211C'
   },
   activeChipText: {
     color: '#FFFFFF',
@@ -415,7 +417,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 195,
     position: 'relative',
-    backgroundColor: '#E6EEFF'
+    backgroundColor: '#EFE2D2'
   },
   salonImg: {
     width: '100%',
@@ -447,13 +449,13 @@ const styles = StyleSheet.create({
   salonName: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#121C2A',
+    color: '#2A211C',
     flex: 1
   },
   ratingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E6EEFF',
+    backgroundColor: '#EFE2D2',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8
@@ -465,11 +467,11 @@ const styles = StyleSheet.create({
   ratingScore: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#121C2A'
+    color: '#2A211C'
   },
   serviceDesc: {
     fontSize: 13,
-    color: '#3E4947',
+    color: '#6F6256',
     marginBottom: 8
   },
   locationRow: {
@@ -483,7 +485,7 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 13,
-    color: '#3E4947'
+    color: '#6F6256'
   },
   matchBadge: {
     paddingVertical: 6,
@@ -492,20 +494,20 @@ const styles = StyleSheet.create({
     marginBottom: 12
   },
   matchSupported: {
-    backgroundColor: 'rgba(16, 185, 129, 0.1)'
+    backgroundColor: 'rgba(124, 138, 85, 0.12)'
   },
   matchWarning: {
-    backgroundColor: 'rgba(245, 158, 11, 0.1)'
+    backgroundColor: 'rgba(169, 120, 69, 0.12)'
   },
   matchBadgeText: {
     fontSize: 11,
     fontWeight: '700'
   },
   matchSupportedText: {
-    color: '#10B981'
+    color: '#7C8A55'
   },
   matchWarningText: {
-    color: '#F59E0B'
+    color: '#A97845'
   },
   actionsRow: {
     flexDirection: 'row',
@@ -515,7 +517,7 @@ const styles = StyleSheet.create({
   bookBtn: {
     flex: 1,
     height: 52,
-    backgroundColor: '#005C55',
+    backgroundColor: '#A97845',
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center'
@@ -530,7 +532,7 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#BDC9C6',
+    borderColor: '#B89062',
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#FFFFFF'
@@ -551,7 +553,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: '#DDCDB9',
     elevation: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
@@ -566,7 +568,7 @@ const styles = StyleSheet.create({
     borderRadius: 20
   },
   navItemActive: {
-    backgroundColor: 'rgba(15, 118, 110, 0.15)'
+    backgroundColor: 'rgba(169, 120, 69, 0.16)'
   },
   navIcon: {
     fontSize: 18,
@@ -578,10 +580,10 @@ const styles = StyleSheet.create({
   navLabel: {
     fontSize: 11,
     fontWeight: '500',
-    color: '#3E4947'
+    color: '#6F6256'
   },
   navLabelActive: {
-    color: '#005C55',
+    color: '#A97845',
     fontWeight: '700'
   }
 });

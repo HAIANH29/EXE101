@@ -2,17 +2,17 @@ import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
-  Text,
   TouchableOpacity,
   Image,
   SafeAreaView,
   ScrollView,
-  ImageBackground,
-  Alert
+  ImageBackground
 } from 'react-native';
+import { LocalizedText as Text, LocalizedAlert as Alert } from '../i18n/LocalizedComponents';
 import { backendApi } from '../services/backendApi';
 import { Salon, Hairstyle, ServiceItem, StylistItem } from '../types';
 import { AppIcon } from '../components/AppIcon';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface SalonDetailScreenProps {
   navigation: any;
@@ -41,6 +41,7 @@ const STYLISTS: StylistItem[] = [
 ];
 
 export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation, route }) => {
+  const { language } = useLanguage();
   const salon: Salon = route.params.salon;
   const selectedHairstyle: Hairstyle | undefined = route.params?.selectedHairstyle;
   const userPhotoUri: string | undefined = route.params?.userPhotoUri;
@@ -134,7 +135,7 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
       {/* Top App Bar */}
       <View style={styles.topAppBar}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()}>
-          <AppIcon name="arrowLeft" size={21} color="#005C55" />
+          <AppIcon name="arrowLeft" size={21} color="#A97845" />
         </TouchableOpacity>
 
         <Text style={styles.brandTitle}>Salon Detail</Text>
@@ -143,7 +144,7 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
           style={styles.iconBtn}
           onPress={() => Alert.alert('Share', `Sharing ${salon.name}...`)}
         >
-          <AppIcon name="share" size={19} color="#005C55" />
+          <AppIcon name="share" size={19} color="#A97845" />
         </TouchableOpacity>
       </View>
 
@@ -160,9 +161,11 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
               </View>
 
               <View style={styles.ratingPill}>
-                <AppIcon name="star" size={13} color="#FFE08E" style={styles.starIcon} />
+                <AppIcon name="star" size={13} color="#E1C7AA" style={styles.starIcon} />
                 <Text style={styles.ratingText}>
-                  {salon.rating} ({salon.reviewCount} reviews)
+                  {language === 'vi'
+                    ? `${salon.rating} (${salon.reviewCount} đánh giá)`
+                    : `${salon.rating} (${salon.reviewCount} reviews)`}
                 </Text>
               </View>
             </View>
@@ -242,8 +245,10 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
                       Full dimensional service with custom conditioning & signature styling.
                     </Text>
                     <View style={styles.durationRow}>
-                      <AppIcon name="clock" size={12} color="#3E4947" style={styles.durIcon} />
-                      <Text style={styles.durText}>{srv.durationMinutes} min</Text>
+                      <AppIcon name="clock" size={12} color="#6F6256" style={styles.durIcon} />
+                      <Text style={styles.durText}>
+                        {language === 'vi' ? `${srv.durationMinutes} phút` : `${srv.durationMinutes} min`}
+                      </Text>
                     </View>
                   </View>
 
@@ -307,11 +312,13 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
               style={styles.mapImg}
             />
             <View style={styles.mapPinOverlay}>
-              <AppIcon name="pin" size={38} color="#005C55" />
+              <AppIcon name="pin" size={38} color="#A97845" />
             </View>
           </View>
           <Text style={styles.mapAddress}>{salon.address}</Text>
-          <Text style={styles.mapDistance}>{salon.distance} away</Text>
+          <Text style={styles.mapDistance}>
+            {language === 'vi' ? `Cách ${salon.distance}` : `${salon.distance} away`}
+          </Text>
         </View>
 
         <View style={{ height: 100 }} />
@@ -344,7 +351,7 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA'
+    backgroundColor: '#F6EFE6'
   },
   topAppBar: {
     height: 60,
@@ -354,7 +361,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     backgroundColor: 'rgba(250, 250, 250, 0.95)',
     borderBottomWidth: 1,
-    borderBottomColor: '#E6EEFF',
+    borderBottomColor: '#EFE2D2',
     zIndex: 10
   },
   iconBtn: {
@@ -366,12 +373,12 @@ const styles = StyleSheet.create({
   },
   topIcon: {
     fontSize: 18,
-    color: '#005C55'
+    color: '#A97845'
   },
   brandTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#005C55',
+    color: '#A97845',
     letterSpacing: -0.5
   },
   scrollContent: {
@@ -380,7 +387,7 @@ const styles = StyleSheet.create({
   heroContainer: {
     width: '100%',
     height: 320,
-    backgroundColor: '#121C2A'
+    backgroundColor: '#2A211C'
   },
   heroImg: {
     width: '100%',
@@ -389,7 +396,7 @@ const styles = StyleSheet.create({
   },
   heroOverlay: {
     padding: 20,
-    backgroundColor: 'rgba(18, 28, 42, 0.65)'
+    backgroundColor: 'rgba(42, 33, 28, 0.65)'
   },
   salonTitle: {
     color: '#FFFFFF',
@@ -424,7 +431,7 @@ const styles = StyleSheet.create({
     marginRight: 4
   },
   ratingText: {
-    color: '#FFE08E',
+    color: '#E1C7AA',
     fontSize: 12,
     fontWeight: '700'
   },
@@ -432,7 +439,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#E6EEFF',
+    borderBottomColor: '#EFE2D2',
     paddingHorizontal: 20
   },
   tabBtn: {
@@ -442,15 +449,15 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent'
   },
   activeTabBtn: {
-    borderBottomColor: '#005C55'
+    borderBottomColor: '#A97845'
   },
   tabText: {
     fontSize: 14,
-    color: '#3E4947',
+    color: '#6F6256',
     fontWeight: '500'
   },
   activeTabText: {
-    color: '#005C55',
+    color: '#A97845',
     fontWeight: '700'
   },
   attachedTryOnCard: {
@@ -462,30 +469,30 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#005C55'
+    borderColor: '#A97845'
   },
   attachedImg: {
     width: 48,
     height: 48,
     borderRadius: 10,
     marginRight: 12,
-    backgroundColor: '#E6EEFF'
+    backgroundColor: '#EFE2D2'
   },
   attachedText: {
     flex: 1
   },
   attachedLabel: {
-    color: '#005C55',
+    color: '#A97845',
     fontSize: 10,
     fontWeight: '800'
   },
   attachedTitle: {
-    color: '#121C2A',
+    color: '#2A211C',
     fontSize: 14,
     fontWeight: '700'
   },
   attachedSub: {
-    color: '#3E4947',
+    color: '#6F6256',
     fontSize: 11
   },
   sectionContainer: {
@@ -495,7 +502,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#121C2A',
+    color: '#2A211C',
     marginBottom: 12
   },
   stylistGrid: {
@@ -510,7 +517,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E6EEFF',
+    borderColor: '#EFE2D2',
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -518,24 +525,24 @@ const styles = StyleSheet.create({
     shadowRadius: 8
   },
   selectedStylistCard: {
-    borderColor: '#005C55',
-    backgroundColor: 'rgba(0, 92, 85, 0.04)'
+    borderColor: '#A97845',
+    backgroundColor: 'rgba(169, 120, 69, 0.08)'
   },
   stylistAvatar: {
     width: 52,
     height: 52,
     borderRadius: 26,
     marginRight: 10,
-    backgroundColor: '#E6EEFF'
+    backgroundColor: '#EFE2D2'
   },
   stylistName: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#121C2A'
+    color: '#2A211C'
   },
   stylistRole: {
     fontSize: 11,
-    color: '#3E4947'
+    color: '#6F6256'
   },
   serviceList: {
     gap: 12
@@ -545,10 +552,10 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E6EEFF'
+    borderColor: '#EFE2D2'
   },
   emptyServiceText: {
-    color: '#3E4947',
+    color: '#6F6256',
     fontSize: 13
   },
   serviceCard: {
@@ -559,7 +566,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E6EEFF',
+    borderColor: '#EFE2D2',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
@@ -567,8 +574,8 @@ const styles = StyleSheet.create({
     elevation: 2
   },
   selectedServiceCard: {
-    borderColor: '#005C55',
-    backgroundColor: 'rgba(0, 92, 85, 0.04)'
+    borderColor: '#A97845',
+    backgroundColor: 'rgba(169, 120, 69, 0.08)'
   },
   serviceMain: {
     flex: 1,
@@ -577,12 +584,12 @@ const styles = StyleSheet.create({
   serviceName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#121C2A',
+    color: '#2A211C',
     marginBottom: 4
   },
   serviceSub: {
     fontSize: 12,
-    color: '#3E4947',
+    color: '#6F6256',
     lineHeight: 16,
     marginBottom: 6
   },
@@ -596,7 +603,7 @@ const styles = StyleSheet.create({
   },
   durText: {
     fontSize: 12,
-    color: '#3E4947'
+    color: '#6F6256'
   },
   serviceRight: {
     alignItems: 'flex-end'
@@ -604,17 +611,17 @@ const styles = StyleSheet.create({
   priceText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#005C55',
+    color: '#A97845',
     marginBottom: 4
   },
   selectBtnText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#005C55'
+    color: '#A97845'
   },
   selectedBtnText: {
     fontWeight: '800',
-    color: '#005C55'
+    color: '#A97845'
   },
   dateScroll: {
     marginHorizontal: -20,
@@ -626,17 +633,17 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#BDC9C6',
+    borderColor: '#B89062',
     marginRight: 10
   },
   selectedDatePill: {
-    backgroundColor: '#005C55',
-    borderColor: '#005C55'
+    backgroundColor: '#A97845',
+    borderColor: '#A97845'
   },
   dateText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#121C2A'
+    color: '#2A211C'
   },
   selectedDateText: {
     color: '#FFFFFF',
@@ -654,16 +661,16 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#BDC9C6'
+    borderColor: '#B89062'
   },
   selectedTimeSlot: {
-    backgroundColor: '#005C55',
-    borderColor: '#005C55'
+    backgroundColor: '#A97845',
+    borderColor: '#A97845'
   },
   timeSlotText: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#121C2A'
+    color: '#2A211C'
   },
   selectedTimeText: {
     color: '#FFFFFF',
@@ -675,7 +682,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: '#E6EEFF',
+    backgroundColor: '#EFE2D2',
     marginBottom: 8
   },
   mapImg: {
@@ -694,11 +701,11 @@ const styles = StyleSheet.create({
   mapAddress: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#121C2A'
+    color: '#2A211C'
   },
   mapDistance: {
     fontSize: 12,
-    color: '#3E4947'
+    color: '#6F6256'
   },
   fixedBottomBar: {
     position: 'absolute',
@@ -708,7 +715,7 @@ const styles = StyleSheet.create({
     height: 80,
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderTopWidth: 1,
-    borderTopColor: '#E6EEFF',
+    borderTopColor: '#EFE2D2',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
@@ -737,12 +744,12 @@ const styles = StyleSheet.create({
   bookActionBtn: {
     flex: 2,
     height: 52,
-    backgroundColor: '#005C55',
+    backgroundColor: '#A97845',
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
-    shadowColor: '#005C55',
+    shadowColor: '#A97845',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8

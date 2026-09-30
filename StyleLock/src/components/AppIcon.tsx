@@ -106,7 +106,7 @@ type AppIconProps = {
   style?: TextStyle;
 };
 
-export const AppIcon = ({ name, size = 20, color = '#0F766E', style }: AppIconProps) => (
+export const AppIcon = ({ name, size = 20, color = '#A97845', style }: AppIconProps) => (
   <Feather name={ICON_MAP[name]} size={size} color={color} style={style} />
 );
 
@@ -119,9 +119,9 @@ type IconBadgeProps = AppIconProps & {
 export const IconBadge = ({
   name,
   size = 18,
-  color = '#0F766E',
-  backgroundColor = '#E7F7F4',
-  borderColor = 'rgba(15, 118, 110, 0.16)',
+  color = '#A97845',
+  backgroundColor = '#EAD7BF',
+  borderColor = 'rgba(169, 120, 69, 0.16)',
   containerStyle,
   style
 }: IconBadgeProps) => (

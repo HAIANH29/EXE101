@@ -1,22 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   StyleSheet,
   View,
-  Text,
   ScrollView,
   TouchableOpacity,
   Image,
   SafeAreaView,
-  TextInput,
   Dimensions,
   ImageBackground
 } from 'react-native';
+import { LocalizedText as Text, LocalizedTextInput as TextInput } from '../i18n/LocalizedComponents';
+import { useFocusEffect } from '@react-navigation/native';
 import { MOCK_HAIRSTYLES, MOCK_SALONS } from '../services/mockData';
 import { backendApi } from '../services/backendApi';
 import { AppIcon, IconBadge } from '../components/AppIcon';
 import { Booking, Hairstyle, Salon } from '../types';
 import { BottomNavBar } from '../components/BottomNavBar';
 import { NotificationBellButton } from '../components/NotificationBellButton';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface HomeScreenProps {
   navigation: any;
@@ -24,17 +25,38 @@ interface HomeScreenProps {
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+type DisplayUser = {
+  fullName?: string;
+  email?: string;
+};
+
+function getUserDisplayName(user?: DisplayUser) {
+  const fullName = user?.fullName?.trim();
+  if (fullName) return fullName;
+
+  const emailName = user?.email?.split('@')[0]?.trim();
+  return emailName || '';
+}
+
+function getStoredDisplayName() {
+  return getUserDisplayName(backendApi.getCurrentUser()?.user);
+}
+
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
+  const { language } = useLanguage();
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeTab, setActiveTab] = useState<string>('Home');
   const [hairstyles, setHairstyles] = useState<Hairstyle[]>(MOCK_HAIRSTYLES);
   const [salons, setSalons] = useState<Salon[]>(MOCK_SALONS);
   const [upcomingBooking, setUpcomingBooking] = useState<Booking | undefined>();
+  const [displayName, setDisplayName] = useState<string>(getStoredDisplayName);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     let isMounted = true;
 
     const loadBackendData = async () => {
+      setDisplayName(getStoredDisplayName());
+
       try {
         const [apiHairstyles, apiSalons] = await Promise.all([
           backendApi.getHairstyles(),
@@ -46,7 +68,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         if (apiSalons.length > 0) setSalons(apiSalons);
 
         if (backendApi.isAuthenticated()) {
-          const bookings = await backendApi.getMyBookings().catch(() => []);
+          const [user, bookings] = await Promise.all([
+            backendApi.getMe().catch(() => backendApi.getCurrentUser()?.user),
+            backendApi.getMyBookings().catch(() => [])
+          ]);
+          if (isMounted) setDisplayName(getUserDisplayName(user));
+
           const upcoming = bookings.find(
             (booking) => booking.status === 'PENDING' || booking.status === 'CONFIRMED'
           );
@@ -62,7 +89,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, []));
+
+  const greetingTitle = displayName
+    ? language === 'vi'
+      ? `Xin chào, ${displayName}`
+      : `Hello, ${displayName}`
+    : language === 'vi'
+      ? 'Xin chào'
+      : 'Hello';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -72,7 +107,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           style={styles.iconBtn}
           onPress={() => navigation.navigate('AdminDashboard')}
         >
-          <AppIcon name="menu" size={22} color="#005C55" />
+          <AppIcon name="menu" size={22} color="#A97845" />
         </TouchableOpacity>
 
         <Text style={styles.brandTitle}>StyleLock</Text>
@@ -86,15 +121,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       >
         {/* Greeting & Search Section */}
         <View style={styles.greetingSection}>
-          <Text style={styles.greetingTitle}>Hello, Sarah</Text>
+          <Text style={styles.greetingTitle}>{greetingTitle}</Text>
           <Text style={styles.greetingSub}>Find your next signature look.</Text>
 
           <View style={styles.searchBox}>
-            <AppIcon name="search" size={18} color="#64748B" style={styles.searchIcon} />
+            <AppIcon name="search" size={18} color="#9A8A7A" style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search styles, salons, or stylists..."
-              placeholderTextColor="#64748B"
+              placeholderTextColor="#9A8A7A"
               value={searchQuery}
               onChangeText={setSearchQuery}
               onSubmitEditing={() => navigation.navigate('HairstyleSelect')}
@@ -136,7 +171,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             onPress={() => navigation.navigate('CameraUpload')}
           >
             <View style={styles.quickIconCircle}>
-              <AppIcon name="sparkle" size={22} color="#005C55" />
+              <AppIcon name="sparkle" size={22} color="#A97845" />
             </View>
             <Text style={styles.quickActionText}>Try Hairstyle</Text>
           </TouchableOpacity>
@@ -147,7 +182,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             onPress={() => navigation.navigate('SalonList')}
           >
             <View style={styles.quickIconCircle}>
-              <AppIcon name="salon" size={22} color="#005C55" />
+              <AppIcon name="salon" size={22} color="#A97845" />
             </View>
             <Text style={styles.quickActionText}>Book Salon</Text>
           </TouchableOpacity>
@@ -158,7 +193,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             onPress={() => navigation.navigate('SalonDashboard')}
           >
             <View style={styles.quickIconCircle}>
-              <AppIcon name="bot" size={22} color="#005C55" />
+              <AppIcon name="bot" size={22} color="#A97845" />
             </View>
             <Text style={styles.quickActionText}>AI Consult</Text>
           </TouchableOpacity>
@@ -222,7 +257,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 <View style={styles.recommendImgWrapper}>
                   <Image source={{ uri: hair.imageUrl }} style={styles.recommendImg} />
                   <TouchableOpacity style={styles.favBadge}>
-                    <AppIcon name="heart" size={15} color="#005C55" />
+                    <AppIcon name="heart" size={15} color="#A97845" />
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.recommendName} numberOfLines={1}>
@@ -255,7 +290,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     backgroundColor: 'rgba(248, 249, 255, 0.9)',
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: '#DDCDB9',
     zIndex: 10
   },
   iconBtn: {
@@ -267,12 +302,12 @@ const styles = StyleSheet.create({
   },
   topIcon: {
     fontSize: 20,
-    color: '#005C55'
+    color: '#A97845'
   },
   brandTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#005C55',
+    color: '#A97845',
     letterSpacing: -0.5
   },
   scrollContent: {
@@ -285,13 +320,13 @@ const styles = StyleSheet.create({
   greetingTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#121C2A',
+    color: '#2A211C',
     letterSpacing: -0.5,
     marginBottom: 2
   },
   greetingSub: {
     fontSize: 15,
-    color: '#3E4947',
+    color: '#6F6256',
     marginBottom: 16
   },
   searchBox: {
@@ -302,7 +337,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     height: 54,
     borderWidth: 1,
-    borderColor: '#BDC9C6',
+    borderColor: '#B89062',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
@@ -316,7 +351,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: '#121C2A'
+    color: '#2A211C'
   },
   promoBannerCard: {
     width: '100%',
@@ -341,7 +376,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   promoTag: {
-    color: '#9CF2E8',
+    color: '#EAD7BF',
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 1,
@@ -356,7 +391,7 @@ const styles = StyleSheet.create({
     lineHeight: 28
   },
   exploreBtn: {
-    backgroundColor: '#005C55',
+    backgroundColor: '#A97845',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 25,
@@ -392,7 +427,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(15, 118, 110, 0.1)',
+    backgroundColor: 'rgba(169, 120, 69, 0.12)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8
@@ -403,7 +438,7 @@ const styles = StyleSheet.create({
   quickActionText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#121C2A',
+    color: '#2A211C',
     textAlign: 'center'
   },
   sectionHeader: {
@@ -419,21 +454,21 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#121C2A'
+    color: '#2A211C'
   },
   seeAllText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#005C55'
+    color: '#A97845'
   },
   appointmentCard: {
-    backgroundColor: '#005C55',
+    backgroundColor: '#A97845',
     borderRadius: 20,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 24,
-    shadowColor: '#005C55',
+    shadowColor: '#A97845',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,
     shadowRadius: 12,
@@ -444,7 +479,7 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 14,
     marginRight: 14,
-    backgroundColor: '#0F766E'
+    backgroundColor: '#A97845'
   },
   appointmentInfo: {
     flex: 1
@@ -456,7 +491,7 @@ const styles = StyleSheet.create({
     marginBottom: 2
   },
   appointmentTime: {
-    color: '#A3FAEF',
+    color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '600',
     marginBottom: 2
@@ -492,7 +527,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: '#E6EEFF',
+    backgroundColor: '#EFE2D2',
     marginBottom: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -521,11 +556,11 @@ const styles = StyleSheet.create({
   recommendName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#121C2A'
+    color: '#2A211C'
   },
   recommendMatch: {
     fontSize: 12,
-    color: '#3E4947',
+    color: '#6F6256',
     marginTop: 2
   },
   bottomBar: {
@@ -541,7 +576,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: '#DDCDB9',
     elevation: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
@@ -556,7 +591,7 @@ const styles = StyleSheet.create({
     borderRadius: 20
   },
   navItemActive: {
-    backgroundColor: 'rgba(15, 118, 110, 0.15)'
+    backgroundColor: 'rgba(169, 120, 69, 0.16)'
   },
   navIcon: {
     fontSize: 18,
@@ -568,10 +603,10 @@ const styles = StyleSheet.create({
   navLabel: {
     fontSize: 11,
     fontWeight: '500',
-    color: '#3E4947'
+    color: '#6F6256'
   },
   navLabelActive: {
-    color: '#005C55',
+    color: '#A97845',
     fontWeight: '700'
   }
 });

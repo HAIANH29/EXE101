@@ -1,0 +1,23 @@
+export const palette = {
+  background: '#F6EFE6',
+  backgroundAlt: '#EBDCCB',
+  surface: '#FFFDF8',
+  surfaceSoft: '#EFE2D2',
+  surfaceWarm: '#E1C7AA',
+  border: '#DDCDB9',
+  borderStrong: '#B89062',
+  text: '#2A211C',
+  textSoft: '#6F6256',
+  textMuted: '#9A8A7A',
+  primary: '#A97845',
+  primaryDark: '#6B4227',
+  primarySoft: '#EAD7BF',
+  cta: '#211A16',
+  success: '#7C8A55',
+  successSoft: '#EEF3E4',
+  warning: '#A97845',
+  warningSoft: '#FFF4E4',
+  danger: '#B65A4B',
+  dangerSoft: '#FBE7E1',
+  white: '#FFFFFF'
+} as const;

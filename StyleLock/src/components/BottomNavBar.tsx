@@ -1,5 +1,10 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  StyleSheet,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { LocalizedText as Text } from '../i18n/LocalizedComponents';
 import { AppIcon, AppIconName } from './AppIcon';
 
 type NavKey = 'Home' | 'Explore' | 'AICamera' | 'Bookings' | 'Profile';
@@ -22,12 +27,14 @@ const NAV_ITEMS: NavItem[] = [
 type BottomNavBarProps = {
   active: NavKey;
   navigation: any;
+  labels?: Partial<Record<NavKey, string>>;
 };
 
-export const BottomNavBar = ({ active, navigation }: BottomNavBarProps) => (
+export const BottomNavBar = ({ active, navigation, labels }: BottomNavBarProps) => (
   <View style={styles.bottomBar}>
     {NAV_ITEMS.map((item) => {
       const isActive = active === item.key;
+      const label = labels?.[item.key] || item.label;
       return (
         <TouchableOpacity
           key={item.key}
@@ -36,8 +43,8 @@ export const BottomNavBar = ({ active, navigation }: BottomNavBarProps) => (
             if (!isActive && item.route) navigation.navigate(item.route);
           }}
         >
-          <AppIcon name={item.icon} size={18} color={isActive ? '#005C55' : '#3E4947'} />
-          <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>{item.label}</Text>
+          <AppIcon name={item.icon} size={18} color={isActive ? '#A97845' : '#6F6256'} />
+          <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>{label}</Text>
         </TouchableOpacity>
       );
     })}
@@ -58,7 +65,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: '#DDCDB9',
     elevation: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
@@ -74,15 +81,15 @@ const styles = StyleSheet.create({
     gap: 2
   },
   navItemActive: {
-    backgroundColor: 'rgba(15, 118, 110, 0.15)'
+    backgroundColor: 'rgba(169, 120, 69, 0.16)'
   },
   navLabel: {
     fontSize: 11,
     fontWeight: '500',
-    color: '#3E4947'
+    color: '#6F6256'
   },
   navLabelActive: {
-    color: '#005C55',
+    color: '#A97845',
     fontWeight: '700'
   }
 });

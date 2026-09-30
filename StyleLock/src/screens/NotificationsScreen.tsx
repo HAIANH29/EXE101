@@ -1,19 +1,19 @@
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   RefreshControl,
   SafeAreaView,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View
 } from 'react-native';
+import { LocalizedText as Text, LocalizedAlert as Alert } from '../i18n/LocalizedComponents';
 import { useFocusEffect } from '@react-navigation/native';
 import { AppIcon, AppIconName, IconBadge } from '../components/AppIcon';
 import { backendApi } from '../services/backendApi';
 import { NotificationItem, NotificationType } from '../types';
+import { useLanguage } from '../i18n/LanguageContext';
 
 type NotificationsScreenProps = {
   navigation: any;
@@ -29,25 +29,25 @@ type NotificationMeta = {
 const TYPE_META: Record<NotificationType, NotificationMeta> = {
   BOOKING_CREATED: {
     icon: 'calendar',
-    color: '#0F766E',
-    backgroundColor: '#E7F7F4',
+    color: '#A97845',
+    backgroundColor: '#EAD7BF',
     label: 'Đặt lịch'
   },
   BOOKING_CONFIRMED: {
     icon: 'check',
-    color: '#047857',
+    color: '#7C8A55',
     backgroundColor: '#DCFCE7',
     label: 'Xác nhận'
   },
   BOOKING_CANCELLED: {
     icon: 'close',
-    color: '#BA1A1A',
-    backgroundColor: '#FFDAD6',
+    color: '#B65A4B',
+    backgroundColor: '#FBE7E1',
     label: 'Đã hủy'
   },
   BOOKING_COMPLETED: {
     icon: 'star',
-    color: '#B45309',
+    color: '#A97845',
     backgroundColor: '#FEF3C7',
     label: 'Hoàn tất'
   },
@@ -62,13 +62,13 @@ const TYPE_META: Record<NotificationType, NotificationMeta> = {
 function getMeta(type: NotificationItem['type']): NotificationMeta {
   return TYPE_META[type] || {
     icon: 'bell',
-    color: '#005C55',
-    backgroundColor: '#E7F7F4',
+    color: '#A97845',
+    backgroundColor: '#EAD7BF',
     label: 'Thông báo'
   };
 }
 
-function formatTime(value: string) {
+function formatTime(value: string, language: 'vi' | 'en') {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
 
@@ -83,7 +83,7 @@ function formatTime(value: string) {
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days} ngày trước`;
 
-  return date.toLocaleDateString('vi-VN', {
+  return date.toLocaleDateString(language === 'vi' ? 'vi-VN' : 'en-US', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric'
@@ -95,6 +95,7 @@ function isBookingRelated(type: NotificationItem['type']) {
 }
 
 export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation }) => {
+  const { language } = useLanguage();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -185,7 +186,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ naviga
     if (loading) {
       return (
         <View style={styles.centerState}>
-          <ActivityIndicator color="#005C55" />
+          <ActivityIndicator color="#A97845" />
           <Text style={styles.centerText}>Đang tải thông báo...</Text>
         </View>
       );
@@ -197,7 +198,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ naviga
           <IconBadge
             name="bell"
             size={24}
-            color="#005C55"
+            color="#A97845"
             containerStyle={styles.emptyIcon}
           />
           <Text style={styles.emptyTitle}>Chưa xem được thông báo</Text>
@@ -215,7 +216,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ naviga
           <IconBadge
             name="bell"
             size={24}
-            color="#005C55"
+            color="#A97845"
             containerStyle={styles.emptyIcon}
           />
           <Text style={styles.emptyTitle}>Chưa có thông báo</Text>
@@ -262,7 +263,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ naviga
                   <Text style={[styles.typeChip, { color: meta.color }]}>
                     {meta.label}
                   </Text>
-                  <Text style={styles.timeText}>{formatTime(notification.createdAt)}</Text>
+                  <Text style={styles.timeText}>{formatTime(notification.createdAt, language)}</Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -276,7 +277,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ naviga
     <SafeAreaView style={styles.container}>
       <View style={styles.topAppBar}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()}>
-          <AppIcon name="arrowLeft" size={22} color="#005C55" />
+          <AppIcon name="arrowLeft" size={22} color="#A97845" />
         </TouchableOpacity>
 
         <View style={styles.titleWrap}>
@@ -291,7 +292,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ naviga
           onPress={markAllAsRead}
           disabled={unreadCount === 0}
         >
-          <AppIcon name="check" size={18} color={unreadCount === 0 ? '#94A3B8' : '#005C55'} />
+          <AppIcon name="check" size={18} color={unreadCount === 0 ? '#A99582' : '#A97845'} />
         </TouchableOpacity>
       </View>
 
@@ -302,8 +303,8 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ naviga
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => loadNotifications(true)}
-            tintColor="#005C55"
-            colors={['#005C55']}
+            tintColor="#A97845"
+            colors={['#A97845']}
           />
         }
       >
@@ -327,7 +328,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: 'rgba(248, 249, 255, 0.96)',
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0'
+    borderBottomColor: '#DDCDB9'
   },
   iconBtn: {
     width: 40,
@@ -343,12 +344,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#121C2A'
+    color: '#2A211C'
   },
   subtitle: {
     marginTop: 2,
     fontSize: 12,
-    color: '#64748B',
+    color: '#9A8A7A',
     fontWeight: '600'
   },
   markAllButton: {
@@ -357,13 +358,13 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E7F7F4',
+    backgroundColor: '#EAD7BF',
     borderWidth: 1,
-    borderColor: 'rgba(15, 118, 110, 0.16)'
+    borderColor: 'rgba(169, 120, 69, 0.16)'
   },
   markAllButtonDisabled: {
     backgroundColor: '#F1F5F9',
-    borderColor: '#E2E8F0'
+    borderColor: '#DDCDB9'
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -380,7 +381,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E6EEFF',
+    borderColor: '#EFE2D2',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
@@ -388,7 +389,7 @@ const styles = StyleSheet.create({
     elevation: 2
   },
   notificationCardUnread: {
-    borderColor: 'rgba(0, 92, 85, 0.28)',
+    borderColor: 'rgba(169, 120, 69, 0.28)',
     backgroundColor: '#FBFFFE'
   },
   notificationIcon: {
@@ -410,18 +411,18 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '800',
-    color: '#121C2A'
+    color: '#2A211C'
   },
   unreadDot: {
     width: 9,
     height: 9,
     borderRadius: 4.5,
-    backgroundColor: '#BA1A1A'
+    backgroundColor: '#B65A4B'
   },
   notificationContent: {
     fontSize: 13,
     lineHeight: 19,
-    color: '#3E4947'
+    color: '#6F6256'
   },
   notificationMetaRow: {
     marginTop: 10,
@@ -436,7 +437,7 @@ const styles = StyleSheet.create({
   },
   timeText: {
     fontSize: 12,
-    color: '#64748B',
+    color: '#9A8A7A',
     fontWeight: '600'
   },
   centerState: {
@@ -447,7 +448,7 @@ const styles = StyleSheet.create({
   },
   centerText: {
     marginTop: 12,
-    color: '#3E4947',
+    color: '#6F6256',
     fontSize: 14,
     fontWeight: '600'
   },
@@ -460,14 +461,14 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#121C2A',
+    color: '#2A211C',
     textAlign: 'center',
     marginBottom: 6
   },
   emptyText: {
     fontSize: 14,
     lineHeight: 20,
-    color: '#64748B',
+    color: '#9A8A7A',
     textAlign: 'center'
   },
   retryButton: {
@@ -475,7 +476,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 11,
     borderRadius: 12,
-    backgroundColor: '#005C55'
+    backgroundColor: '#A97845'
   },
   retryButtonText: {
     color: '#FFFFFF',

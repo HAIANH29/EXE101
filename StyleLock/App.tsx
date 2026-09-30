@@ -1,11 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { StatusBar } from 'expo-status-bar';
-import { createNavigationContainerRef, NavigationContainer } from '@react-navigation/native';
-import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
+import {
+  StatusBar } from 'expo-status-bar';
+import { createNavigationContainerRef,
+  NavigationContainer } from '@react-navigation/native';
+import { ActivityIndicator,
+  Platform,
+  StyleSheet,
+  View
+} from 'react-native';
+import { LocalizedText as Text } from './src/i18n/LocalizedComponents';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { backendApi } from './src/services/backendApi';
 import { authSessionStore } from './src/services/apiClient';
+import { LanguageProvider } from './src/i18n/LanguageContext';
+import { palette } from './src/theme/palette';
 
 const linking = {
   prefixes: ['http://localhost:8082', 'http://localhost:8081', 'stylelock://'],
@@ -49,7 +58,7 @@ function resetToLogin() {
 
 const AuthLoadingScreen = () => (
   <View style={styles.authLoading}>
-    <ActivityIndicator size="large" color="#005C55" />
+    <ActivityIndicator size="large" color={palette.primary} />
     <Text style={styles.authLoadingText}>Checking your session...</Text>
   </View>
 );
@@ -98,21 +107,23 @@ export default function App() {
   }, [expiredSessionVersion, isNavigationReady]);
 
   return (
-    <SafeAreaProvider>
-      <NavigationContainer
-        ref={navigationRef}
-        linking={linking}
-        onReady={() => {
-          setIsNavigationReady(true);
-          if (expiredSessionVersion > 0) {
-            resetToLogin();
-          }
-        }}
-      >
-        <StatusBar style="light" />
-        {isBootstrappingSession ? <AuthLoadingScreen /> : <AppNavigator />}
-      </NavigationContainer>
-    </SafeAreaProvider>
+    <LanguageProvider>
+      <SafeAreaProvider>
+        <NavigationContainer
+          ref={navigationRef}
+          linking={linking}
+          onReady={() => {
+            setIsNavigationReady(true);
+            if (expiredSessionVersion > 0) {
+              resetToLogin();
+            }
+          }}
+        >
+          <StatusBar style="dark" />
+          {isBootstrappingSession ? <AuthLoadingScreen /> : <AppNavigator />}
+        </NavigationContainer>
+      </SafeAreaProvider>
+    </LanguageProvider>
   );
 }
 
@@ -121,11 +132,11 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FAFAFA',
+    backgroundColor: palette.background,
     gap: 12
   },
   authLoadingText: {
-    color: '#005C55',
+    color: palette.primary,
     fontSize: 14,
     fontWeight: '700'
   }

@@ -1,5 +1,12 @@
 import React from 'react';
-import { StyleSheet, View, Image, Text, TouchableOpacity, Dimensions } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  Image,
+  TouchableOpacity,
+  Dimensions
+} from 'react-native';
+import { LocalizedText as Text } from '../i18n/LocalizedComponents';
 import { Hairstyle } from '../types';
 import { AppIcon } from './AppIcon';
 
@@ -59,7 +66,7 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
 
         {/* Face Guide Frame indicator */}
         <View style={styles.guideBadge}>
-          <View style={styles.guideBadgeRow}><AppIcon name="lightbulb" size={14} color="#E2E8F0" /><Text style={styles.guideBadgeText}>Di chuyển & chỉnh tỉ lệ cho khớp với khuôn mặt</Text></View>
+          <View style={styles.guideBadgeRow}><AppIcon name="lightbulb" size={14} color="#DDCDB9" /><Text style={styles.guideBadgeText}>Di chuyển & chỉnh tỉ lệ cho khớp với khuôn mặt</Text></View>
         </View>
       </View>
 
@@ -124,12 +131,12 @@ const styles = StyleSheet.create({
     height: CANVAS_SIZE * 1.25,
     borderRadius: 20,
     overflow: 'hidden',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#3A2E26',
     position: 'relative',
     borderWidth: 2,
-    borderColor: '#38BDF8',
+    borderColor: '#B89062',
     elevation: 8,
-    shadowColor: '#0284C7',
+    shadowColor: '#6B4227',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 10
@@ -156,7 +163,7 @@ const styles = StyleSheet.create({
     bottom: 12,
     left: 12,
     right: 12,
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    backgroundColor: 'rgba(42, 33, 28, 0.84)',
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 12,
@@ -168,23 +175,23 @@ const styles = StyleSheet.create({
     gap: 6
   },
   guideBadgeText: {
-    color: '#E2E8F0',
+    color: '#DDCDB9',
     fontSize: 12,
     fontWeight: '500'
   },
   controlPanel: {
     width: '100%',
     marginTop: 16,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFDF8',
     padding: 14,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0'
+    borderColor: '#DDCDB9'
   },
   controlTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#334155',
+    color: '#6F6256',
     marginBottom: 10,
     textAlign: 'center'
   },
@@ -199,7 +206,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 5,
-    backgroundColor: '#0EA5E9',
+    backgroundColor: '#A97845',
     paddingVertical: 8,
     paddingHorizontal: 4,
     borderRadius: 8,
@@ -210,7 +217,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 4,
-    backgroundColor: '#0284C7',
+    backgroundColor: '#6B4227',
     paddingVertical: 8,
     paddingHorizontal: 2,
     borderRadius: 8,
@@ -222,7 +229,7 @@ const styles = StyleSheet.create({
     fontWeight: '600'
   },
   resetBtn: {
-    backgroundColor: '#EF4444'
+    backgroundColor: '#B65A4B'
   },
   resetBtnText: {
     color: '#FFFFFF',

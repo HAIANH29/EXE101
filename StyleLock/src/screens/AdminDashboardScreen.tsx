@@ -2,12 +2,12 @@ import React from 'react';
 import {
   StyleSheet,
   View,
-  Text,
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
   Dimensions
 } from 'react-native';
+import { LocalizedText as Text } from '../i18n/LocalizedComponents';
 import { bookingService } from '../services/bookingService';
 import { MOCK_HAIRSTYLES, MOCK_SALONS } from '../services/mockData';
 import { AppIcon, IconBadge } from '../components/AppIcon';
@@ -33,7 +33,7 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ navi
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <View style={styles.backRow}><AppIcon name="arrowLeft" size={15} color="#0F766E" /><Text style={styles.backBtnText}>Về Trang Chủ</Text></View>
+            <View style={styles.backRow}><AppIcon name="arrowLeft" size={15} color="#A97845" /><Text style={styles.backBtnText}>Về Trang Chủ</Text></View>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>StyleLock Admin & Analytics</Text>
           <View style={{ width: 60 }} />
@@ -64,14 +64,14 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ navi
           {/* Card 3: Conversion Rate */}
           <View style={styles.kpiCard}>
             <IconBadge name="trendingUp" size={22} containerStyle={styles.kpiIconBadge} />
-            <Text style={[styles.kpiValue, { color: '#10B981' }]}>{conversionRate}%</Text>
+            <Text style={[styles.kpiValue, { color: '#7C8A55' }]}>{conversionRate}%</Text>
             <Text style={styles.kpiLabel}>Tỷ lệ Chuyển đổi (Try ➔ Book)</Text>
           </View>
 
           {/* Card 4: Confirmed & Completed */}
           <View style={styles.kpiCard}>
             <IconBadge name="check" size={22} containerStyle={styles.kpiIconBadge} />
-            <Text style={[styles.kpiValue, { color: '#0F766E' }]}>
+            <Text style={[styles.kpiValue, { color: '#A97845' }]}>
               {analytics.confirmedBookings + analytics.completedBookings}
             </Text>
             <Text style={styles.kpiLabel}>Đơn Thành Công (Completed)</Text>
@@ -113,7 +113,7 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ navi
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F6F8F7'
+    backgroundColor: '#F6EFE6'
   },
   scrollContent: {
     padding: 16
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4
   },
   backBtnText: {
-    color: '#0F766E',
+    color: '#A97845',
     fontSize: 13,
     fontWeight: '600'
   },
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#0F172A'
+    color: '#2A211C'
   },
   pitchBanner: {
     backgroundColor: '#FFFFFF',
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#DDE7E3'
+    borderColor: '#DDCDB9'
   },
   pitchTitleRow: {
     flexDirection: 'row',
@@ -162,13 +162,13 @@ const styles = StyleSheet.create({
     borderRadius: 17
   },
   pitchTitle: {
-    color: '#0F766E',
+    color: '#A97845',
     fontSize: 13,
     fontWeight: '800',
     marginBottom: 4
   },
   pitchSub: {
-    color: '#64748B',
+    color: '#9A8A7A',
     fontSize: 11
   },
   kpiGrid: {
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#DDE7E3',
+    borderColor: '#DDCDB9',
     alignItems: 'center'
   },
   kpiIcon: {
@@ -197,13 +197,13 @@ const styles = StyleSheet.create({
     marginBottom: 8
   },
   kpiValue: {
-    color: '#0F172A',
+    color: '#2A211C',
     fontSize: 22,
     fontWeight: '800',
     marginBottom: 2
   },
   kpiLabel: {
-    color: '#64748B',
+    color: '#9A8A7A',
     fontSize: 11,
     textAlign: 'center',
     lineHeight: 15
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#A7F3D0'
+    borderColor: '#CCD8B6'
   },
   revTitleRow: {
     flexDirection: 'row',
@@ -228,34 +228,34 @@ const styles = StyleSheet.create({
     borderRadius: 17
   },
   revTitle: {
-    color: '#10B981',
+    color: '#7C8A55',
     fontSize: 12,
     fontWeight: '800',
     marginBottom: 4
   },
   revValue: {
-    color: '#0F172A',
+    color: '#2A211C',
     fontSize: 24,
     fontWeight: '800'
   },
   divider: {
     height: 1,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#DDCDB9',
     marginVertical: 12
   },
   monetizationLabel: {
-    color: '#334155',
+    color: '#6F6256',
     fontSize: 12,
     fontWeight: '700',
     marginBottom: 4
   },
   monetizationItem: {
-    color: '#64748B',
+    color: '#9A8A7A',
     fontSize: 11,
     lineHeight: 16
   },
   sectionHeader: {
-    color: '#0F172A',
+    color: '#2A211C',
     fontSize: 15,
     fontWeight: '700',
     marginBottom: 10
@@ -272,16 +272,16 @@ const styles = StyleSheet.create({
     padding: 14,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#DDE7E3'
+    borderColor: '#DDCDB9'
   },
   mgmtNum: {
-    color: '#0F766E',
+    color: '#A97845',
     fontSize: 20,
     fontWeight: '800',
     marginBottom: 2
   },
   mgmtLabel: {
-    color: '#64748B',
+    color: '#9A8A7A',
     fontSize: 11
   }
 });

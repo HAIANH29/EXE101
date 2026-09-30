@@ -2,15 +2,14 @@ import React, { useRef, useState } from 'react';
 import {
   StyleSheet,
   View,
-  Text,
   TouchableOpacity,
   Image,
   SafeAreaView,
   ScrollView,
-  Alert,
   Dimensions,
   ImageBackground
 } from 'react-native';
+import { LocalizedText as Text, LocalizedAlert as Alert } from '../i18n/LocalizedComponents';
 import * as ImagePicker from 'expo-image-picker';
 import { CameraView, useCameraPermissions, CameraType } from 'expo-camera';
 import { MOCK_HAIRSTYLES } from '../services/mockData';
@@ -189,7 +188,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
       {/* Top App Bar */}
       <View style={styles.topAppBar}>
         <TouchableOpacity style={styles.topBtn} onPress={() => navigation.goBack()}>
-          <AppIcon name="menu" size={22} color="#005C55" />
+          <AppIcon name="menu" size={22} color="#A97845" />
         </TouchableOpacity>
 
         <Text style={styles.brandTitle}>StyleLock</Text>
@@ -238,7 +237,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
           <View style={styles.analysisOverlay}>
             <View style={styles.analysisCard}>
               <View style={styles.analysisLabelRow}>
-                <AppIcon name="user" size={14} color="#005C55" />
+                <AppIcon name="user" size={14} color="#A97845" />
                 <Text style={styles.analysisLabelText}>DETECTED SHAPE</Text>
               </View>
               <Text style={styles.analysisValue}>Oval</Text>
@@ -246,7 +245,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
 
             <View style={styles.analysisCard}>
               <View style={styles.analysisLabelRow}>
-                <AppIcon name="barChart" size={14} color="#005C55" />
+                <AppIcon name="barChart" size={14} color="#A97845" />
                 <Text style={styles.analysisLabelText}>CONFIDENCE</Text>
               </View>
               <View style={styles.confidenceRow}>
@@ -341,7 +340,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#27313F'
+    backgroundColor: '#2A211C'
   },
   topAppBar: {
     position: 'absolute',
@@ -353,7 +352,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    backgroundColor: 'rgba(248, 249, 255, 0.8)',
+    backgroundColor: 'rgba(248, 242, 234, 0.86)',
     zIndex: 30
   },
   topBtn: {
@@ -365,18 +364,18 @@ const styles = StyleSheet.create({
   },
   topBtnIcon: {
     fontSize: 20,
-    color: '#005C55'
+    color: '#A97845'
   },
   brandTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#005C55',
+    color: '#A97845',
     letterSpacing: -0.5
   },
   cameraCanvas: {
     flex: 1,
     width: '100%',
-    backgroundColor: '#27313F'
+    backgroundColor: '#2A211C'
   },
   cameraFeed: {
     flex: 1,
@@ -390,7 +389,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 28,
-    backgroundColor: '#121C2A'
+    backgroundColor: '#2A211C'
   },
   permissionTitle: {
     color: '#FFFFFF',
@@ -407,7 +406,7 @@ const styles = StyleSheet.create({
     marginBottom: 16
   },
   permissionBtn: {
-    backgroundColor: '#005C55',
+    backgroundColor: '#A97845',
     borderRadius: 14,
     paddingHorizontal: 20,
     paddingVertical: 12
@@ -477,7 +476,7 @@ const styles = StyleSheet.create({
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(248, 249, 255, 0.2)',
+    backgroundColor: 'rgba(248, 242, 234, 0.24)',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 20,
@@ -489,7 +488,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#80D5CB'
+    backgroundColor: '#E1C7AA'
   },
   statusText: {
     color: '#FFFFFF',
@@ -504,7 +503,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(248, 249, 255, 0.2)',
+    backgroundColor: 'rgba(248, 242, 234, 0.24)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
@@ -522,7 +521,7 @@ const styles = StyleSheet.create({
     gap: 8
   },
   analysisCard: {
-    backgroundColor: 'rgba(248, 249, 255, 0.85)',
+    backgroundColor: 'rgba(248, 242, 234, 0.9)',
     borderRadius: 10,
     padding: 10,
     borderWidth: 1,
@@ -542,18 +541,18 @@ const styles = StyleSheet.create({
   },
   analysisLabelIcon: {
     fontSize: 14,
-    color: '#005C55'
+    color: '#A97845'
   },
   analysisLabelText: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#3E4947',
+    color: '#6F6256',
     letterSpacing: 0.8
   },
   analysisValue: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#121C2A'
+    color: '#2A211C'
   },
   confidenceRow: {
     flexDirection: 'row',
@@ -563,19 +562,19 @@ const styles = StyleSheet.create({
   confidenceValue: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#005C55'
+    color: '#A97845'
   },
   confidenceBarBg: {
     width: 60,
     height: 8,
-    backgroundColor: '#D9E3F6',
+    backgroundColor: '#EAD7BF',
     borderRadius: 4,
     overflow: 'hidden'
   },
   confidenceBarFill: {
     width: '98%',
     height: '100%',
-    backgroundColor: '#005C55',
+    backgroundColor: '#A97845',
     borderRadius: 4
   },
   bottomUIArea: {
@@ -601,7 +600,7 @@ const styles = StyleSheet.create({
   },
   filterThumbActive: {
     borderWidth: 2,
-    borderColor: '#005C55'
+    borderColor: '#A97845'
   },
   filterThumbImg: {
     width: '100%',
@@ -617,7 +616,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 92, 85, 0.15)',
+    backgroundColor: 'rgba(169, 120, 69, 0.16)',
     zIndex: 1
   },
   filterInactiveOverlay: {
@@ -649,7 +648,7 @@ const styles = StyleSheet.create({
     fontWeight: '700'
   },
   filterLabelTextActive: {
-    color: '#121C2A'
+    color: '#2A211C'
   },
   filterLabelTextInactive: {
     color: '#FFFFFF'
@@ -661,7 +660,7 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: '#005C55',
+    backgroundColor: '#A97845',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 3
@@ -703,11 +702,11 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: '#005C55',
+    backgroundColor: '#A97845',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
-    shadowColor: '#005C55',
+    shadowColor: '#A97845',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8
@@ -723,14 +722,14 @@ const styles = StyleSheet.create({
   bookCtaBtn: {
     width: '100%',
     height: 52,
-    backgroundColor: '#005C55',
+    backgroundColor: '#A97845',
     borderRadius: 14,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
     elevation: 6,
-    shadowColor: 'rgba(0, 92, 85, 0.3)',
+    shadowColor: 'rgba(169, 120, 69, 0.30)',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 12
@@ -751,7 +750,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 75,
-    backgroundColor: 'rgba(248, 249, 255, 0.85)',
+    backgroundColor: 'rgba(248, 242, 234, 0.9)',
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     flexDirection: 'row',
@@ -774,7 +773,7 @@ const styles = StyleSheet.create({
     borderRadius: 20
   },
   navItemActive: {
-    backgroundColor: 'rgba(15, 118, 110, 0.15)'
+    backgroundColor: 'rgba(169, 120, 69, 0.16)'
   },
   navIcon: {
     fontSize: 20,
@@ -786,10 +785,10 @@ const styles = StyleSheet.create({
   navLabel: {
     fontSize: 10,
     fontWeight: '500',
-    color: '#3E4947'
+    color: '#6F6256'
   },
   navLabelActive: {
-    color: '#005C55',
+    color: '#A97845',
     fontWeight: '700'
   }
 });

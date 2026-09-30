@@ -2,16 +2,14 @@ import React, { useState } from 'react';
 import {
   StyleSheet,
   View,
-  Text,
-  TextInput,
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
   Image,
   KeyboardAvoidingView,
-  Platform,
-  Alert
+  Platform
 } from 'react-native';
+import { LocalizedText as Text, LocalizedTextInput as TextInput, LocalizedAlert as Alert } from '../i18n/LocalizedComponents';
 import { backendApi } from '../services/backendApi';
 import { AppIcon } from '../components/AppIcon';
 
@@ -126,7 +124,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               <TextInput
                 style={styles.input}
                 placeholder="hello@example.com"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor="#A99582"
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -149,7 +147,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                 <TextInput
                   style={[styles.input, { flex: 1, marginBottom: 0 }]}
                   placeholder="••••••••"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor="#A99582"
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
@@ -158,7 +156,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                   style={styles.eyeBtn}
                   onPress={() => setShowPassword(!showPassword)}
                 >
-                  <AppIcon name={showPassword ? "eyeOff" : "eye"} size={18} color="#005C55" />
+                  <AppIcon name={showPassword ? "eyeOff" : "eye"} size={18} color="#A97845" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -223,7 +221,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA'
+    backgroundColor: '#F6EFE6'
   },
   scrollContent: {
     paddingHorizontal: 24,
@@ -240,7 +238,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12
   },
   skipText: {
-    color: '#005C55',
+    color: '#A97845',
     fontSize: 13,
     fontWeight: '600'
   },
@@ -255,7 +253,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(0, 92, 85, 0.15)',
+    borderColor: 'rgba(169, 120, 69, 0.16)',
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -271,7 +269,7 @@ const styles = StyleSheet.create({
   logoOverlay: {
     position: 'absolute',
     inset: 0,
-    backgroundColor: 'rgba(0, 92, 85, 0.25)',
+    backgroundColor: 'rgba(169, 120, 69, 0.25)',
     justifyContent: 'center',
     alignItems: 'center'
   },
@@ -281,13 +279,13 @@ const styles = StyleSheet.create({
   brandTitle: {
     fontSize: 32,
     fontWeight: '800',
-    color: '#005C55',
+    color: '#A97845',
     letterSpacing: -0.5,
     marginBottom: 6
   },
   brandSubtitle: {
     fontSize: 14,
-    color: '#475569',
+    color: '#6F6256',
     textAlign: 'center',
     maxWidth: 270,
     lineHeight: 20
@@ -302,7 +300,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 16,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: '#EFE6DA',
     marginBottom: 24
   },
   fieldGroup: {
@@ -311,7 +309,7 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#475569',
+    color: '#6F6256',
     letterSpacing: 0.8,
     marginBottom: 6
   },
@@ -323,18 +321,18 @@ const styles = StyleSheet.create({
   },
   forgotLink: {
     fontSize: 13,
-    color: '#005C55',
+    color: '#A97845',
     fontWeight: '600'
   },
   input: {
     height: 52,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#FFFDF8',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#DDCDB9',
     paddingHorizontal: 16,
     fontSize: 15,
-    color: '#121C2A'
+    color: '#2A211C'
   },
   passwordInputWrapper: {
     flexDirection: 'row',
@@ -351,13 +349,13 @@ const styles = StyleSheet.create({
   },
   signInBtn: {
     height: 52,
-    backgroundColor: '#005C55',
+    backgroundColor: '#A97845',
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 8,
     marginBottom: 20,
-    shadowColor: '#005C55',
+    shadowColor: '#A97845',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -379,12 +377,12 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#F3F4F6'
+    backgroundColor: '#EFE6DA'
   },
   dividerText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: '#A99582',
     paddingHorizontal: 12,
     letterSpacing: 0.5
   },
@@ -424,11 +422,11 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   footerText: {
-    color: '#475569',
+    color: '#6F6256',
     fontSize: 14
   },
   signUpLink: {
-    color: '#005C55',
+    color: '#A97845',
     fontSize: 14,
     fontWeight: '800'
   }

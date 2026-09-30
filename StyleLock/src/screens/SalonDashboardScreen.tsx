@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 import {
   StyleSheet,
   View,
-  Text,
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
-  Image,
-  Alert
+  Image
 } from 'react-native';
+import { LocalizedText as Text, LocalizedAlert as Alert } from '../i18n/LocalizedComponents';
 import { bookingService } from '../services/bookingService';
 import { MOCK_SALONS } from '../services/mockData';
 import { Booking, BookingStatus } from '../types';
@@ -48,7 +47,7 @@ export const SalonDashboardScreen: React.FC<SalonDashboardScreenProps> = ({ navi
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <View style={styles.backRow}><AppIcon name="arrowLeft" size={15} color="#0F766E" /><Text style={styles.backBtnText}>Về App Khách</Text></View>
+            <View style={styles.backRow}><AppIcon name="arrowLeft" size={15} color="#A97845" /><Text style={styles.backBtnText}>Về App Khách</Text></View>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Salon Merchant Dashboard</Text>
           <View style={{ width: 60 }} />
@@ -74,7 +73,7 @@ export const SalonDashboardScreen: React.FC<SalonDashboardScreenProps> = ({ navi
         <View style={styles.protectionCard}>
           <View style={styles.protectionTitleRow}><IconBadge name="shield" size={17} containerStyle={styles.protectionIconBadge} /><Text style={styles.protectionTitle}>Cơ chế Double-Booking Protection:</Text></View>
           <Text style={styles.protectionText}>
-            Vui lòng kiểm tra thợ & ghế trống tại Salon trước khi bấm <Text style={{ fontWeight: '800', color: '#10B981' }}>[CONFIRM]</Text>. Khách hàng đang chờ phản hồi xác nhận.
+            Vui lòng kiểm tra thợ & ghế trống tại Salon trước khi bấm <Text style={{ fontWeight: '800', color: '#7C8A55' }}>[CONFIRM]</Text>. Khách hàng đang chờ phản hồi xác nhận.
           </Text>
         </View>
 
@@ -212,7 +211,7 @@ export const SalonDashboardScreen: React.FC<SalonDashboardScreenProps> = ({ navi
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F6F8F7'
+    backgroundColor: '#F6EFE6'
   },
   scrollContent: {
     padding: 16
@@ -227,7 +226,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4
   },
   backBtnText: {
-    color: '#0F766E',
+    color: '#A97845',
     fontSize: 13,
     fontWeight: '600'
   },
@@ -239,10 +238,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#0F172A'
+    color: '#2A211C'
   },
   sectionLabel: {
-    color: '#64748B',
+    color: '#9A8A7A',
     fontSize: 12,
     marginBottom: 6
   },
@@ -256,14 +255,14 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: '#DDE7E3'
+    borderColor: '#DDCDB9'
   },
   activeSalonPill: {
-    backgroundColor: '#B45309',
-    borderColor: '#FDE68A'
+    backgroundColor: '#A97845',
+    borderColor: '#E1C7AA'
   },
   salonPillText: {
-    color: '#64748B',
+    color: '#9A8A7A',
     fontSize: 12,
     fontWeight: '600'
   },
@@ -272,12 +271,12 @@ const styles = StyleSheet.create({
     fontWeight: '800'
   },
   protectionCard: {
-    backgroundColor: '#FFF7ED',
+    backgroundColor: '#FFF4E4',
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#FDBA74'
+    borderColor: '#B89062'
   },
   protectionTitleRow: {
     flexDirection: 'row',
@@ -291,13 +290,13 @@ const styles = StyleSheet.create({
     borderRadius: 17
   },
   protectionTitle: {
-    color: '#B45309',
+    color: '#A97845',
     fontSize: 12,
     fontWeight: '800',
     marginBottom: 2
   },
   protectionText: {
-    color: '#92400E',
+    color: '#6B4227',
     fontSize: 11,
     lineHeight: 16
   },
@@ -313,22 +312,22 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#DDE7E3'
+    borderColor: '#DDCDB9'
   },
   activePendingTab: {
-    backgroundColor: '#B45309',
-    borderColor: '#FDE68A'
+    backgroundColor: '#A97845',
+    borderColor: '#E1C7AA'
   },
   activeConfirmedTab: {
-    backgroundColor: '#0F766E',
-    borderColor: '#6EE7B7'
+    backgroundColor: '#A97845',
+    borderColor: '#CCD8B6'
   },
   activeCompletedTab: {
-    backgroundColor: '#2563EB',
-    borderColor: '#93C5FD'
+    backgroundColor: '#A97845',
+    borderColor: '#B89062'
   },
   filterTabText: {
-    color: '#64748B',
+    color: '#9A8A7A',
     fontSize: 11,
     fontWeight: '700'
   },
@@ -342,7 +341,7 @@ const styles = StyleSheet.create({
     padding: 30,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#DDE7E3'
+    borderColor: '#DDCDB9'
   },
   emptyIcon: {
     fontSize: 36,
@@ -355,7 +354,7 @@ const styles = StyleSheet.create({
     marginBottom: 10
   },
   emptyText: {
-    color: '#64748B',
+    color: '#9A8A7A',
     fontSize: 13
   },
   requestCard: {
@@ -364,7 +363,7 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#DDE7E3'
+    borderColor: '#DDCDB9'
   },
   cardHeader: {
     flexDirection: 'row',
@@ -373,18 +372,18 @@ const styles = StyleSheet.create({
     marginBottom: 10
   },
   badgePending: {
-    backgroundColor: '#E7F7F4',
+    backgroundColor: '#EAD7BF',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6
   },
   badgePendingText: {
-    color: '#0F766E',
+    color: '#A97845',
     fontSize: 11,
     fontWeight: '700'
   },
   cardTime: {
-    color: '#64748B',
+    color: '#9A8A7A',
     fontSize: 11
   },
   cardMain: {
@@ -395,33 +394,33 @@ const styles = StyleSheet.create({
     flex: 1
   },
   custName: {
-    color: '#0F172A',
+    color: '#2A211C',
     fontSize: 14,
     fontWeight: '700',
     marginBottom: 2
   },
   custPhone: {
-    color: '#0F766E',
+    color: '#A97845',
     fontSize: 13,
     fontWeight: '700',
     marginBottom: 4
   },
   appointmentTime: {
-    color: '#334155',
+    color: '#6F6256',
     fontSize: 12,
     marginBottom: 2
   },
   timeHighlight: {
-    color: '#FBBF24',
+    color: '#A97845',
     fontWeight: '800'
   },
   serviceText: {
-    color: '#64748B',
+    color: '#9A8A7A',
     fontSize: 12,
     marginBottom: 2
   },
   priceText: {
-    color: '#10B981',
+    color: '#7C8A55',
     fontSize: 13,
     fontWeight: '800',
     marginTop: 2
@@ -435,11 +434,11 @@ const styles = StyleSheet.create({
     width: 65,
     height: 65,
     borderRadius: 10,
-    backgroundColor: '#E7F7F4',
+    backgroundColor: '#EAD7BF',
     marginBottom: 4
   },
   tryOnTag: {
-    color: '#0F766E',
+    color: '#A97845',
     fontSize: 9,
     fontWeight: '700',
     textAlign: 'center'
@@ -448,26 +447,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: '#6F6256',
     paddingTop: 10
   },
   cancelBtn: {
     flex: 1,
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    backgroundColor: 'rgba(182, 90, 75, 0.18)',
     borderRadius: 10,
     paddingVertical: 10,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#FCA5A5'
+    borderColor: '#D9A195'
   },
   cancelBtnText: {
-    color: '#DC2626',
+    color: '#B65A4B',
     fontSize: 12,
     fontWeight: '800'
   },
   confirmBtn: {
     flex: 1.5,
-    backgroundColor: '#0F766E',
+    backgroundColor: '#A97845',
     borderRadius: 10,
     paddingVertical: 10,
     alignItems: 'center'
@@ -479,7 +478,7 @@ const styles = StyleSheet.create({
   },
   completeBtn: {
     flex: 1.5,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#A97845',
     borderRadius: 10,
     paddingVertical: 10,
     alignItems: 'center'
@@ -491,25 +490,25 @@ const styles = StyleSheet.create({
   },
   completedBadge: {
     flex: 1,
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    backgroundColor: 'rgba(169, 120, 69, 0.14)',
     paddingVertical: 8,
     borderRadius: 8,
     alignItems: 'center'
   },
   completedBadgeText: {
-    color: '#0F766E',
+    color: '#A97845',
     fontSize: 12,
     fontWeight: '700'
   },
   cancelledBadge: {
     flex: 1,
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    backgroundColor: 'rgba(182, 90, 75, 0.14)',
     paddingVertical: 8,
     borderRadius: 8,
     alignItems: 'center'
   },
   cancelledBadgeText: {
-    color: '#DC2626',
+    color: '#B65A4B',
     fontSize: 12,
     fontWeight: '700'
   }

@@ -1,17 +1,15 @@
 import React, { useState } from 'react';
 import {
-  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   TouchableOpacity,
   View
 } from 'react-native';
+import { LocalizedText as Text, LocalizedTextInput as TextInput, LocalizedAlert as Alert } from '../i18n/LocalizedComponents';
 import { backendApi } from '../services/backendApi';
 import { AppIcon } from '../components/AppIcon';
 
@@ -70,7 +68,7 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navi
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.topBar}>
             <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-              <View style={styles.backRow}><AppIcon name="arrowLeft" size={16} color="#005C55" /><Text style={styles.backText}>Back</Text></View>
+              <View style={styles.backRow}><AppIcon name="arrowLeft" size={16} color="#A97845" /><Text style={styles.backText}>Back</Text></View>
             </TouchableOpacity>
           </View>
 
@@ -123,7 +121,7 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navi
                   <TextInput
                     style={styles.input}
                     placeholder="hello@example.com"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#A99582"
                     value={email}
                     onChangeText={setEmail}
                     keyboardType="email-address"
@@ -158,7 +156,7 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navi
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA'
+    backgroundColor: '#F6EFE6'
   },
   keyboardView: {
     flex: 1
@@ -183,7 +181,7 @@ const styles = StyleSheet.create({
     gap: 6
   },
   backText: {
-    color: '#005C55',
+    color: '#A97845',
     fontSize: 14,
     fontWeight: '700'
   },
@@ -198,7 +196,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: 'rgba(0, 92, 85, 0.15)',
+    borderColor: 'rgba(169, 120, 69, 0.16)',
     backgroundColor: '#FFFFFF'
   },
   logoImage: {
@@ -211,7 +209,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: 'rgba(0, 92, 85, 0.25)',
+    backgroundColor: 'rgba(169, 120, 69, 0.25)',
     justifyContent: 'center',
     alignItems: 'center'
   },
@@ -223,12 +221,12 @@ const styles = StyleSheet.create({
   brandTitle: {
     fontSize: 30,
     fontWeight: '800',
-    color: '#005C55',
+    color: '#A97845',
     marginBottom: 6
   },
   brandSubtitle: {
     maxWidth: 280,
-    color: '#475569',
+    color: '#6F6256',
     textAlign: 'center',
     fontSize: 14,
     lineHeight: 20
@@ -238,7 +236,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 24,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: '#EFE6DA',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
@@ -252,19 +250,19 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#475569',
+    color: '#6F6256',
     letterSpacing: 0.8,
     marginBottom: 6
   },
   input: {
     height: 52,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#FFFDF8',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#DDCDB9',
     paddingHorizontal: 16,
     fontSize: 15,
-    color: '#121C2A'
+    color: '#2A211C'
   },
   successBox: {
     backgroundColor: '#F2FBF8',
@@ -275,22 +273,22 @@ const styles = StyleSheet.create({
     marginBottom: 16
   },
   successTitle: {
-    color: '#005C55',
+    color: '#A97845',
     fontSize: 15,
     fontWeight: '800',
     marginBottom: 4
   },
   successText: {
-    color: '#475569',
+    color: '#6F6256',
     fontSize: 14
   },
   primaryBtn: {
     height: 52,
-    backgroundColor: '#005C55',
+    backgroundColor: '#A97845',
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#005C55',
+    shadowColor: '#A97845',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -323,11 +321,11 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   footerText: {
-    color: '#475569',
+    color: '#6F6256',
     fontSize: 14
   },
   footerLink: {
-    color: '#005C55',
+    color: '#A97845',
     fontSize: 14,
     fontWeight: '800'
   }

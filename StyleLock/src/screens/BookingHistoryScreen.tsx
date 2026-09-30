@@ -1,14 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import {
-    StyleSheet,
-    View,
-    Text,
-    TouchableOpacity,
-    SafeAreaView,
-    ScrollView,
-    Image,
-    Alert
+  StyleSheet,
+  View,
+  TouchableOpacity,
+  SafeAreaView,
+  ScrollView,
+  Image
 } from 'react-native';
+import { LocalizedText as Text, LocalizedAlert as Alert } from '../i18n/LocalizedComponents';
 import { backendApi } from '../services/backendApi';
 import { AppIcon, IconBadge } from '../components/AppIcon';
 import { bookingService } from '../services/bookingService';
@@ -70,17 +69,17 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
     const getStatusBadge = (status: BookingStatus) => {
         switch (status) {
             case 'CONFIRMED':
-                return { label: 'CONFIRMED', color: '#00695C', bg: '#E0F2F1' };
+                return { label: 'CONFIRMED', color: '#6B4227', bg: '#EAD7BF' };
             case 'PENDING':
-                return { label: 'PENDING', color: '#3E4947', bg: '#D9E3F6' };
+                return { label: 'PENDING', color: '#6F6256', bg: '#EAD7BF' };
             case 'IN_SERVICE':
-                return { label: 'IN SERVICE', color: '#005C55', bg: '#9CF2E8' };
+                return { label: 'IN SERVICE', color: '#A97845', bg: '#EAD7BF' };
             case 'COMPLETED':
-                return { label: 'COMPLETED', color: '#10B981', bg: 'rgba(16, 185, 129, 0.15)' };
+                return { label: 'COMPLETED', color: '#7C8A55', bg: 'rgba(124, 138, 85, 0.16)' };
             case 'CANCELLED':
-                return { label: 'CANCELLED', color: '#BA1A1A', bg: '#FFDAD6' };
+                return { label: 'CANCELLED', color: '#B65A4B', bg: '#FBE7E1' };
             default:
-                return { label: status, color: '#3E4947', bg: '#E6EEFF' };
+                return { label: status, color: '#6F6256', bg: '#EFE2D2' };
         }
     };
 
@@ -140,7 +139,7 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
             {/* Top App Bar */}
             <View style={styles.topAppBar}>
                 <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()}>
-                    <AppIcon name="menu" size={22} color="#005C55" />
+                    <AppIcon name="menu" size={22} color="#A97845" />
                 </TouchableOpacity>
 
                 <Text style={styles.brandTitle}>StyleLock</Text>
@@ -218,12 +217,12 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
                                             </Text>
 
                                             <View style={styles.metaRow}>
-                                                <AppIcon name="calendar" size={13} color="#64748B" />
+                                                <AppIcon name="calendar" size={13} color="#9A8A7A" />
                                                 <Text style={styles.metaText}>{b.date}</Text>
                                             </View>
 
                                             <View style={styles.metaRow}>
-                                                <AppIcon name="clock" size={13} color="#64748B" />
+                                                <AppIcon name="clock" size={13} color="#9A8A7A" />
                                                 <Text style={styles.metaText}>{b.timeSlot}</Text>
                                             </View>
                                         </View>
@@ -237,7 +236,7 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
                                                 style={styles.cancelBtn}
                                                 onPress={() => handleCancelBooking(b.id)}
                                             >
-                                                <AppIcon name="close" size={18} color="#BA1A1A" />
+                                                <AppIcon name="close" size={18} color="#B65A4B" />
                                             </TouchableOpacity>
                                         )}
 
@@ -272,7 +271,7 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FAFAFA'
+        backgroundColor: '#F6EFE6'
     },
     topAppBar: {
         height: 60,
@@ -282,7 +281,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         backgroundColor: 'rgba(250, 250, 250, 0.95)',
         borderBottomWidth: 1,
-        borderBottomColor: '#E6EEFF',
+        borderBottomColor: '#EFE2D2',
         zIndex: 10
     },
     iconBtn: {
@@ -294,12 +293,12 @@ const styles = StyleSheet.create({
     },
     topIcon: {
         fontSize: 20,
-        color: '#005C55'
+        color: '#A97845'
     },
     brandTitle: {
         fontSize: 22,
         fontWeight: '800',
-        color: '#005C55',
+        color: '#A97845',
         letterSpacing: -0.5
     },
     scrollContent: {
@@ -309,7 +308,7 @@ const styles = StyleSheet.create({
     pageTitle: {
         fontSize: 28,
         fontWeight: '700',
-        color: '#121C2A',
+        color: '#2A211C',
         marginBottom: 16
     },
     tabsRow: {
@@ -322,17 +321,17 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: '#BDC9C6',
+        borderColor: '#B89062',
         backgroundColor: '#FFFFFF'
     },
     tabChipActive: {
-        backgroundColor: '#005C55',
-        borderColor: '#005C55'
+        backgroundColor: '#A97845',
+        borderColor: '#A97845'
     },
     tabChipText: {
         fontSize: 13,
         fontWeight: '500',
-        color: '#3E4947'
+        color: '#6F6256'
     },
     tabChipTextActive: {
         color: '#FFFFFF',
@@ -345,7 +344,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
         borderRadius: 24,
         borderWidth: 1,
-        borderColor: '#F3F4F6',
+        borderColor: '#EFE6DA',
         overflow: 'hidden',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
@@ -362,7 +361,7 @@ const styles = StyleSheet.create({
         width: 80,
         height: 80,
         borderRadius: 14,
-        backgroundColor: '#E6EEFF'
+        backgroundColor: '#EFE2D2'
     },
     cardDetails: {
         flex: 1
@@ -376,7 +375,7 @@ const styles = StyleSheet.create({
     salonName: {
         fontSize: 16,
         fontWeight: '700',
-        color: '#121C2A',
+        color: '#2A211C',
         flex: 1,
         marginRight: 6
     },
@@ -392,7 +391,7 @@ const styles = StyleSheet.create({
     },
     serviceDesc: {
         fontSize: 13,
-        color: '#3E4947',
+        color: '#6F6256',
         marginBottom: 8
     },
     metaRow: {
@@ -406,12 +405,12 @@ const styles = StyleSheet.create({
     },
     metaText: {
         fontSize: 12,
-        color: '#3E4947'
+        color: '#6F6256'
     },
     cardActions: {
         flexDirection: 'row',
         borderTopWidth: 1,
-        borderTopColor: '#F3F4F6',
+        borderTopColor: '#EFE6DA',
         padding: 12,
         gap: 10
     },
@@ -420,14 +419,14 @@ const styles = StyleSheet.create({
         height: 52,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#BDC9C6',
+        borderColor: '#B89062',
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#FFFFFF'
     },
     cancelBtnIcon: {
         fontSize: 16,
-        color: '#BA1A1A',
+        color: '#B65A4B',
         fontWeight: '700'
     },
     rescheduleBtn: {
@@ -435,13 +434,13 @@ const styles = StyleSheet.create({
         height: 52,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#BDC9C6',
+        borderColor: '#B89062',
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#FFFFFF'
     },
     rescheduleText: {
-        color: '#3E4947',
+        color: '#6F6256',
         fontSize: 14,
         fontWeight: '600'
     },
@@ -449,7 +448,7 @@ const styles = StyleSheet.create({
         flex: 1,
         height: 52,
         borderRadius: 12,
-        backgroundColor: '#005C55',
+        backgroundColor: '#A97845',
         justifyContent: 'center',
         alignItems: 'center'
     },
@@ -464,7 +463,7 @@ const styles = StyleSheet.create({
         padding: 32,
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#F3F4F6',
+        borderColor: '#EFE6DA',
         marginTop: 20
     },
     emptyIcon: {
@@ -480,18 +479,18 @@ const styles = StyleSheet.create({
     emptyTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: '#121C2A',
+        color: '#2A211C',
         marginBottom: 6
     },
     emptySub: {
         fontSize: 13,
-        color: '#3E4947',
+        color: '#6F6256',
         textAlign: 'center',
         lineHeight: 18,
         marginBottom: 16
     },
     exploreBtn: {
-        backgroundColor: '#005C55',
+        backgroundColor: '#A97845',
         paddingHorizontal: 20,
         paddingVertical: 12,
         borderRadius: 12
@@ -514,7 +513,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-around',
         alignItems: 'center',
         borderTopWidth: 1,
-        borderTopColor: '#E2E8F0',
+        borderTopColor: '#DDCDB9',
         elevation: 10,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: -4 },
@@ -529,7 +528,7 @@ const styles = StyleSheet.create({
         borderRadius: 20
     },
     navItemActive: {
-        backgroundColor: 'rgba(15, 118, 110, 0.15)'
+        backgroundColor: 'rgba(169, 120, 69, 0.16)'
     },
     navIcon: {
         fontSize: 18,
@@ -541,10 +540,10 @@ const styles = StyleSheet.create({
     navLabel: {
         fontSize: 11,
         fontWeight: '500',
-        color: '#3E4947'
+        color: '#6F6256'
     },
     navLabelActive: {
-        color: '#005C55',
+        color: '#A97845',
         fontWeight: '700'
     }
 });

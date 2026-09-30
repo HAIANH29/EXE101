@@ -2,14 +2,13 @@ import React, { useState } from 'react';
 import {
   StyleSheet,
   View,
-  Text,
   TouchableOpacity,
   Image,
   SafeAreaView,
   ScrollView,
-  Alert,
   Dimensions
 } from 'react-native';
+import { LocalizedText as Text, LocalizedAlert as Alert } from '../i18n/LocalizedComponents';
 import { Hairstyle } from '../types';
 import { MOCK_HAIRSTYLES } from '../services/mockData';
 import { AppIcon } from '../components/AppIcon';
@@ -48,15 +47,15 @@ export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ na
       {/* Top Floating Navigation Header */}
       <View style={styles.floatingHeader}>
         <TouchableOpacity style={styles.circleBtn} onPress={() => navigation.goBack()}>
-          <AppIcon name="arrowLeft" size={18} color="#121C2A" />
+          <AppIcon name="arrowLeft" size={18} color="#2A211C" />
         </TouchableOpacity>
 
         <View style={styles.rightHeaderGroup}>
           <TouchableOpacity style={styles.circleBtn} onPress={() => Alert.alert('Share', `Sharing ${hair.name}...`)}>
-            <AppIcon name="share" size={18} color="#121C2A" />
+            <AppIcon name="share" size={18} color="#2A211C" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.circleBtn} onPress={() => setIsFavorite(!isFavorite)}>
-            <AppIcon name="heart" size={18} color={isFavorite ? "#BA1A1A" : "#121C2A"} />
+            <AppIcon name="heart" size={18} color={isFavorite ? "#B65A4B" : "#2A211C"} />
           </TouchableOpacity>
         </View>
       </View>
@@ -105,7 +104,7 @@ export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ na
           {/* Specs Grid (2x2) */}
           <View style={styles.specsGrid}>
             <View style={styles.specCard}>
-              <AppIcon name="user" size={22} color="#005C55" />
+              <AppIcon name="user" size={22} color="#A97845" />
               <View style={styles.specTextGroup}>
                 <Text style={styles.specLabel}>Face Shapes</Text>
                 <Text style={styles.specValue}>{hair.suitableFace}</Text>
@@ -113,7 +112,7 @@ export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ na
             </View>
 
             <View style={styles.specCard}>
-              <AppIcon name="tool" size={22} color="#005C55" />
+              <AppIcon name="tool" size={22} color="#A97845" />
               <View style={styles.specTextGroup}>
                 <Text style={styles.specLabel}>Maintenance</Text>
                 <Text style={styles.specValue}>Low</Text>
@@ -121,7 +120,7 @@ export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ na
             </View>
 
             <View style={styles.specCard}>
-              <AppIcon name="scissors" size={22} color="#005C55" />
+              <AppIcon name="scissors" size={22} color="#A97845" />
               <View style={styles.specTextGroup}>
                 <Text style={styles.specLabel}>Hair Type</Text>
                 <Text style={styles.specValue}>Straight, Wavy</Text>
@@ -129,7 +128,7 @@ export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ na
             </View>
 
             <View style={styles.specCard}>
-              <AppIcon name="clock" size={22} color="#005C55" />
+              <AppIcon name="clock" size={22} color="#A97845" />
               <View style={styles.specTextGroup}>
                 <Text style={styles.specLabel}>Styling Time</Text>
                 <Text style={styles.specValue}>15 mins</Text>
@@ -167,7 +166,7 @@ export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ na
                 onPress={() => Alert.alert('Texture Spray', 'Sản phẩm gợi ý chăm sóc kiểu tóc này ($28)')}
               >
                 <View style={styles.productImgBox}>
-                  <AppIcon name="bottle" size={40} color="#005C55" />
+                  <AppIcon name="bottle" size={40} color="#A97845" />
                 </View>
                 <Text style={styles.productName} numberOfLines={1}>Texture Spray</Text>
                 <Text style={styles.productPrice}>$28</Text>
@@ -178,7 +177,7 @@ export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ na
                 onPress={() => Alert.alert('Matte Pomade', 'Sản phẩm gợi ý giữ nếp kiểu tóc này ($32)')}
               >
                 <View style={styles.productImgBox}>
-                  <AppIcon name="scissors" size={40} color="#005C55" />
+                  <AppIcon name="scissors" size={40} color="#A97845" />
                 </View>
                 <Text style={styles.productName} numberOfLines={1}>Matte Pomade</Text>
                 <Text style={styles.productPrice}>$32</Text>
@@ -189,7 +188,7 @@ export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ na
                 onPress={() => Alert.alert('Hydrating Serum', 'Tinh chất dưỡng tóc mềm mượt ($35)')}
               >
                 <View style={styles.productImgBox}>
-                  <AppIcon name="sparkle" size={40} color="#005C55" />
+                  <AppIcon name="sparkle" size={40} color="#A97845" />
                 </View>
                 <Text style={styles.productName} numberOfLines={1}>Hydrating Serum</Text>
                 <Text style={styles.productPrice}>$35</Text>
@@ -256,7 +255,7 @@ const styles = StyleSheet.create({
   },
   headerIcon: {
     fontSize: 16,
-    color: '#121C2A'
+    color: '#2A211C'
   },
   rightHeaderGroup: {
     flexDirection: 'row',
@@ -268,7 +267,7 @@ const styles = StyleSheet.create({
   heroGalleryWrapper: {
     width: '100%',
     aspectRatio: 4 / 5,
-    backgroundColor: '#D9E3F6',
+    backgroundColor: '#EAD7BF',
     position: 'relative'
   },
   heroImage: {
@@ -289,13 +288,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#BDC9C6',
+    borderColor: '#B89062',
     opacity: 0.8,
     backgroundColor: '#FFFFFF'
   },
   thumbWrapperActive: {
     borderWidth: 2,
-    borderColor: '#005C55',
+    borderColor: '#A97845',
     opacity: 1
   },
   thumbImage: {
@@ -322,7 +321,7 @@ const styles = StyleSheet.create({
     marginRight: 10
   },
   tagBadge: {
-    backgroundColor: '#E6EEFF',
+    backgroundColor: '#EFE2D2',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -330,7 +329,7 @@ const styles = StyleSheet.create({
     marginBottom: 6
   },
   tagBadgeText: {
-    color: '#121C2A',
+    color: '#2A211C',
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.8
@@ -338,7 +337,7 @@ const styles = StyleSheet.create({
   hairTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#121C2A',
+    color: '#2A211C',
     letterSpacing: -0.5
   },
   priceCol: {
@@ -347,18 +346,18 @@ const styles = StyleSheet.create({
   priceText: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#005C55'
+    color: '#A97845'
   },
   priceLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#3E4947',
+    color: '#6F6256',
     letterSpacing: 0.8,
     marginTop: 2
   },
   hairDescription: {
     fontSize: 15,
-    color: '#3E4947',
+    color: '#6F6256',
     lineHeight: 22,
     marginBottom: 20
   },
@@ -370,7 +369,7 @@ const styles = StyleSheet.create({
   },
   specCard: {
     width: (SCREEN_WIDTH - 52) / 2,
-    backgroundColor: '#E6EEFF',
+    backgroundColor: '#EFE2D2',
     borderRadius: 16,
     padding: 14,
     flexDirection: 'row',
@@ -386,12 +385,12 @@ const styles = StyleSheet.create({
   specLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#121C2A',
+    color: '#2A211C',
     marginBottom: 2
   },
   specValue: {
     fontSize: 13,
-    color: '#3E4947'
+    color: '#6F6256'
   },
   sectionBlock: {
     marginBottom: 24
@@ -399,7 +398,7 @@ const styles = StyleSheet.create({
   sectionHeaderTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#121C2A',
+    color: '#2A211C',
     marginBottom: 12
   },
   stylistQuoteCard: {
@@ -415,13 +414,13 @@ const styles = StyleSheet.create({
     top: -10,
     right: 14,
     fontSize: 70,
-    color: '#BDC9C6',
+    color: '#B89062',
     opacity: 0.4
   },
   quoteBody: {
     fontSize: 15,
     fontStyle: 'italic',
-    color: '#3E4947',
+    color: '#6F6256',
     lineHeight: 22,
     marginBottom: 14
   },
@@ -434,17 +433,17 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#E6EEFF'
+    backgroundColor: '#EFE2D2'
   },
   stylistName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#121C2A'
+    color: '#2A211C'
   },
   stylistRole: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#3E4947',
+    color: '#6F6256',
     letterSpacing: 0.8
   },
   productsScroll: {
@@ -458,7 +457,7 @@ const styles = StyleSheet.create({
   productImgBox: {
     width: 128,
     height: 128,
-    backgroundColor: '#E6EEFF',
+    backgroundColor: '#EFE2D2',
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
@@ -470,11 +469,11 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#121C2A'
+    color: '#2A211C'
   },
   productPrice: {
     fontSize: 13,
-    color: '#3E4947',
+    color: '#6F6256',
     marginTop: 2
   },
   fixedBottomBar: {
@@ -485,7 +484,7 @@ const styles = StyleSheet.create({
     height: 80,
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderTopWidth: 1,
-    borderTopColor: '#E6EEFF',
+    borderTopColor: '#EFE2D2',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
@@ -515,12 +514,12 @@ const styles = StyleSheet.create({
   bookStyleBtn: {
     flex: 1.5,
     height: 54,
-    backgroundColor: '#005C55',
+    backgroundColor: '#A97845',
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
-    shadowColor: '#005C55',
+    shadowColor: '#A97845',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8

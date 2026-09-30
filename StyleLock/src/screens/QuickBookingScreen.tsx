@@ -2,19 +2,18 @@ import React, { useState } from 'react';
 import {
   StyleSheet,
   View,
-  Text,
   TouchableOpacity,
-  TextInput,
   SafeAreaView,
   ScrollView,
   Image,
-  Alert,
   Dimensions
 } from 'react-native';
+import { LocalizedText as Text, LocalizedTextInput as TextInput, LocalizedAlert as Alert } from '../i18n/LocalizedComponents';
 import { backendApi } from '../services/backendApi';
 import { bookingService } from '../services/bookingService';
 import { Salon, ServiceItem, Hairstyle, StylistItem, Booking } from '../types';
 import { AppIcon } from '../components/AppIcon';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface QuickBookingScreenProps {
   navigation: any;
@@ -67,10 +66,21 @@ function buildCalendarDays(year: number, month: number) {
   return days;
 }
 
-const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAY_LABELS = {
+  en: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+  vi: ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']
+};
+const MONTH_NAMES = {
+  en: ['January','February','March','April','May','June','July','August','September','October','November','December'],
+  vi: ['Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6','Tháng 7','Tháng 8','Tháng 9','Tháng 10','Tháng 11','Tháng 12']
+};
+const MONTH_SHORT_NAMES = {
+  en: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+  vi: ['Th1','Th2','Th3','Th4','Th5','Th6','Th7','Th8','Th9','Th10','Th11','Th12']
+};
 
 export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigation, route }) => {
+  const { language } = useLanguage();
   const salon: Salon = route.params.salon;
   const selectedServiceParam: ServiceItem | undefined = route.params.selectedService;
   const selectedDateParam: string | undefined = route.params.selectedDate;
@@ -114,7 +124,10 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
   const activeService = serviceOptions.find((service) => service.id === activeServiceId) || serviceOptions[0];
   const activeStylist = stylistsToDisplay.find((s) => s.id === activeStylistId) || stylistsToDisplay[0];
 
-  const formattedDate = `${MONTH_NAMES[calMonth].slice(0, 3)} ${selectedDay}`;
+  const monthNames = MONTH_NAMES[language];
+  const monthShortNames = MONTH_SHORT_NAMES[language];
+  const dayLabels = DAY_LABELS[language];
+  const formattedDate = `${monthShortNames[calMonth]} ${selectedDay}`;
   const formattedTime = TIME_SLOTS_DISPLAY.find((t) => t.value === selectedTime)?.label || selectedTime;
 
   const handlePrevMonth = () => {
@@ -231,7 +244,7 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
       {/* Fixed Top App Bar */}
       <View style={styles.topAppBar}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <AppIcon name="arrowLeft" size={21} color="#3E4947" />
+          <AppIcon name="arrowLeft" size={21} color="#6F6256" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Booking</Text>
         <View style={{ width: 40 }} />
@@ -240,7 +253,7 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
       {/* Success Toast */}
       {confirmed && (
         <View style={styles.successToast}>
-          <AppIcon name="check" size={18} color="#005C55" />
+          <AppIcon name="check" size={18} color="#A97845" />
           <Text style={styles.toastText}>Booking Confirmed!</Text>
         </View>
       )}
@@ -309,7 +322,7 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
                 styles.anyoneAvatarWrap,
                 activeStylistId === 'anyone' && styles.stylistAvatarActive
               ]}>
-                <AppIcon name="search" size={22} color="#005C55" />
+                <AppIcon name="search" size={22} color="#A97845" />
               </View>
               <Text style={[
                 styles.stylistName,
@@ -330,19 +343,19 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
             {/* Month Navigation Header */}
             <View style={styles.calendarHeader}>
               <TouchableOpacity onPress={handlePrevMonth} style={styles.calNavBtn}>
-                <AppIcon name="arrowLeft" size={20} color="#3E4947" />
+                <AppIcon name="arrowLeft" size={20} color="#6F6256" />
               </TouchableOpacity>
               <Text style={styles.calMonthTitle}>
-                {MONTH_NAMES[calMonth]} {calYear}
+                {monthNames[calMonth]} {calYear}
               </Text>
               <TouchableOpacity onPress={handleNextMonth} style={styles.calNavBtn}>
-                <AppIcon name="arrowRight" size={20} color="#3E4947" />
+                <AppIcon name="arrowRight" size={20} color="#6F6256" />
               </TouchableOpacity>
             </View>
 
             {/* Day Labels */}
             <View style={styles.calDayLabels}>
-              {DAY_LABELS.map((d, idx) => (
+              {dayLabels.map((d, idx) => (
                 <Text key={idx} style={styles.calDayLabel}>{d}</Text>
               ))}
             </View>
@@ -436,7 +449,7 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
               value={customerName}
               onChangeText={setCustomerName}
               placeholder="Enter your name"
-              placeholderTextColor="#6E7977"
+              placeholderTextColor="#9A8A7A"
             />
 
             <Text style={styles.inputLabel}>Phone Number *</Text>
@@ -446,7 +459,7 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
               onChangeText={setCustomerPhone}
               placeholder="e.g. 0988 123 456"
               keyboardType="phone-pad"
-              placeholderTextColor="#6E7977"
+              placeholderTextColor="#9A8A7A"
             />
           </View>
         </View>
@@ -468,7 +481,7 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
           <View style={styles.summaryRight}>
             <Text style={styles.summaryDateTime}>{formattedDate}, {formattedTime}</Text>
             <Text style={styles.summaryWith}>
-              with {activeStylistId === 'anyone' ? 'Anyone' : activeStylist.name}
+              {language === 'vi' ? 'với' : 'with'} {activeStylistId === 'anyone' ? 'Anyone' : activeStylist.name}
             </Text>
           </View>
         </View>
@@ -518,12 +531,12 @@ const styles = StyleSheet.create({
   },
   backIcon: {
     fontSize: 18,
-    color: '#3E4947'
+    color: '#6F6256'
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#005C55',
+    color: '#A97845',
     letterSpacing: -0.3
   },
   successToast: {
@@ -539,7 +552,7 @@ const styles = StyleSheet.create({
     gap: 8,
     zIndex: 50,
     borderWidth: 1,
-    borderColor: 'rgba(0, 92, 85, 0.2)',
+    borderColor: 'rgba(169, 120, 69, 0.20)',
     elevation: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -552,7 +565,7 @@ const styles = StyleSheet.create({
   toastText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#121C2A'
+    color: '#2A211C'
   },
   scrollContent: {
     paddingTop: 76,
@@ -565,7 +578,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 22,
     fontWeight: '600',
-    color: '#121C2A',
+    color: '#2A211C',
     marginBottom: 14,
     letterSpacing: -0.3
   },
@@ -580,17 +593,17 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#BDC9C6',
+    borderColor: '#B89062',
     backgroundColor: '#FFFFFF'
   },
   serviceChipActive: {
-    backgroundColor: '#005C55',
-    borderColor: '#005C55'
+    backgroundColor: '#A97845',
+    borderColor: '#A97845'
   },
   serviceChipText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#3E4947'
+    color: '#6F6256'
   },
   serviceChipTextActive: {
     color: '#FFFFFF',
@@ -611,13 +624,13 @@ const styles = StyleSheet.create({
     height: 68,
     borderRadius: 34,
     borderWidth: 1,
-    borderColor: '#BDC9C6',
+    borderColor: '#B89062',
     overflow: 'hidden',
     position: 'relative'
   },
   stylistAvatarActive: {
     borderWidth: 2,
-    borderColor: '#005C55',
+    borderColor: '#A97845',
     padding: 2
   },
   stylistAvatar: {
@@ -632,7 +645,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#005C55',
+    backgroundColor: '#A97845',
     justifyContent: 'center',
     alignItems: 'center'
   },
@@ -642,7 +655,7 @@ const styles = StyleSheet.create({
     fontWeight: '800'
   },
   anyoneAvatarWrap: {
-    backgroundColor: '#E6EEFF',
+    backgroundColor: '#EFE2D2',
     justifyContent: 'center',
     alignItems: 'center'
   },
@@ -652,10 +665,10 @@ const styles = StyleSheet.create({
   stylistName: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#3E4947'
+    color: '#6F6256'
   },
   stylistNameActive: {
-    color: '#005C55',
+    color: '#A97845',
     fontWeight: '700'
   },
   // Calendar
@@ -664,7 +677,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#D9E3F6',
+    borderColor: '#EAD7BF',
     marginBottom: 14,
     elevation: 2,
     shadowColor: '#000',
@@ -686,13 +699,13 @@ const styles = StyleSheet.create({
   },
   calNavIcon: {
     fontSize: 22,
-    color: '#3E4947',
+    color: '#6F6256',
     fontWeight: '300'
   },
   calMonthTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#121C2A'
+    color: '#2A211C'
   },
   calDayLabels: {
     flexDirection: 'row',
@@ -703,7 +716,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 11,
     fontWeight: '700',
-    color: '#3E4947',
+    color: '#6F6256',
     letterSpacing: 0.5
   },
   calGrid: {
@@ -718,7 +731,7 @@ const styles = StyleSheet.create({
     borderRadius: 999
   },
   calDaySelected: {
-    backgroundColor: '#005C55'
+    backgroundColor: '#A97845'
   },
   calDayOtherMonth: {
     opacity: 0.35
@@ -726,14 +739,14 @@ const styles = StyleSheet.create({
   calDayText: {
     fontSize: 15,
     fontWeight: '400',
-    color: '#121C2A'
+    color: '#2A211C'
   },
   calDayTextSelected: {
     color: '#FFFFFF',
     fontWeight: '700'
   },
   calDayTextOther: {
-    color: '#6E7977'
+    color: '#9A8A7A'
   },
   // Time Slots
   timeSlotsScroll: {
@@ -748,14 +761,14 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#BDC9C6',
+    borderColor: '#B89062',
     backgroundColor: '#FFFFFF'
   },
   timeSlotActive: {
-    backgroundColor: '#005C55',
-    borderColor: '#005C55',
+    backgroundColor: '#A97845',
+    borderColor: '#A97845',
     elevation: 2,
-    shadowColor: '#005C55',
+    shadowColor: '#A97845',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4
@@ -766,14 +779,14 @@ const styles = StyleSheet.create({
   timeSlotText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#3E4947'
+    color: '#6F6256'
   },
   timeSlotTextActive: {
     color: '#FFFFFF',
     fontWeight: '700'
   },
   timeSlotTextDisabled: {
-    color: '#6E7977'
+    color: '#9A8A7A'
   },
   // Try-On Card
   tryOnCard: {
@@ -783,31 +796,31 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#005C55',
+    borderColor: '#A97845',
     gap: 12
   },
   tryOnImg: {
     width: 52,
     height: 52,
     borderRadius: 10,
-    backgroundColor: '#E6EEFF'
+    backgroundColor: '#EFE2D2'
   },
   tryOnInfo: { flex: 1 },
   tryOnLabel: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#005C55',
+    color: '#A97845',
     letterSpacing: 0.8,
     marginBottom: 2
   },
   tryOnName: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#121C2A'
+    color: '#2A211C'
   },
   tryOnSub: {
     fontSize: 11,
-    color: '#3E4947'
+    color: '#6F6256'
   },
   // Contact form
   formCard: {
@@ -815,13 +828,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#D9E3F6',
+    borderColor: '#EAD7BF',
     elevation: 1
   },
   inputLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#3E4947',
+    color: '#6F6256',
     marginBottom: 6
   },
   input: {
@@ -830,10 +843,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 14,
-    color: '#121C2A',
+    color: '#2A211C',
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#BDC9C6'
+    borderColor: '#B89062'
   },
   // Bottom Bar
   bottomBar: {
@@ -843,7 +856,7 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: 'rgba(255, 255, 255, 0.85)',
     borderTopWidth: 1,
-    borderTopColor: '#D9E3F6',
+    borderTopColor: '#EAD7BF',
     paddingHorizontal: 20,
     paddingTop: 14,
     paddingBottom: 28,
@@ -864,14 +877,14 @@ const styles = StyleSheet.create({
   totalLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#3E4947',
+    color: '#6F6256',
     letterSpacing: 0.8,
     marginBottom: 2
   },
   totalPrice: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#005C55',
+    color: '#A97845',
     letterSpacing: -0.5
   },
   summaryRight: {
@@ -880,21 +893,21 @@ const styles = StyleSheet.create({
   summaryDateTime: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#121C2A'
+    color: '#2A211C'
   },
   summaryWith: {
     fontSize: 12,
-    color: '#3E4947'
+    color: '#6F6256'
   },
   confirmBtn: {
     width: '100%',
     height: 58,
-    backgroundColor: '#005C55',
+    backgroundColor: '#A97845',
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 6,
-    shadowColor: '#005C55',
+    shadowColor: '#A97845',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 10

@@ -1,5 +1,14 @@
 import React, { useCallback, useState } from 'react';
-import { StyleProp, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
+import {
+  StyleProp,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  ViewStyle
+} from 'react-native';
+import { LocalizedText as Text } from '../i18n/LocalizedComponents';
+import { useLanguage } from '../i18n/LanguageContext';
+import { translateText } from '../i18n/translations';
 import { useFocusEffect } from '@react-navigation/native';
 import { AppIcon } from './AppIcon';
 import { backendApi } from '../services/backendApi';
@@ -13,8 +22,9 @@ type NotificationBellButtonProps = {
 export const NotificationBellButton = ({
   navigation,
   style,
-  iconColor = '#005C55'
+  iconColor = '#A97845'
 }: NotificationBellButtonProps) => {
+  const { language } = useLanguage();
   const [unreadCount, setUnreadCount] = useState(0);
 
   const loadUnreadCount = useCallback(() => {
@@ -45,7 +55,7 @@ export const NotificationBellButton = ({
 
   return (
     <TouchableOpacity
-      accessibilityLabel="Thông báo"
+      accessibilityLabel={translateText(language, 'Thông báo')}
       style={[styles.button, style]}
       onPress={() => navigation.navigate('Notifications')}
     >
@@ -79,7 +89,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#BA1A1A',
+    backgroundColor: '#B65A4B',
     borderWidth: 2,
     borderColor: '#FFFFFF'
   },
