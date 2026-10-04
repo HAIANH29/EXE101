@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { authSessionStore } from '../services/apiClient';
 import { LoginScreen } from '../screens/LoginScreen';
 import { SignUpScreen } from '../screens/SignUpScreen';
 import { ForgotPasswordScreen } from '../screens/ForgotPasswordScreen';
@@ -11,7 +12,6 @@ import { HairstyleDetailScreen } from '../screens/HairstyleDetailScreen';
 import { TryOnEditorScreen } from '../screens/TryOnEditorScreen';
 import { SalonListScreen } from '../screens/SalonListScreen';
 import { SalonDetailScreen } from '../screens/SalonDetailScreen';
-import { QuickBookingScreen } from '../screens/QuickBookingScreen';
 import { BookingStatusScreen } from '../screens/BookingStatusScreen';
 import { BookingHistoryScreen } from '../screens/BookingHistoryScreen';
 import { NotificationsScreen } from '../screens/NotificationsScreen';
@@ -23,33 +23,52 @@ import { palette } from '../theme/palette';
 const Stack = createNativeStackNavigator();
 
 export const AppNavigator = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
+    authSessionStore.isAuthenticated()
+  );
+
+  useEffect(() => {
+    const unsubscribe = authSessionStore.subscribe(() => {
+      setIsAuthenticated(authSessionStore.isAuthenticated());
+    });
+    return unsubscribe;
+  }, []);
+
   return (
     <Stack.Navigator
-      initialRouteName="Login"
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: palette.background },
         animation: 'slide_from_right'
       }}
     >
-      <Stack.Screen name="Login" component={LoginScreen} />
-      <Stack.Screen name="SignUp" component={SignUpScreen} />
-      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-      <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
-      <Stack.Screen name="Home" component={HomeScreen} />
-      <Stack.Screen name="CameraUpload" component={CameraUploadScreen} />
-      <Stack.Screen name="HairstyleSelect" component={HairstyleSelectScreen} />
-      <Stack.Screen name="HairstyleDetail" component={HairstyleDetailScreen} />
-      <Stack.Screen name="TryOnEditor" component={TryOnEditorScreen} />
-      <Stack.Screen name="SalonList" component={SalonListScreen} />
-      <Stack.Screen name="SalonDetail" component={SalonDetailScreen} />
-      <Stack.Screen name="QuickBooking" component={QuickBookingScreen} />
-      <Stack.Screen name="BookingStatus" component={BookingStatusScreen} />
-      <Stack.Screen name="BookingHistory" component={BookingHistoryScreen} />
-      <Stack.Screen name="Notifications" component={NotificationsScreen} />
-      <Stack.Screen name="Profile" component={ProfileScreen} />
-      <Stack.Screen name="SalonDashboard" component={SalonDashboardScreen} />
-      <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
+      {!isAuthenticated ? (
+        // Unauthenticated Stack: Only Auth screens accessible
+        <Stack.Group>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="SignUp" component={SignUpScreen} />
+          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+          <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+        </Stack.Group>
+      ) : (
+        // Authenticated Stack: Main Application screens accessible after login
+        <Stack.Group>
+          <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="CameraUpload" component={CameraUploadScreen} />
+          <Stack.Screen name="HairstyleSelect" component={HairstyleSelectScreen} />
+          <Stack.Screen name="HairstyleDetail" component={HairstyleDetailScreen} />
+          <Stack.Screen name="TryOnEditor" component={TryOnEditorScreen} />
+          <Stack.Screen name="SalonList" component={SalonListScreen} />
+          <Stack.Screen name="SalonDetail" component={SalonDetailScreen} />
+          <Stack.Screen name="BookingStatus" component={BookingStatusScreen} />
+          <Stack.Screen name="BookingHistory" component={BookingHistoryScreen} />
+          <Stack.Screen name="Notifications" component={NotificationsScreen} />
+          <Stack.Screen name="Profile" component={ProfileScreen} />
+          <Stack.Screen name="SalonDashboard" component={SalonDashboardScreen} />
+          <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
+        </Stack.Group>
+      )}
     </Stack.Navigator>
   );
 };
+

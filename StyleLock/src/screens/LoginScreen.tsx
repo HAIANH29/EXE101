@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -16,6 +16,8 @@ import { AppIcon } from '../components/AppIcon';
 interface LoginScreenProps {
   navigation: any;
 }
+
+const GOOGLE_CLIENT_ID = '67295940794-03jga5jo7pvhpootvae73u4ap5d20sfj.apps.googleusercontent.com';
 
 const SOCIAL_LOGOS = {
   google: 'https://developers.google.com/identity/images/g-logo.png'
@@ -51,6 +53,69 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const handleCredentialResponse = async (response: any) => {
+        if (response?.credential) {
+          try {
+            setIsSubmitting(true);
+            await backendApi.loginWithGoogle(response.credential);
+            Alert.alert('Đăng nhập thành công', 'Đăng nhập với Google thành công!');
+            navigation.replace('Home');
+          } catch (err: any) {
+            Alert.alert('Đăng nhập Google thất bại', err?.message || 'Lỗi xác thực Google token');
+          } finally {
+            setIsSubmitting(false);
+          }
+        }
+      };
+
+      const initGsi = () => {
+        const gsi = (window as any).google?.accounts?.id;
+        if (gsi) {
+          gsi.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: handleCredentialResponse,
+            auto_select: false,
+          });
+
+          const container = document.getElementById('google-btn-container');
+          if (container) {
+            container.innerHTML = '';
+            gsi.renderButton(container, {
+              type: 'standard',
+              theme: 'outline',
+              size: 'large',
+              text: 'continue_with',
+              shape: 'rectangular',
+              logo_alignment: 'left',
+              width: 280
+            });
+          }
+        }
+      };
+
+      if ((window as any).google?.accounts?.id) {
+        initGsi();
+      } else {
+        const existingScript = document.getElementById('google-gsi-script');
+        if (!existingScript) {
+          const script = document.createElement('script');
+          script.id = 'google-gsi-script';
+          script.src = 'https://accounts.google.com/gsi/client';
+          script.async = true;
+          script.defer = true;
+          script.onload = () => {
+            setTimeout(initGsi, 100);
+          };
+          document.body.appendChild(script);
+        } else {
+          existingScript.addEventListener('load', () => setTimeout(initGsi, 100));
+        }
+      }
+    }
+  }, []);
+
   const handleSignIn = async () => {
     if (!email.trim() || !password.trim()) {
       Alert.alert('Thiếu thông tin', 'Vui lòng nhập email và password để đăng nhập backend.');
@@ -60,22 +125,109 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     try {
       setIsSubmitting(true);
       await backendApi.login(email.trim(), password);
-      navigation.replace('Home');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Không thể kết nối backend.';
-      Alert.alert('Không đăng nhập được backend', message, [
-        { text: 'Ở lại', style: 'cancel' },
-        { text: 'Vào demo', onPress: () => navigation.replace('Home') }
+      Alert.alert('Đăng nhập thất bại', message, [
+        { text: 'Thử lại', style: 'cancel' },
+        {
+          text: 'Dùng phiên Demo',
+          onPress: () => {
+            authSessionStore.set({
+              accessToken: 'demo-token-' + Date.now(),
+              refreshToken: 'demo-refresh-token-' + Date.now(),
+              tokenType: 'Bearer',
+              expiresIn: 86400,
+              user: {
+                id: 999,
+                email: email.trim() || 'demo@stylelock.vn',
+                fullName: 'Khách hàng Demo',
+                phone: '0901234567',
+                status: 'ACTIVE',
+                roles: ['ROLE_CUSTOMER']
+              }
+            });
+          }
+        }
       ]);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleGoogleLogin = () => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      // If GSI script loaded and available
+      const gsi = (window as any).google?.accounts?.id;
+      if (gsi) {
+        gsi.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: async (response: any) => {
+            if (response.credential) {
+              try {
+                setIsSubmitting(true);
+                await backendApi.loginWithGoogle(response.credential);
+                Alert.alert('Đăng nhập thành công', 'Đăng nhập với Google thành công!');
+                navigation.replace('Home');
+              } catch (err: any) {
+                Alert.alert('Đăng nhập Google thất bại', err?.message || 'Lỗi xác thực Google token');
+              } finally {
+                setIsSubmitting(false);
+              }
+            }
+          }
+        });
+        gsi.prompt((notification: any) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            // Fallback to standard Google OAuth redirect
+            const redirectUri = window.location.origin;
+            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=id_token&scope=openid%20email%20profile&nonce=${Date.now()}`;
+            window.location.href = authUrl;
+          }
+        });
+        return;
+      }
+
+      // Fallback: Redirect directly to Google OAuth Authorization URL
+      const redirectUri = window.location.origin;
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=id_token&scope=openid%20email%20profile&nonce=${Date.now()}`;
+      window.location.href = authUrl;
+      return;
+    }
+
+    authSessionStore.set({
+      accessToken: 'google-token-' + Date.now(),
+      refreshToken: 'google-refresh-token-' + Date.now(),
+      tokenType: 'Bearer',
+      expiresIn: 86400,
+      user: {
+        id: Date.now(),
+        email: 'google.user@stylelock.vn',
+        fullName: 'Google User',
+        status: 'ACTIVE',
+        roles: ['ROLE_CUSTOMER']
+      }
+    });
+  };
+
   const handleSocialLogin = (provider: string) => {
-    Alert.alert('Đăng nhập ' + provider, 'Đang đăng nhập qua ' + provider + '...', [
-      { text: 'OK', onPress: () => navigation.replace('Home') }
-    ]);
+    if (provider === 'Google') {
+      handleGoogleLogin();
+      return;
+    }
+
+    authSessionStore.set({
+      accessToken: `${provider.toLowerCase()}-token-` + Date.now(),
+      refreshToken: `${provider.toLowerCase()}-refresh-token-` + Date.now(),
+      tokenType: 'Bearer',
+      expiresIn: 86400,
+      user: {
+        id: Date.now(),
+        email: `user.${provider.toLowerCase()}@stylelock.vn`,
+        fullName: `Tài khoản ${provider}`,
+        status: 'ACTIVE',
+        roles: ['ROLE_CUSTOMER']
+      }
+    });
   };
 
   return (
@@ -88,16 +240,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Top Skip / Back option */}
-          <View style={styles.topBar}>
-            <TouchableOpacity onPress={() => navigation.replace('Home')} style={styles.skipBtn}>
-              <Text style={styles.skipText}>Bỏ qua</Text>
-            </TouchableOpacity>
-          </View>
-
           {/* Hero Branding Section */}
           <View style={styles.brandingSection}>
-            {/* 3D Pearlescent Hair Lock Avatar Placeholder */}
+            {/* 3D Emerald Spiral Hair Lock Circle */}
             <View style={styles.logoCircle}>
               <Image
                 source={{
@@ -116,15 +261,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             </Text>
           </View>
 
-          {/* Login Form Card */}
-          <View style={styles.card}>
+          {/* Welcome Back Header */}
+          <Text style={styles.welcomeTitle}>Welcome back</Text>
+
+          {/* Login Form Fields */}
+          <View style={styles.formContainer}>
             {/* Email Field */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>EMAIL</Text>
+              <Text style={styles.fieldLabel}>Email</Text>
               <TextInput
                 style={styles.input}
                 placeholder="hello@example.com"
-                placeholderTextColor="#A99582"
+                placeholderTextColor="#A9A29A"
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -135,7 +283,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             {/* Password Field */}
             <View style={styles.fieldGroup}>
               <View style={styles.passwordHeader}>
-                <Text style={styles.fieldLabel}>PASSWORD</Text>
+                <Text style={styles.fieldLabel}>Password</Text>
                 <TouchableOpacity
                   onPress={() => navigation.navigate('ForgotPassword', { email: email.trim() })}
                 >
@@ -147,7 +295,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                 <TextInput
                   style={[styles.input, { flex: 1, marginBottom: 0 }]}
                   placeholder="••••••••"
-                  placeholderTextColor="#A99582"
+                  placeholderTextColor="#A9A29A"
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
@@ -156,39 +304,48 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                   style={styles.eyeBtn}
                   onPress={() => setShowPassword(!showPassword)}
                 >
-                  <AppIcon name={showPassword ? "eyeOff" : "eye"} size={18} color="#A97845" />
+                  <AppIcon name={showPassword ? "eyeOff" : "eye"} size={18} color="#6F6B64" />
                 </TouchableOpacity>
               </View>
             </View>
 
-            {/* Sign In Button */}
+            {/* Sign In Button with Arrow Icon */}
             <TouchableOpacity
               style={[styles.signInBtn, isSubmitting && styles.signInBtnDisabled]}
               activeOpacity={0.85}
               onPress={handleSignIn}
               disabled={isSubmitting}
             >
-              <Text style={styles.signInBtnText}>{isSubmitting ? 'Connecting...' : 'Sign In'}</Text>
+              <View style={styles.signInBtnContent}>
+                <AppIcon name="arrowRight" size={18} color="#FFFFFF" />
+                <Text style={styles.signInBtnText}>{isSubmitting ? 'Connecting...' : 'Sign In'}</Text>
+              </View>
             </TouchableOpacity>
 
             {/* Divider */}
             <View style={styles.dividerRow}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>OR CONTINUE WITH</Text>
+              <Text style={styles.dividerText}>Or continue with</Text>
               <View style={styles.dividerLine} />
             </View>
 
-            {/* Social Login Buttons */}
-            <View style={styles.socialGroup}>
+            {/* Side-by-side Social Login Buttons */}
+            <View style={styles.socialRow}>
               {/* Google Button */}
-              <TouchableOpacity
-                style={styles.socialBtn}
-                activeOpacity={0.8}
-                onPress={() => handleSocialLogin('Google')}
-              >
-                <Image source={{ uri: SOCIAL_LOGOS.google }} style={styles.socialLogo} />
-                <Text style={styles.socialBtnText}>Google</Text>
-              </TouchableOpacity>
+              {Platform.OS === 'web' ? (
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                  <div id="google-btn-container" style={{ width: '100%', minHeight: 48, display: 'flex', justifyContent: 'center' }} />
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.socialBtn}
+                  activeOpacity={0.8}
+                  onPress={() => handleSocialLogin('Google')}
+                >
+                  <Image source={{ uri: SOCIAL_LOGOS.google }} style={styles.socialLogo} />
+                  <Text style={styles.socialBtnText}>Google</Text>
+                </TouchableOpacity>
+              )}
 
               {/* Apple Button */}
               <TouchableOpacity
@@ -221,45 +378,31 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F6EFE6'
+    backgroundColor: '#F7F5F1'
   },
   scrollContent: {
     paddingHorizontal: 24,
+    paddingTop: 36,
     paddingBottom: 40,
     minHeight: '100%',
     justifyContent: 'center'
   },
-  topBar: {
-    alignItems: 'flex-end',
-    marginBottom: 10
-  },
-  skipBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 12
-  },
-  skipText: {
-    color: '#A97845',
-    fontSize: 13,
-    fontWeight: '600'
-  },
   brandingSection: {
     alignItems: 'center',
-    marginBottom: 28
+    marginBottom: 20
   },
   logoCircle: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     overflow: 'hidden',
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(169, 120, 69, 0.16)',
+    marginBottom: 14,
+    backgroundColor: '#074D44',
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: '#074D44',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    backgroundColor: '#FFFFFF',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
     position: 'relative'
   },
   logoImage: {
@@ -269,48 +412,41 @@ const styles = StyleSheet.create({
   logoOverlay: {
     position: 'absolute',
     inset: 0,
-    backgroundColor: 'rgba(169, 120, 69, 0.25)',
+    backgroundColor: 'rgba(7, 77, 68, 0.45)',
     justifyContent: 'center',
     alignItems: 'center'
   },
-  logoEmoji: {
-    fontSize: 34
-  },
   brandTitle: {
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: '800',
-    color: '#A97845',
+    color: '#074D44',
     letterSpacing: -0.5,
-    marginBottom: 6
+    marginBottom: 8
   },
   brandSubtitle: {
     fontSize: 14,
-    color: '#6F6256',
+    color: '#8A857D',
     textAlign: 'center',
-    maxWidth: 270,
+    maxWidth: 290,
     lineHeight: 20
   },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 24,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
-    borderWidth: 1,
-    borderColor: '#EFE6DA',
+  welcomeTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#162524',
+    marginBottom: 16,
+    marginTop: 4
+  },
+  formContainer: {
     marginBottom: 24
   },
   fieldGroup: {
     marginBottom: 16
   },
   fieldLabel: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '700',
-    color: '#6F6256',
-    letterSpacing: 0.8,
+    color: '#38342F',
     marginBottom: 6
   },
   passwordHeader: {
@@ -321,18 +457,18 @@ const styles = StyleSheet.create({
   },
   forgotLink: {
     fontSize: 13,
-    color: '#A97845',
-    fontWeight: '600'
+    color: '#074D44',
+    fontWeight: '700'
   },
   input: {
-    height: 52,
-    backgroundColor: '#FFFDF8',
+    height: 50,
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#DDCDB9',
+    borderColor: '#E5E0D8',
     paddingHorizontal: 16,
     fontSize: 15,
-    color: '#2A211C'
+    color: '#162524'
   },
   passwordInputWrapper: {
     flexDirection: 'row',
@@ -344,22 +480,25 @@ const styles = StyleSheet.create({
     right: 14,
     padding: 4
   },
-  eyeIcon: {
-    fontSize: 18
-  },
   signInBtn: {
     height: 52,
-    backgroundColor: '#A97845',
-    borderRadius: 12,
+    backgroundColor: '#074D44',
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 8,
-    marginBottom: 20,
-    shadowColor: '#A97845',
+    marginBottom: 24,
+    shadowColor: '#074D44',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 4
+  },
+  signInBtnContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8
   },
   signInBtnText: {
     color: '#FFFFFF',
@@ -372,62 +511,74 @@ const styles = StyleSheet.create({
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20
+    marginTop: 24,
+    marginBottom: 24
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#EFE6DA'
+    backgroundColor: '#E2DFD8'
   },
   dividerText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#A99582',
-    paddingHorizontal: 12,
-    letterSpacing: 0.5
+    fontSize: 14,
+    color: '#706E6B',
+    paddingHorizontal: 16,
+    fontWeight: '400'
   },
-  socialGroup: {
-    gap: 10
+  socialRow: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 32
   },
   socialBtn: {
-    height: 52,
-    backgroundColor: '#E6E2DC',
-    borderRadius: 12,
+    flex: 1,
+    height: 54,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E2DFD8',
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 8
+    gap: 10,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 4 },
+      android: { elevation: 1 },
+      web: { boxShadow: '0 2px 6px rgba(0, 0, 0, 0.02)' }
+    })
   },
   socialLogo: {
-    width: 18,
-    height: 18,
+    width: 22,
+    height: 22,
     resizeMode: 'contain'
   },
   appleLogoText: {
-    width: 18,
-    height: 18,
-    color: '#1C1C18',
-    fontSize: 18,
-    lineHeight: 18,
+    width: 22,
+    height: 22,
+    color: '#1A2423',
+    fontSize: 20,
+    lineHeight: 22,
     textAlign: 'center'
   },
   socialBtnText: {
-    color: '#1C1C18',
-    fontSize: 14,
+    color: '#1A2423',
+    fontSize: 16,
     fontWeight: '600'
   },
   footerRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 16
   },
   footerText: {
-    color: '#6F6256',
-    fontSize: 14
+    color: '#6F6C67',
+    fontSize: 15
   },
   signUpLink: {
-    color: '#A97845',
-    fontSize: 14,
-    fontWeight: '800'
+    color: '#074D44',
+    fontSize: 15,
+    fontWeight: '700'
   }
 });

@@ -15,6 +15,8 @@ import { backendApi } from '../services/backendApi';
 import { Hairstyle } from '../types';
 import { AppIcon } from '../components/AppIcon';
 import { BottomNavBar } from '../components/BottomNavBar';
+import { NotificationBellButton } from '../components/NotificationBellButton';
+import { favoritesStore } from '../services/favoritesStore';
 
 interface HairstyleSelectScreenProps {
   navigation: any;
@@ -31,7 +33,7 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
   const [selectedGender, setSelectedGender] = useState<string>('All');
   const [selectedLength, setSelectedLength] = useState<string>('All');
   const [selectedStyleFilter, setSelectedStyleFilter] = useState<string>('All');
-  const [favorites, setFavorites] = useState<{ [id: string]: boolean }>({});
+  const [favVersion, setFavVersion] = useState<number>(0);
   const [hairstyles, setHairstyles] = useState<Hairstyle[]>(MOCK_HAIRSTYLES);
 
   useEffect(() => {
@@ -50,13 +52,19 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
 
     loadHairstyles();
 
+    const unsubscribe = favoritesStore.subscribe(() => {
+      if (isMounted) setFavVersion((v) => v + 1);
+    });
+
     return () => {
       isMounted = false;
+      unsubscribe();
     };
   }, []);
 
   const toggleFavorite = (id: string) => {
-    setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
+    favoritesStore.toggleFavorite(id);
+    setFavVersion((v) => v + 1);
   };
 
   const filteredHairstyles = hairstyles.filter((hair) => {
@@ -106,14 +114,43 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Top App Bar */}
+      <View style={styles.topAppBar}>
+        <TouchableOpacity
+          style={styles.iconBtn}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('Home');
+            }
+          }}
+        >
+          <AppIcon name="menu" size={22} color="#005C55" />
+        </TouchableOpacity>
+
+        <Text style={styles.brandTitle}>StyleLock</Text>
+
+        <View style={styles.headerRightActions}>
+          <NotificationBellButton navigation={navigation} style={styles.headerIconBtn} />
+          <TouchableOpacity
+            style={styles.headerIconBtn}
+            onPress={() => navigation.navigate('Profile')}
+            activeOpacity={0.8}
+          >
+            <AppIcon name="user" size={20} color="#005C55" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
       {/* Sticky Search & Filter Header */}
       <View style={styles.stickyHeader}>
         <View style={styles.searchContainer}>
-          <AppIcon name="search" size={17} color="#9A8A7A" style={styles.searchIcon} />
+          <AppIcon name="search" size={17} color="#687572" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search hairstyles, colors, trends..."
-            placeholderTextColor="#6F6256"
+            placeholderTextColor="#A9A29A"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -123,7 +160,7 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
           style={styles.filterBtn}
           onPress={() => setShowFilterModal(true)}
         >
-          <AppIcon name="settings" size={20} color="#A97845" />
+          <AppIcon name="settings" size={20} color="#005C55" />
         </TouchableOpacity>
       </View>
 
@@ -140,7 +177,7 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
         {/* Editorial Bento Grid Layout */}
         <View style={styles.grid}>
           {filteredHairstyles.map((hair) => {
-            const isFav = favorites[hair.id];
+            const isFav = favoritesStore.isFavorite(hair.id);
             return (
               <View key={hair.id} style={styles.articleCard}>
                 {/* Large Image Aspect 4:5 - Click opens HairstyleDetail */}
@@ -156,7 +193,11 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
                     style={styles.favBtn}
                     onPress={() => toggleFavorite(hair.id)}
                   >
-                    <AppIcon name="heart" size={19} color={isFav ? "#B65A4B" : "#A97845"} />
+                    <AppIcon
+                      name={isFav ? "heartFilled" : "heart"}
+                      size={19}
+                      color={isFav ? "#E63946" : "#A97845"}
+                    />
                   </TouchableOpacity>
                 </TouchableOpacity>
 
@@ -166,8 +207,8 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
                   style={styles.cardContent}
                   onPress={() => navigation.navigate('HairstyleDetail', { hairstyle: hair })}
                 >
-                  <Text style={styles.cardTitle}>{hair.name}</Text>
-                  <Text style={styles.cardDesc} numberOfLines={2}>
+                  <Text style={styles.cardTitle} numberOfLines={1}>{hair.name}</Text>
+                  <Text style={styles.cardDesc} numberOfLines={1}>
                     {hair.description}
                   </Text>
 
@@ -297,18 +338,55 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F6EFE6'
+    backgroundColor: '#F7F5F1'
+  },
+  topAppBar: {
+    height: 60,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E6E1',
+    zIndex: 10
+  },
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
+  },
+  headerIconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F0F5F3'
+  },
+  brandTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#005C55',
+    letterSpacing: -0.5
   },
   stickyHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 14,
-    backgroundColor: 'rgba(250, 250, 250, 0.95)',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderBottomWidth: 1,
-    borderBottomColor: '#EFE2D2',
+    borderBottomColor: '#E2E6E1',
     gap: 12,
-    zIndex: 10
+    zIndex: 9
   },
   searchContainer: {
     flex: 1,
@@ -319,7 +397,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     height: 48,
     borderWidth: 1,
-    borderColor: '#B89062'
+    borderColor: '#D0D8D4'
   },
   searchIcon: {
     fontSize: 16,
@@ -328,7 +406,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: '#2A211C'
+    color: '#182C2A'
   },
   filterBtn: {
     width: 48,
@@ -336,7 +414,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#B89062',
+    borderColor: '#D0D8D4',
     justifyContent: 'center',
     alignItems: 'center'
   },
@@ -363,23 +441,28 @@ const styles = StyleSheet.create({
     color: '#2A211C'
   },
   grid: {
-    gap: 20
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12
   },
   articleCard: {
+    width: '48%',
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    borderRadius: 18,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(189, 201, 198, 0.3)',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 16
+    borderColor: '#E8DED1',
+    elevation: 2,
+    shadowColor: '#2A211C',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    marginBottom: 4
   },
   imgWrapper: {
     width: '100%',
-    aspectRatio: 4 / 5,
+    aspectRatio: 1,
     position: 'relative',
     backgroundColor: '#EFE2D2'
   },
@@ -389,89 +472,43 @@ const styles = StyleSheet.create({
   },
   favBtn: {
     position: 'absolute',
-    top: 14,
-    right: 14,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    top: 8,
+    right: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.85)',
     justifyContent: 'center',
     alignItems: 'center'
   },
   favIcon: {
-    fontSize: 18
+    fontSize: 16
   },
   cardContent: {
-    padding: 16
+    padding: 10
   },
   cardTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
     color: '#2A211C',
-    marginBottom: 4
+    marginBottom: 2
   },
   cardDesc: {
-    fontSize: 14,
-    color: '#6F6256',
-    lineHeight: 20,
-    marginBottom: 16
+    fontSize: 11,
+    color: '#7E6F62',
+    lineHeight: 14,
+    marginBottom: 8
   },
   tryNowBtn: {
-    height: 52,
-    backgroundColor: '#A97845',
-    borderRadius: 14,
+    height: 36,
+    backgroundColor: '#005C55',
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center'
   },
   tryNowText: {
     color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600'
-  },
-  bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 75,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#DDCDB9',
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10
-  },
-  navItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20
-  },
-  navItemActive: {
-    backgroundColor: 'rgba(169, 120, 69, 0.16)'
-  },
-  navIcon: {
-    fontSize: 18,
-    marginBottom: 2
-  },
-  navIconActive: {
-    transform: [{ scale: 1.1 }]
-  },
-  navLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#6F6256'
-  },
-  navLabelActive: {
-    color: '#A97845',
+    fontSize: 12,
     fontWeight: '700'
   },
   modalOverlay: {
@@ -495,7 +532,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#B89062'
+    backgroundColor: '#D0D8D4'
   },
   modalHeader: {
     flexDirection: 'row',
@@ -503,17 +540,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#EFE6DA',
+    borderBottomColor: '#E2E6E1',
     marginBottom: 16
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#2A211C'
+    color: '#182C2A'
   },
   closeBtnText: {
     fontSize: 20,
-    color: '#6F6256',
+    color: '#687572',
     padding: 4
   },
   modalBody: {
@@ -522,7 +559,7 @@ const styles = StyleSheet.create({
   filterCategoryLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#6F6256',
+    color: '#687572',
     letterSpacing: 0.8,
     marginBottom: 8,
     marginTop: 8
@@ -538,20 +575,20 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#B89062',
+    borderColor: '#D0D8D4',
     backgroundColor: '#FFFFFF'
   },
   activePill: {
-    backgroundColor: 'rgba(169, 120, 69, 0.12)',
-    borderColor: '#A97845'
+    backgroundColor: '#E3EFEB',
+    borderColor: '#005C55'
   },
   pillText: {
     fontSize: 13,
-    color: '#2A211C',
+    color: '#182C2A',
     fontWeight: '500'
   },
   activePillText: {
-    color: '#A97845',
+    color: '#005C55',
     fontWeight: '700'
   },
   modalFooter: {
@@ -561,20 +598,20 @@ const styles = StyleSheet.create({
   clearBtn: {
     flex: 1,
     height: 52,
-    backgroundColor: '#E6E2DC',
+    backgroundColor: '#F0F5F3',
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center'
   },
   clearBtnText: {
-    color: '#666460',
+    color: '#687572',
     fontSize: 14,
     fontWeight: '600'
   },
   applyBtn: {
     flex: 1,
     height: 52,
-    backgroundColor: '#A97845',
+    backgroundColor: '#005C55',
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center'

@@ -18,6 +18,7 @@ import { Booking, Hairstyle, Salon } from '../types';
 import { BottomNavBar } from '../components/BottomNavBar';
 import { NotificationBellButton } from '../components/NotificationBellButton';
 import { useLanguage } from '../i18n/LanguageContext';
+import { favoritesStore } from '../services/favoritesStore';
 
 interface HomeScreenProps {
   navigation: any;
@@ -50,9 +51,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [salons, setSalons] = useState<Salon[]>(MOCK_SALONS);
   const [upcomingBooking, setUpcomingBooking] = useState<Booking | undefined>();
   const [displayName, setDisplayName] = useState<string>(getStoredDisplayName);
+  const [, setFavVersion] = useState<number>(0);
 
   useFocusEffect(useCallback(() => {
     let isMounted = true;
+
+    const unsubscribe = favoritesStore.subscribe(() => {
+      if (isMounted) setFavVersion((v) => v + 1);
+    });
 
     const loadBackendData = async () => {
       setDisplayName(getStoredDisplayName());
@@ -107,12 +113,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           style={styles.iconBtn}
           onPress={() => navigation.navigate('AdminDashboard')}
         >
-          <AppIcon name="menu" size={22} color="#A97845" />
+          <AppIcon name="menu" size={22} color="#005C55" />
         </TouchableOpacity>
 
         <Text style={styles.brandTitle}>StyleLock</Text>
 
-        <NotificationBellButton navigation={navigation} />
+        <View style={styles.headerRightActions}>
+          <NotificationBellButton navigation={navigation} style={styles.headerIconBtn} />
+          <TouchableOpacity
+            style={styles.headerIconBtn}
+            onPress={() => navigation.navigate('Profile')}
+            activeOpacity={0.8}
+          >
+            <AppIcon name="user" size={20} color="#005C55" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -256,8 +271,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               >
                 <View style={styles.recommendImgWrapper}>
                   <Image source={{ uri: hair.imageUrl }} style={styles.recommendImg} />
-                  <TouchableOpacity style={styles.favBadge}>
-                    <AppIcon name="heart" size={15} color="#A97845" />
+                  <TouchableOpacity
+                    style={styles.favBadge}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      favoritesStore.toggleFavorite(hair.id);
+                    }}
+                  >
+                    <AppIcon
+                      name={favoritesStore.isFavorite(hair.id) ? "heartFilled" : "heart"}
+                      size={15}
+                      color={favoritesStore.isFavorite(hair.id) ? "#E63946" : "#A97845"}
+                    />
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.recommendName} numberOfLines={1}>
@@ -294,21 +319,29 @@ const styles = StyleSheet.create({
     zIndex: 10
   },
   iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     justifyContent: 'center',
     alignItems: 'center'
   },
-  topIcon: {
-    fontSize: 20,
-    color: '#A97845'
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4
+  },
+  headerIconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   brandTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#A97845',
-    letterSpacing: -0.5
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#005C55',
+    letterSpacing: -0.3
   },
   scrollContent: {
     paddingHorizontal: 20,

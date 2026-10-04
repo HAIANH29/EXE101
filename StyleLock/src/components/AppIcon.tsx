@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, TextStyle, View, ViewStyle } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 type FeatherName = keyof typeof Feather.glyphMap;
 
@@ -106,9 +107,15 @@ type AppIconProps = {
   style?: TextStyle;
 };
 
-export const AppIcon = ({ name, size = 20, color = '#A97845', style }: AppIconProps) => (
-  <Feather name={ICON_MAP[name]} size={size} color={color} style={style} />
-);
+export const AppIcon = ({ name, size = 20, color = '#A97845', style }: AppIconProps) => {
+  if (name === 'heartFilled') {
+    return <Ionicons name="heart" size={size} color={color} style={style} />;
+  }
+  if (name === 'heart') {
+    return <Ionicons name="heart-outline" size={size} color={color} style={style} />;
+  }
+  return <Feather name={ICON_MAP[name]} size={size} color={color} style={style} />;
+};
 
 type IconBadgeProps = AppIconProps & {
   backgroundColor?: string;

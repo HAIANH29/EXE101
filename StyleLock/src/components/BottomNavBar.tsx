@@ -2,12 +2,13 @@ import React from 'react';
 import {
   StyleSheet,
   TouchableOpacity,
-  View
+  View,
+  Platform
 } from 'react-native';
 import { LocalizedText as Text } from '../i18n/LocalizedComponents';
 import { AppIcon, AppIconName } from './AppIcon';
 
-type NavKey = 'Home' | 'Explore' | 'AICamera' | 'Bookings' | 'Profile';
+type NavKey = 'Home' | 'Explore' | 'AICamera' | 'Salons' | 'Bookings' | 'History' | 'Profile';
 
 type NavItem = {
   key: NavKey;
@@ -19,9 +20,9 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { key: 'Home', label: 'Home', route: 'Home', icon: 'home' },
   { key: 'Explore', label: 'Explore', route: 'HairstyleSelect', icon: 'search' },
-  { key: 'AICamera', label: 'AI Camera', route: 'CameraUpload', icon: 'camera' },
-  { key: 'Bookings', label: 'Bookings', route: 'BookingHistory', icon: 'calendar' },
-  { key: 'Profile', label: 'Profile', route: 'Profile', icon: 'user' }
+  { key: 'AICamera', label: 'AI Camera', route: 'CameraUpload', icon: 'sparkle' },
+  { key: 'Salons', label: 'Salons', route: 'SalonList', icon: 'salon' },
+  { key: 'History', label: 'History', route: 'BookingHistory', icon: 'calendar' }
 ];
 
 type BottomNavBarProps = {
@@ -38,12 +39,19 @@ export const BottomNavBar = ({ active, navigation, labels }: BottomNavBarProps) 
       return (
         <TouchableOpacity
           key={item.key}
-          style={[styles.navItem, isActive && styles.navItemActive]}
+          style={styles.navItem}
+          activeOpacity={0.7}
           onPress={() => {
             if (!isActive && item.route) navigation.navigate(item.route);
           }}
         >
-          <AppIcon name={item.icon} size={18} color={isActive ? '#A97845' : '#6F6256'} />
+          <View style={[styles.iconBadge, isActive && styles.iconBadgeActive]}>
+            <AppIcon
+              name={item.icon}
+              size={20}
+              color={isActive ? '#005C55' : '#687572'}
+            />
+          </View>
           <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>{label}</Text>
         </TouchableOpacity>
       );
@@ -57,39 +65,45 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 75,
-    backgroundColor: 'rgba(255, 255, 255, 0.96)',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    height: 72,
+    backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: '#DDCDB9',
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10
+    borderTopColor: '#E2E6E1',
+    zIndex: 50,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.05, shadowRadius: 6 },
+      android: { elevation: 8 },
+      web: { boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.04)' }
+    })
   },
   navItem: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    gap: 2
+    gap: 3,
+    paddingVertical: 4,
+    flex: 1
   },
-  navItemActive: {
-    backgroundColor: 'rgba(169, 120, 69, 0.16)'
+  iconBadge: {
+    width: 44,
+    height: 30,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  iconBadgeActive: {
+    backgroundColor: '#E3EFEB'
   },
   navLabel: {
     fontSize: 11,
     fontWeight: '500',
-    color: '#6F6256'
+    color: '#687572'
   },
   navLabelActive: {
-    color: '#A97845',
+    color: '#005C55',
     fontWeight: '700'
   }
 });
+
