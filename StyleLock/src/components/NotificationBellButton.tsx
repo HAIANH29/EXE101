@@ -22,7 +22,7 @@ type NotificationBellButtonProps = {
 export const NotificationBellButton = ({
   navigation,
   style,
-  iconColor = '#A97845'
+  iconColor = '#005C55'
 }: NotificationBellButtonProps) => {
   const { language } = useLanguage();
   const [unreadCount, setUnreadCount] = useState(0);

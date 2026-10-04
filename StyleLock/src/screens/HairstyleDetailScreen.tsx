@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -6,26 +6,45 @@ import {
   Image,
   SafeAreaView,
   ScrollView,
-  Dimensions
+  Platform
 } from 'react-native';
 import { LocalizedText as Text, LocalizedAlert as Alert } from '../i18n/LocalizedComponents';
 import { Hairstyle } from '../types';
 import { MOCK_HAIRSTYLES } from '../services/mockData';
 import { AppIcon } from '../components/AppIcon';
+import { favoritesStore } from '../services/favoritesStore';
 
 interface HairstyleDetailScreenProps {
   navigation: any;
   route: any;
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
 export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ navigation, route }) => {
   const hairstyleParam: Hairstyle | undefined = route?.params?.hairstyle;
   const hair: Hairstyle = hairstyleParam || MOCK_HAIRSTYLES[0];
 
-  const [isFavorite, setIsFavorite] = useState<boolean>(false);
+  const [isFavorite, setIsFavorite] = useState<boolean>(
+    favoritesStore.isFavorite(hair.id)
+  );
   const [selectedGalleryIdx, setSelectedGalleryIdx] = useState<number>(0);
+
+  useEffect(() => {
+    setIsFavorite(favoritesStore.isFavorite(hair.id));
+    const unsubscribe = favoritesStore.subscribe(() => {
+      setIsFavorite(favoritesStore.isFavorite(hair.id));
+    });
+    return unsubscribe;
+  }, [hair.id]);
+
+  const handleToggleFavorite = () => {
+    const nextIsFav = favoritesStore.toggleFavorite(hair.id);
+    setIsFavorite(nextIsFav);
+    if (nextIsFav) {
+      Alert.alert('Đã yêu thích', `Đã lưu "${hair.name}" vào danh sách yêu thích của bạn!`);
+    } else {
+      Alert.alert('Đã bỏ yêu thích', `Đã bỏ "${hair.name}" khỏi danh sách yêu thích.`);
+    }
+  };
 
   // Gallery thumbnails (main image + 2 alternate views)
   const galleryImages = [
@@ -44,156 +63,159 @@ export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ na
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Top Floating Navigation Header */}
-      <View style={styles.floatingHeader}>
-        <TouchableOpacity style={styles.circleBtn} onPress={() => navigation.goBack()}>
-          <AppIcon name="arrowLeft" size={18} color="#2A211C" />
+      {/* App Header */}
+      <View style={styles.appHeader}>
+        <TouchableOpacity style={styles.headerIconBtn} onPress={() => navigation.goBack()}>
+          <AppIcon name="arrowLeft" size={20} color="#005C55" />
         </TouchableOpacity>
 
-        <View style={styles.rightHeaderGroup}>
-          <TouchableOpacity style={styles.circleBtn} onPress={() => Alert.alert('Share', `Sharing ${hair.name}...`)}>
-            <AppIcon name="share" size={18} color="#2A211C" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.circleBtn} onPress={() => setIsFavorite(!isFavorite)}>
-            <AppIcon name="heart" size={18} color={isFavorite ? "#B65A4B" : "#2A211C"} />
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.headerTitle}>Hairstyle Detail</Text>
+
+        <TouchableOpacity
+          style={styles.headerIconBtn}
+          onPress={() => Alert.alert('Share', `Sharing ${hair.name}...`)}
+        >
+          <AppIcon name="share" size={20} color="#005C55" />
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Hero Image Gallery */}
+        {/* Style Gallery Card */}
         <View style={styles.heroGalleryWrapper}>
-          <Image source={{ uri: galleryImages[selectedGalleryIdx] }} style={styles.heroImage} />
+          <Image
+            source={{ uri: galleryImages[selectedGalleryIdx] }}
+            style={styles.heroImage}
+            resizeMode="cover"
+          />
+
+          {/* Save / Heart Button */}
+          <TouchableOpacity
+            style={styles.saveHeartBtn}
+            onPress={handleToggleFavorite}
+            activeOpacity={0.8}
+          >
+            <AppIcon
+              name={isFavorite ? "heartFilled" : "heart"}
+              size={22}
+              color={isFavorite ? "#E63946" : "#005C55"}
+            />
+          </TouchableOpacity>
 
           {/* Gallery Thumbnails Overlay */}
-          <View style={styles.thumbnailsOverlay}>
+          <View style={styles.galleryViewsOverlay}>
             {galleryImages.map((imgUri, idx) => (
               <TouchableOpacity
                 key={idx}
                 style={[
-                  styles.thumbWrapper,
-                  selectedGalleryIdx === idx && styles.thumbWrapperActive
+                  styles.galleryThumbContainer,
+                  selectedGalleryIdx === idx ? styles.galleryThumbActive : styles.galleryThumbInactive
                 ]}
                 onPress={() => setSelectedGalleryIdx(idx)}
+                activeOpacity={0.8}
               >
-                <Image source={{ uri: imgUri }} style={styles.thumbImage} />
+                <Image source={{ uri: imgUri }} style={styles.galleryThumbImg} />
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        {/* Content Card Area */}
-        <View style={styles.contentCard}>
-          {/* Header Info */}
-          <View style={styles.headerInfoRow}>
-            <View style={styles.titleCol}>
-              <View style={styles.tagBadge}>
-                <Text style={styles.tagBadgeText}>{hair.tag || 'TRENDING'}</Text>
+        {/* Style Overview */}
+        <View style={styles.styleOverviewSection}>
+          {/* Title and Price Header Row */}
+          <View style={styles.styleTitlePriceRow}>
+            <View style={styles.styleTitleCol}>
+              <View style={styles.statusBadge}>
+                <Text style={styles.statusBadgeText}>{hair.tag || 'TRENDING'}</Text>
               </View>
-              <Text style={styles.hairTitle}>{hair.name}</Text>
+              <Text style={styles.styleNameText}>{hair.name}</Text>
             </View>
 
             <View style={styles.priceCol}>
-              <Text style={styles.priceText}>$120</Text>
-              <Text style={styles.priceLabel}>EST. PRICE</Text>
+              <Text style={styles.priceValueText}>$120</Text>
+              <Text style={styles.priceLabelText}>EST. PRICE</Text>
             </View>
           </View>
 
-          <Text style={styles.hairDescription}>{hair.description}</Text>
+          {/* Description */}
+          <Text style={styles.descriptionText}>
+            {hair.description || 'A modern, versatile long bob that brushes the collarbone. Featuring soft, piecey layers and subtle waves for effortless volume and movement. Perfect for a chic, low-effort daily look.'}
+          </Text>
 
-          {/* Specs Grid (2x2) */}
-          <View style={styles.specsGrid}>
-            <View style={styles.specCard}>
-              <AppIcon name="user" size={22} color="#A97845" />
-              <View style={styles.specTextGroup}>
-                <Text style={styles.specLabel}>Face Shapes</Text>
-                <Text style={styles.specValue}>{hair.suitableFace}</Text>
+          {/* Style Attributes Grid (2x2 Cards) */}
+          <View style={styles.attributesContainer}>
+            <View style={styles.attributeRow}>
+              <View style={styles.attrCard}>
+                <Text style={styles.attrLabel}>Face Shapes</Text>
+                <Text style={styles.attrValue} numberOfLines={1}>{hair.suitableFace || 'Oval, Heart, Round'}</Text>
+              </View>
+              <View style={styles.attrCard}>
+                <Text style={styles.attrLabel}>Maintenance</Text>
+                <Text style={styles.attrValue}>Low</Text>
               </View>
             </View>
 
-            <View style={styles.specCard}>
-              <AppIcon name="tool" size={22} color="#A97845" />
-              <View style={styles.specTextGroup}>
-                <Text style={styles.specLabel}>Maintenance</Text>
-                <Text style={styles.specValue}>Low</Text>
+            <View style={styles.attributeRow}>
+              <View style={styles.attrCard}>
+                <Text style={styles.attrLabel}>Hair Type</Text>
+                <Text style={styles.attrValue}>Straight, Wavy</Text>
               </View>
-            </View>
-
-            <View style={styles.specCard}>
-              <AppIcon name="scissors" size={22} color="#A97845" />
-              <View style={styles.specTextGroup}>
-                <Text style={styles.specLabel}>Hair Type</Text>
-                <Text style={styles.specValue}>Straight, Wavy</Text>
-              </View>
-            </View>
-
-            <View style={styles.specCard}>
-              <AppIcon name="clock" size={22} color="#A97845" />
-              <View style={styles.specTextGroup}>
-                <Text style={styles.specLabel}>Styling Time</Text>
-                <Text style={styles.specValue}>15 mins</Text>
+              <View style={styles.attrCard}>
+                <Text style={styles.attrLabel}>Styling Time</Text>
+                <Text style={styles.attrValue}>15 mins</Text>
               </View>
             </View>
           </View>
 
           {/* Stylist Notes Section */}
-          <View style={styles.sectionBlock}>
-            <Text style={styles.sectionHeaderTitle}>Stylist Notes</Text>
-            <View style={styles.stylistQuoteCard}>
-              <Text style={styles.quoteMark}>“</Text>
-              <Text style={styles.quoteBody}>
+          <View style={styles.stylistAdviceSection}>
+            <Text style={styles.sectionHeadingTitle}>Stylist Notes</Text>
+            <View style={styles.stylistCard}>
+              <Text style={styles.stylistQuoteBody}>
                 This cut is incredible for adding illusion of density to finer hair. Ask for blunt ends with internal point-cutting to get that signature 'lived-in' texture without sacrificing weight at the bottom.
               </Text>
-              <View style={styles.stylistProfileRow}>
+              <View style={styles.stylistAttributionRow}>
                 <Image
                   source={{ uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200' }}
-                  style={styles.stylistAvatar}
+                  style={styles.stylistAvatarImg}
                 />
-                <View>
-                  <Text style={styles.stylistName}>Sarah J.</Text>
-                  <Text style={styles.stylistRole}>MASTER STYLIST</Text>
+                <View style={styles.stylistIdentityCol}>
+                  <Text style={styles.stylistNameText}>Sarah J.</Text>
+                  <Text style={styles.stylistRoleText}>MASTER STYLIST</Text>
                 </View>
               </View>
             </View>
           </View>
 
           {/* Recommended Products Section */}
-          <View style={styles.sectionBlock}>
-            <Text style={styles.sectionHeaderTitle}>Recommended Products</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScroll}>
+          <View style={styles.productsSection}>
+            <Text style={styles.sectionHeadingTitle}>Recommended Products</Text>
+            <View style={styles.productsRow}>
               <TouchableOpacity
-                style={styles.productCard}
+                style={styles.productItemCard}
+                activeOpacity={0.85}
                 onPress={() => Alert.alert('Texture Spray', 'Sản phẩm gợi ý chăm sóc kiểu tóc này ($28)')}
               >
-                <View style={styles.productImgBox}>
-                  <AppIcon name="bottle" size={40} color="#A97845" />
-                </View>
-                <Text style={styles.productName} numberOfLines={1}>Texture Spray</Text>
-                <Text style={styles.productPrice}>$28</Text>
+                <Image
+                  source={{ uri: 'https://images.unsplash.com/photo-1526947425960-945c6e72858f?w=400' }}
+                  style={styles.productImage}
+                />
+                <Text style={styles.productTitleText} numberOfLines={1}>Texture Spray</Text>
+                <Text style={styles.productPriceText}>$28</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.productCard}
+                style={styles.productItemCard}
+                activeOpacity={0.85}
                 onPress={() => Alert.alert('Matte Pomade', 'Sản phẩm gợi ý giữ nếp kiểu tóc này ($32)')}
               >
-                <View style={styles.productImgBox}>
-                  <AppIcon name="scissors" size={40} color="#A97845" />
-                </View>
-                <Text style={styles.productName} numberOfLines={1}>Matte Pomade</Text>
-                <Text style={styles.productPrice}>$32</Text>
+                <Image
+                  source={{ uri: 'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=400' }}
+                  style={styles.productImage}
+                />
+                <Text style={styles.productTitleText} numberOfLines={1}>Matte Pomade</Text>
+                <Text style={styles.productPriceText}>$32</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.productCard}
-                onPress={() => Alert.alert('Hydrating Serum', 'Tinh chất dưỡng tóc mềm mượt ($35)')}
-              >
-                <View style={styles.productImgBox}>
-                  <AppIcon name="sparkle" size={40} color="#A97845" />
-                </View>
-                <Text style={styles.productName} numberOfLines={1}>Hydrating Serum</Text>
-                <Text style={styles.productPrice}>$35</Text>
-              </TouchableOpacity>
-            </ScrollView>
+            </View>
           </View>
         </View>
 
@@ -201,23 +223,25 @@ export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ na
       </ScrollView>
 
       {/* Fixed Bottom Action Bar */}
-      <View style={styles.fixedBottomBar}>
-        <TouchableOpacity
-          style={styles.tryOnBtn}
-          activeOpacity={0.85}
-          onPress={handleTryOn}
-        >
-          <AppIcon name="camera" size={18} color="#1C1C18" />
-          <Text style={styles.tryOnText}>TRY ON</Text>
-        </TouchableOpacity>
+      <View style={styles.bottomActionsBar}>
+        <View style={styles.styleActionsRow}>
+          <TouchableOpacity
+            style={styles.tryOnActionBtn}
+            activeOpacity={0.85}
+            onPress={handleTryOn}
+          >
+            <AppIcon name="sparkle" size={18} color="#005C55" />
+            <Text style={styles.tryOnActionText}>Try On</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.bookStyleBtn}
-          activeOpacity={0.85}
-          onPress={handleBookThisStyle}
-        >
-          <Text style={styles.bookStyleText}>BOOK THIS STYLE</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.bookStyleActionBtn}
+            activeOpacity={0.85}
+            onPress={handleBookThisStyle}
+          >
+            <Text style={styles.bookStyleActionText}>Book This Style</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -226,308 +250,289 @@ export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ na
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FF'
+    backgroundColor: '#F7F5F1'
   },
-  floatingHeader: {
-    position: 'absolute',
-    top: 10,
-    left: 0,
-    right: 0,
-    height: 60,
+  appHeader: {
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    zIndex: 20
+    backgroundColor: '#F7F5F1'
   },
-  circleBtn: {
+  headerIconBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3
+    alignItems: 'center'
   },
-  headerIcon: {
-    fontSize: 16,
-    color: '#2A211C'
-  },
-  rightHeaderGroup: {
-    flexDirection: 'row',
-    gap: 8
+  headerTitle: {
+    fontFamily: Platform.OS === 'ios' ? 'Inter' : 'sans-serif',
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#005C55'
   },
   scrollContent: {
-    paddingBottom: 20
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 24
   },
   heroGalleryWrapper: {
     width: '100%',
-    aspectRatio: 4 / 5,
-    backgroundColor: '#EAD7BF',
-    position: 'relative'
+    height: 320,
+    borderRadius: 18,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#F7F5F1',
+    marginBottom: 20
   },
   heroImage: {
     width: '100%',
-    height: '100%'
+    height: '100%',
+    borderRadius: 18
   },
-  thumbnailsOverlay: {
+  saveHeartBtn: {
     position: 'absolute',
-    bottom: 24,
-    left: 20,
-    right: 20,
-    flexDirection: 'row',
-    gap: 10
+    top: 12,
+    right: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4 },
+      android: { elevation: 2 },
+      web: { boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)' }
+    })
   },
-  thumbWrapper: {
-    width: 64,
-    height: 64,
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#B89062',
-    opacity: 0.8,
+  galleryViewsOverlay: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
+    flexDirection: 'row',
+    gap: 8
+  },
+  galleryThumbContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 10,
+    padding: 2,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  galleryThumbActive: {
+    backgroundColor: '#005C55'
+  },
+  galleryThumbInactive: {
     backgroundColor: '#FFFFFF'
   },
-  thumbWrapperActive: {
-    borderWidth: 2,
-    borderColor: '#A97845',
-    opacity: 1
+  galleryThumbImg: {
+    width: 46,
+    height: 46,
+    borderRadius: 8
   },
-  thumbImage: {
-    width: '100%',
-    height: '100%'
+  styleOverviewSection: {
+    gap: 20
   },
-  contentCard: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    marginTop: -24,
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 20
-  },
-  headerInfoRow: {
+  styleTitlePriceRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12
+    gap: 12
   },
-  titleCol: {
+  styleTitleCol: {
     flex: 1,
-    marginRight: 10
+    gap: 6
   },
-  tagBadge: {
-    backgroundColor: '#EFE2D2',
-    paddingHorizontal: 10,
+  statusBadge: {
+    backgroundColor: '#E3EFEB',
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-    marginBottom: 6
+    borderRadius: 6,
+    alignSelf: 'flex-start'
   },
-  tagBadgeText: {
-    color: '#2A211C',
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.8
+  statusBadgeText: {
+    color: '#005C55',
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 0.5
   },
-  hairTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#2A211C',
-    letterSpacing: -0.5
+  styleNameText: {
+    fontSize: 27,
+    fontWeight: '600',
+    color: '#182C2A',
+    lineHeight: 34
   },
   priceCol: {
     alignItems: 'flex-end'
   },
-  priceText: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#A97845'
+  priceValueText: {
+    fontSize: 23,
+    fontWeight: '600',
+    color: '#005C55'
   },
-  priceLabel: {
+  priceLabelText: {
     fontSize: 10,
-    fontWeight: '700',
-    color: '#6F6256',
-    letterSpacing: 0.8,
+    color: '#687572',
+    letterSpacing: 0.5,
     marginTop: 2
   },
-  hairDescription: {
-    fontSize: 15,
-    color: '#6F6256',
-    lineHeight: 22,
-    marginBottom: 20
+  descriptionText: {
+    fontSize: 14,
+    color: '#687572',
+    lineHeight: 20
   },
-  specsGrid: {
+  attributesContainer: {
+    gap: 10
+  },
+  attributeRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 24
+    gap: 10
   },
-  specCard: {
-    width: (SCREEN_WIDTH - 52) / 2,
-    backgroundColor: '#EFE2D2',
-    borderRadius: 16,
-    padding: 14,
+  attrCard: {
+    flex: 1,
+    height: 63,
+    backgroundColor: '#E3EFEB',
+    borderWidth: 1,
+    borderColor: '#E2E6E1',
+    borderRadius: 18,
+    padding: 12,
+    justifyContent: 'center',
+    gap: 4
+  },
+  attrLabel: {
+    fontSize: 11,
+    color: '#687572'
+  },
+  attrValue: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#182C2A'
+  },
+  stylistAdviceSection: {
+    gap: 12
+  },
+  sectionHeadingTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#182C2A'
+  },
+  stylistCard: {
+    backgroundColor: '#E3EFEB',
+    borderWidth: 1,
+    borderColor: '#E2E6E1',
+    borderRadius: 18,
+    padding: 16,
+    gap: 12
+  },
+  stylistQuoteBody: {
+    fontSize: 14,
+    color: '#687572',
+    lineHeight: 20
+  },
+  stylistAttributionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10
   },
-  specIcon: {
-    fontSize: 22
+  stylistAvatarImg: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF'
   },
-  specTextGroup: {
+  stylistIdentityCol: {
     flex: 1
   },
-  specLabel: {
+  stylistNameText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#2A211C',
-    marginBottom: 2
+    color: '#182C2A'
   },
-  specValue: {
-    fontSize: 13,
-    color: '#6F6256'
+  stylistRoleText: {
+    fontSize: 10,
+    color: '#687572'
   },
-  sectionBlock: {
-    marginBottom: 24
-  },
-  sectionHeaderTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#2A211C',
-    marginBottom: 12
-  },
-  stylistQuoteCard: {
-    backgroundColor: 'rgba(217, 227, 246, 0.4)',
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: '#DEE9FC',
-    position: 'relative'
-  },
-  quoteMark: {
-    position: 'absolute',
-    top: -10,
-    right: 14,
-    fontSize: 70,
-    color: '#B89062',
-    opacity: 0.4
-  },
-  quoteBody: {
-    fontSize: 15,
-    fontStyle: 'italic',
-    color: '#6F6256',
-    lineHeight: 22,
-    marginBottom: 14
-  },
-  stylistProfileRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  productsSection: {
     gap: 12
   },
-  stylistAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#EFE2D2'
+  productsRow: {
+    flexDirection: 'row',
+    gap: 12
   },
-  stylistName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#2A211C'
+  productItemCard: {
+    flex: 1,
+    gap: 6
   },
-  stylistRole: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#6F6256',
-    letterSpacing: 0.8
+  productImage: {
+    width: '100%',
+    height: 110,
+    borderRadius: 18,
+    backgroundColor: '#E3EFEB'
   },
-  productsScroll: {
-    marginHorizontal: -20,
-    paddingHorizontal: 20
-  },
-  productCard: {
-    width: 128,
-    marginRight: 12
-  },
-  productImgBox: {
-    width: 128,
-    height: 128,
-    backgroundColor: '#EFE2D2',
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 6
-  },
-  productEmoji: {
-    fontSize: 40
-  },
-  productName: {
+  productTitleText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#2A211C'
+    fontWeight: '500',
+    color: '#182C2A'
   },
-  productPrice: {
+  productPriceText: {
     fontSize: 13,
-    color: '#6F6256',
-    marginTop: 2
+    color: '#005C55'
   },
-  fixedBottomBar: {
+  bottomActionsBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
     height: 80,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#EFE2D2',
+    borderTopColor: '#E2E6E1',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    gap: 12,
     zIndex: 30,
-    elevation: 10
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.05, shadowRadius: 6 },
+      android: { elevation: 10 },
+      web: { boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.04)' }
+    })
   },
-  tryOnBtn: {
+  styleActionsRow: {
     flex: 1,
-    height: 54,
-    backgroundColor: '#E6E2DC',
-    borderRadius: 14,
+    flexDirection: 'row',
+    gap: 10
+  },
+  tryOnActionBtn: {
+    width: 116,
+    height: 48,
+    backgroundColor: '#EBE5DB',
+    borderRadius: 12,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 6
+    gap: 8
   },
-  tryOnIcon: {
-    fontSize: 18
-  },
-  tryOnText: {
-    color: '#1C1C18',
+  tryOnActionText: {
     fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 0.8
+    fontWeight: '600',
+    color: '#005C55'
   },
-  bookStyleBtn: {
-    flex: 1.5,
-    height: 54,
-    backgroundColor: '#A97845',
-    borderRadius: 14,
+  bookStyleActionBtn: {
+    flex: 1,
+    height: 48,
+    backgroundColor: '#005C55',
+    borderRadius: 12,
     justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#A97845',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8
+    alignItems: 'center'
   },
-  bookStyleText: {
-    color: '#FFFFFF',
+  bookStyleActionText: {
     fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 0.8
+    fontWeight: '600',
+    color: '#FFFFFF'
   }
 });
+

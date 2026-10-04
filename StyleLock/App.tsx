@@ -31,7 +31,6 @@ const linking = {
       TryOnEditor: 'try-on',
       SalonList: 'salons',
       SalonDetail: 'salons/:id',
-      QuickBooking: 'booking/new',
       BookingStatus: 'booking/status',
       BookingHistory: 'bookings',
       Profile: 'profile',

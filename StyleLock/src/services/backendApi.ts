@@ -385,6 +385,16 @@ export const backendApi = {
     return session;
   },
 
+  async loginWithGoogle(idToken: string) {
+    const session = await apiRequest<BackendLoginResponse>('/api/auth/google', {
+      method: 'POST',
+      auth: false,
+      body: JSON.stringify({ idToken })
+    });
+    authSessionStore.set(session);
+    return session;
+  },
+
   async register(input: { email: string; password: string; fullName: string; phone?: string }) {
     const session = await apiRequest<BackendLoginResponse>('/api/auth/register', {
       method: 'POST',

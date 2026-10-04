@@ -187,13 +187,31 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
     <SafeAreaView style={styles.container}>
       {/* Top App Bar */}
       <View style={styles.topAppBar}>
-        <TouchableOpacity style={styles.topBtn} onPress={() => navigation.goBack()}>
-          <AppIcon name="menu" size={22} color="#A97845" />
+        <TouchableOpacity
+          style={styles.topBtn}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('Home');
+            }
+          }}
+        >
+          <AppIcon name="menu" size={22} color="#005C55" />
         </TouchableOpacity>
 
         <Text style={styles.brandTitle}>StyleLock</Text>
 
-        <NotificationBellButton navigation={navigation} style={styles.topBtn} />
+        <View style={styles.headerRightActions}>
+          <NotificationBellButton navigation={navigation} style={styles.headerIconBtn} />
+          <TouchableOpacity
+            style={styles.headerIconBtn}
+            onPress={() => navigation.navigate('Profile')}
+            activeOpacity={0.8}
+          >
+            <AppIcon name="user" size={20} color="#005C55" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Full-Screen Camera Canvas */}
@@ -352,7 +370,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    backgroundColor: 'rgba(248, 242, 234, 0.86)',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E6E1',
     zIndex: 30
   },
   topBtn: {
@@ -362,14 +382,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
-  topBtnIcon: {
-    fontSize: 20,
-    color: '#A97845'
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
+  },
+  headerIconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F0F5F3'
   },
   brandTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#A97845',
+    color: '#005C55',
     letterSpacing: -0.5
   },
   cameraCanvas: {

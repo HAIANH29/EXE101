@@ -138,13 +138,31 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
         <SafeAreaView style={styles.container}>
             {/* Top App Bar */}
             <View style={styles.topAppBar}>
-                <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()}>
-                    <AppIcon name="menu" size={22} color="#A97845" />
+                <TouchableOpacity
+                    style={styles.iconBtn}
+                    onPress={() => {
+                        if (navigation.canGoBack()) {
+                            navigation.goBack();
+                        } else {
+                            navigation.navigate('Home');
+                        }
+                    }}
+                >
+                    <AppIcon name="menu" size={22} color="#005C55" />
                 </TouchableOpacity>
 
                 <Text style={styles.brandTitle}>StyleLock</Text>
 
-                <NotificationBellButton navigation={navigation} style={styles.iconBtn} />
+                <View style={styles.headerRightActions}>
+                    <NotificationBellButton navigation={navigation} style={styles.headerIconBtn} />
+                    <TouchableOpacity
+                        style={styles.headerIconBtn}
+                        onPress={() => navigation.navigate('Profile')}
+                        activeOpacity={0.8}
+                    >
+                        <AppIcon name="user" size={20} color="#005C55" />
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -263,7 +281,7 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
                 <View style={{ height: 100 }} />
             </ScrollView>
 
-            <BottomNavBar active="Bookings" navigation={navigation} />
+            <BottomNavBar active="History" navigation={navigation} />
         </SafeAreaView>
     );
 };
@@ -271,7 +289,7 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F6EFE6'
+        backgroundColor: '#F7F5F1'
     },
     topAppBar: {
         height: 60,
@@ -279,9 +297,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 20,
-        backgroundColor: 'rgba(250, 250, 250, 0.95)',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
         borderBottomWidth: 1,
-        borderBottomColor: '#EFE2D2',
+        borderBottomColor: '#E2E6E1',
         zIndex: 10
     },
     iconBtn: {
@@ -291,14 +309,23 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center'
     },
-    topIcon: {
-        fontSize: 20,
-        color: '#A97845'
+    headerRightActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6
+    },
+    headerIconBtn: {
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#F0F5F3'
     },
     brandTitle: {
         fontSize: 22,
         fontWeight: '800',
-        color: '#A97845',
+        color: '#005C55',
         letterSpacing: -0.5
     },
     scrollContent: {
@@ -306,9 +333,9 @@ const styles = StyleSheet.create({
         paddingTop: 16
     },
     pageTitle: {
-        fontSize: 28,
+        fontSize: 26,
         fontWeight: '700',
-        color: '#2A211C',
+        color: '#182C2A',
         marginBottom: 16
     },
     tabsRow: {
@@ -321,17 +348,17 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: '#B89062',
+        borderColor: '#D0D8D4',
         backgroundColor: '#FFFFFF'
     },
     tabChipActive: {
-        backgroundColor: '#A97845',
-        borderColor: '#A97845'
+        backgroundColor: '#005C55',
+        borderColor: '#005C55'
     },
     tabChipText: {
         fontSize: 13,
         fontWeight: '500',
-        color: '#6F6256'
+        color: '#687572'
     },
     tabChipTextActive: {
         color: '#FFFFFF',
@@ -419,10 +446,10 @@ const styles = StyleSheet.create({
         height: 52,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#B89062',
+        borderColor: '#F3D2CC',
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#FFFFFF'
+        backgroundColor: '#FDF3F1'
     },
     cancelBtnIcon: {
         fontSize: 16,
@@ -434,13 +461,13 @@ const styles = StyleSheet.create({
         height: 52,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#B89062',
+        borderColor: '#005C55',
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#FFFFFF'
     },
     rescheduleText: {
-        color: '#6F6256',
+        color: '#005C55',
         fontSize: 14,
         fontWeight: '600'
     },
@@ -448,7 +475,7 @@ const styles = StyleSheet.create({
         flex: 1,
         height: 52,
         borderRadius: 12,
-        backgroundColor: '#A97845',
+        backgroundColor: '#005C55',
         justifyContent: 'center',
         alignItems: 'center'
     },
@@ -463,7 +490,7 @@ const styles = StyleSheet.create({
         padding: 32,
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#EFE6DA',
+        borderColor: '#E2E6E1',
         marginTop: 20
     },
     emptyIcon: {
@@ -479,18 +506,18 @@ const styles = StyleSheet.create({
     emptyTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: '#2A211C',
+        color: '#182C2A',
         marginBottom: 6
     },
     emptySub: {
         fontSize: 13,
-        color: '#6F6256',
+        color: '#687572',
         textAlign: 'center',
         lineHeight: 18,
         marginBottom: 16
     },
     exploreBtn: {
-        backgroundColor: '#A97845',
+        backgroundColor: '#005C55',
         paddingHorizontal: 20,
         paddingVertical: 12,
         borderRadius: 12

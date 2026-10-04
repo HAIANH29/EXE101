@@ -96,7 +96,9 @@ const profileCopy = {
       Home: 'Trang chủ',
       Explore: 'Khám phá',
       AICamera: 'AI Camera',
-      Bookings: 'Lịch hẹn',
+      Salons: 'Salon',
+      Bookings: 'Lịch sử',
+      History: 'Lịch sử',
       Profile: 'Cá nhân'
     }
   },
@@ -171,7 +173,9 @@ const profileCopy = {
       Home: 'Home',
       Explore: 'Explore',
       AICamera: 'AI Camera',
-      Bookings: 'Bookings',
+      Salons: 'Salons',
+      Bookings: 'History',
+      History: 'History',
       Profile: 'Profile'
     }
   }
@@ -432,13 +436,27 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       {/* Top App Bar */}
       <View style={styles.topAppBar}>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()}>
-          <AppIcon name="menu" size={22} color="#A97845" />
+        <TouchableOpacity
+          style={styles.iconBtn}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('Home');
+            }
+          }}
+        >
+          <AppIcon name="menu" size={22} color="#005C55" />
         </TouchableOpacity>
 
         <Text style={styles.brandTitle}>StyleLock</Text>
 
-        <NotificationBellButton navigation={navigation} style={styles.iconBtn} />
+        <View style={styles.headerRightActions}>
+          <NotificationBellButton navigation={navigation} style={styles.headerIconBtn} />
+          <View style={[styles.headerIconBtn, styles.headerIconBtnActive]}>
+            <AppIcon name="user" size={20} color="#005C55" />
+          </View>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -747,7 +765,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F6EFE6'
+    backgroundColor: '#F7F5F1'
   },
   topAppBar: {
     height: 60,
@@ -755,9 +773,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    backgroundColor: 'rgba(250, 250, 250, 0.95)',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderBottomWidth: 1,
-    borderBottomColor: '#EFE2D2',
+    borderBottomColor: '#E2E6E1',
     zIndex: 10
   },
   iconBtn: {
@@ -767,14 +785,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
-  topIcon: {
-    fontSize: 20,
-    color: '#A97845'
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
+  },
+  headerIconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F0F5F3'
+  },
+  headerIconBtnActive: {
+    backgroundColor: '#E3EFEB'
   },
   brandTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#A97845',
+    color: '#005C55',
     letterSpacing: -0.5
   },
   bellBadgeWrap: {
@@ -812,10 +842,10 @@ const styles = StyleSheet.create({
   avatarFallback: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#EAD7BF'
+    backgroundColor: '#E3EFEB'
   },
   avatarInitials: {
-    color: '#A97845',
+    color: '#005C55',
     fontSize: 34,
     fontWeight: '800'
   },
@@ -826,7 +856,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#A97845',
+    backgroundColor: '#005C55',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
@@ -839,12 +869,12 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#2A211C',
+    color: '#182C2A',
     marginBottom: 4
   },
   userEmail: {
     fontSize: 14,
-    color: '#6F6256',
+    color: '#687572',
     marginBottom: 16
   },
   languageSwitch: {
@@ -853,7 +883,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#DDCDB9',
+    borderColor: '#D0D8D4',
     padding: 3,
     marginBottom: 16
   },
@@ -865,10 +895,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   languageOptionActive: {
-    backgroundColor: '#A97845'
+    backgroundColor: '#005C55'
   },
   languageText: {
-    color: '#6F6256',
+    color: '#687572',
     fontSize: 12,
     fontWeight: '800'
   },
@@ -883,7 +913,7 @@ const styles = StyleSheet.create({
   },
   profileStatusText: {
     fontSize: 13,
-    color: '#6F6256',
+    color: '#687572',
     fontWeight: '600'
   },
   profileErrorPill: {
@@ -897,7 +927,7 @@ const styles = StyleSheet.create({
     marginBottom: 12
   },
   profileErrorText: {
-    color: '#A97845',
+    color: '#005C55',
     fontSize: 12,
     fontWeight: '700',
     textAlign: 'center'
@@ -919,27 +949,27 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#EFE2D2'
+    borderColor: '#E2E6E1'
   },
   infoLabel: {
     fontSize: 11,
-    color: '#9A8A7A',
+    color: '#687572',
     fontWeight: '800',
     marginBottom: 4
   },
   infoValue: {
     fontSize: 14,
-    color: '#2A211C',
+    color: '#182C2A',
     fontWeight: '700'
   },
   editProfileBtn: {
-    backgroundColor: '#E6E2DC',
+    backgroundColor: '#005C55',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 24
   },
   editProfileText: {
-    color: '#1C1C18',
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600'
   },
@@ -1069,13 +1099,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#B89062',
+    borderColor: '#D0D8D4',
     backgroundColor: '#FFFFFF'
   },
   modalSecondaryText: {
-    color: '#6F6256',
+    color: '#687572',
     fontSize: 14,
-    fontWeight: '800'
+    fontWeight: '700'
   },
   modalPrimaryBtn: {
     flex: 1,
@@ -1083,7 +1113,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#A97845'
+    backgroundColor: '#005C55'
   },
   modalPrimaryBtnDisabled: {
     opacity: 0.7
@@ -1091,7 +1121,7 @@ const styles = StyleSheet.create({
   modalPrimaryText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '800'
+    fontWeight: '700'
   },
   bottomBar: {
     position: 'absolute',
