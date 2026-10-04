@@ -27,7 +27,7 @@ public class TryOnRequest {
     private String inputImageUrl;
 
     @Column(name = "status", length = 30, nullable = false)
-    private String status; // PENDING, DONE, FAILED
+    private String status; // PENDING, READY_FOR_ADJUST, DONE, FAILED
 
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;

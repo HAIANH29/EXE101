@@ -5,11 +5,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     Optional<Payment> findByBookingId(Long bookingId);
+
+    Optional<Payment> findByTransactionId(String transactionId);
 
     /**
      * Khách chuyển khoản, nội dung (content) thực tế có thể bị ngân hàng thêm ký tự thừa
@@ -19,8 +22,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     @Query(value = """
             SELECT * FROM payments
             WHERE status = 'PENDING'
-              AND :content LIKE '%' || reference_code || '%'
-            LIMIT 1
+              AND LOWER(:content) LIKE '%' || LOWER(reference_code) || '%'
             """, nativeQuery = true)
-    Optional<Payment> findPendingMatchingContent(@Param("content") String content);
+    List<Payment> findPendingMatchingContent(@Param("content") String content);
 }

@@ -9,6 +9,7 @@ import be.exe.common.response.PageResponse;
 import be.exe.common.security.CustomUserDetails;
 import be.exe.common.util.PaginationUtils;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -29,8 +30,8 @@ public class HairstyleController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<HairstyleResponse>> createHairstyle(
             @Valid @RequestBody CreateHairstyleRequest request) {
-        return ResponseEntity.ok(ApiResponse.success(
-                "Đã thêm kiểu tóc vào danh mục chung", hairstyleService.createHairstyle(request)));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(
+            "Đã thêm kiểu tóc vào danh mục chung", hairstyleService.createHairstyle(request)));
     }
 
     @PutMapping("/api/catalog/hairstyles/{hairstyleId}")

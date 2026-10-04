@@ -5,6 +5,7 @@ import be.exe.catalog.dto.response.HairstyleCategoryResponse;
 import be.exe.catalog.service.HairstyleCategoryService;
 import be.exe.common.response.ApiResponse;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -25,7 +26,8 @@ public class HairstyleCategoryController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<HairstyleCategoryResponse>> createCategory(
             @Valid @RequestBody CreateHairstyleCategoryRequest request) {
-        return ResponseEntity.ok(ApiResponse.success(categoryService.createCategory(request)));
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(ApiResponse.success(categoryService.createCategory(request)));
     }
 
     @GetMapping

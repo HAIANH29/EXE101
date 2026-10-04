@@ -4,6 +4,7 @@ import be.exe.payment.sepay.SePayWebhookAuthenticator;
 import be.exe.payment.sepay.SepayWebhookRequest;
 import be.exe.payment.service.PaymentService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -33,7 +34,7 @@ public class SepayWebhookController {
     @PostMapping("/api/payment/webhook/sepay")
     public ResponseEntity<String> handleWebhook(
             HttpServletRequest request,
-            @RequestBody SepayWebhookRequest payload) {
+            @Valid @RequestBody SepayWebhookRequest payload) {
 
         String authHeader = request.getHeader("Authorization");
 

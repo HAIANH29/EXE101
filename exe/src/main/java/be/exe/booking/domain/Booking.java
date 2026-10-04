@@ -1,5 +1,6 @@
 package be.exe.booking.domain;
 
+import be.exe.common.exception.ValidationException;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -84,6 +85,9 @@ public class Booking {
     }
 
     public void confirm() {
+        if (this.status != BookingStatus.PENDING) {
+            throw new ValidationException("Chỉ booking PENDING mới có thể xác nhận");
+        }
         this.status = BookingStatus.CONFIRMED;
     }
 
@@ -92,7 +96,18 @@ public class Booking {
     }
 
     public void complete() {
+        if (this.status != BookingStatus.CONFIRMED) {
+            throw new ValidationException("Chỉ booking CONFIRMED mới có thể hoàn tất");
+        }
         this.status = BookingStatus.COMPLETED;
+    }
+
+    public void reschedule(Instant startAt, Instant endAt) {
+        if (this.status != BookingStatus.PENDING && this.status != BookingStatus.CONFIRMED) {
+            throw new ValidationException("Chỉ booking PENDING hoặc CONFIRMED mới có thể đổi lịch");
+        }
+        this.startAt = startAt;
+        this.endAt = endAt;
     }
 
     public Long getId() {

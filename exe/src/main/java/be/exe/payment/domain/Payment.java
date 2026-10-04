@@ -30,7 +30,7 @@ public class Payment {
     @Column(name = "provider", nullable = false, length = 50)
     private PaymentProvider provider = PaymentProvider.SEPAY;
 
-    @Column(name = "transaction_id")
+    @Column(name = "transaction_id", unique = true)
     private String transactionId;
 
     @Column(name = "reference_code")

@@ -2,18 +2,23 @@ package be.exe.booking.controller;
 
 import be.exe.booking.dto.request.CancelBookingRequest;
 import be.exe.booking.dto.request.CreateBookingRequest;
+import be.exe.booking.dto.request.RescheduleBookingRequest;
 import be.exe.booking.dto.response.BookingDetailResponse;
 import be.exe.booking.dto.response.BookingResponse;
+import be.exe.booking.dto.response.AvailabilityResponse;
 import be.exe.booking.service.BookingService;
 import be.exe.common.response.ApiResponse;
 import be.exe.common.response.PageResponse;
 import be.exe.common.security.CustomUserDetails;
 import be.exe.common.util.PaginationUtils;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/bookings")
@@ -30,7 +35,8 @@ public class BookingController {
             @AuthenticationPrincipal CustomUserDetails principal,
             @Valid @RequestBody CreateBookingRequest request) {
         BookingResponse response = bookingService.createBooking(principal.getUserId(), request);
-        return ResponseEntity.ok(ApiResponse.success("Đặt lịch thành công, đang chờ xác nhận", response));
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(ApiResponse.success("Đặt lịch thành công, đang chờ xác nhận", response));
     }
 
     @GetMapping("/{bookingId}")
@@ -73,6 +79,15 @@ public class BookingController {
         return ResponseEntity.ok(ApiResponse.success(PageResponse.from(result)));
     }
 
+    @GetMapping("/salon/{salonId}/stylists/{stylistId}/availability")
+    public ResponseEntity<ApiResponse<AvailabilityResponse>> getAvailability(
+            @PathVariable Long salonId,
+            @PathVariable Long stylistId,
+            @RequestParam LocalDate date) {
+        return ResponseEntity.ok(ApiResponse.success(
+                bookingService.getAvailability(salonId, stylistId, date)));
+    }
+
     @PatchMapping("/{bookingId}/confirm")
     @PreAuthorize("hasRole('SALON_OWNER') or hasRole('STAFF') or hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<BookingResponse>> confirmBooking(@PathVariable Long bookingId) {
@@ -86,6 +101,16 @@ public class BookingController {
             @RequestBody(required = false) CancelBookingRequest request) {
         BookingResponse response = bookingService.cancelBooking(bookingId, principal.getUserId(), request);
         return ResponseEntity.ok(ApiResponse.success("Đã hủy lịch hẹn", response));
+    }
+
+    @PatchMapping("/{bookingId}/reschedule")
+    public ResponseEntity<ApiResponse<BookingResponse>> rescheduleBooking(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @PathVariable Long bookingId,
+            @Valid @RequestBody RescheduleBookingRequest request) {
+        BookingResponse response = bookingService.rescheduleBooking(
+                bookingId, principal.getUserId(), request);
+        return ResponseEntity.ok(ApiResponse.success("Đã đổi lịch hẹn", response));
     }
 
     @PatchMapping("/{bookingId}/complete")

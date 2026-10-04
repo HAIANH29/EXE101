@@ -1,0 +1,377 @@
+openapi: 3.0.3
+info:
+  title: Salon Booking Backend API
+  version: 0.0.1
+  description: Historical contract reconstructed from an earlier source snapshot. The current 66-endpoint contract, including availability, reschedule, try-on result routes, and 201 creation responses, is documented in docs/requirements.md.
+servers:
+  - url: http://localhost:8080
+security:
+  - bearerAuth: []
+tags:
+  - name: Auth
+  - name: Booking
+  - name: Salon
+  - name: Stylist
+  - name: Catalog
+  - name: Review
+  - name: Notification
+  - name: Payment
+  - name: Admin
+  - name: Reporting
+paths:
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      security: []
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RegisterRequest' } } } }
+      responses: { '200': { $ref: '#/components/responses/LoginSuccess' }, '400': { $ref: '#/components/responses/ValidationError' }, '409': { $ref: '#/components/responses/Error' } }
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      security: []
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/LoginRequest' } } } }
+      responses: { '200': { $ref: '#/components/responses/LoginSuccess' }, '400': { $ref: '#/components/responses/ValidationError' }, '401': { $ref: '#/components/responses/Error' } }
+  /api/auth/google:
+    post:
+      tags: [Auth]
+      security: []
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/GoogleLoginRequest' } } } }
+      responses: { '200': { $ref: '#/components/responses/LoginSuccess' }, '400': { $ref: '#/components/responses/ValidationError' }, '401': { $ref: '#/components/responses/Error' } }
+  /api/auth/refresh:
+    post:
+      tags: [Auth]
+      security: []
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RefreshTokenRequest' } } } }
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/TokenResponseEnvelope' } } } }, '400': { $ref: '#/components/responses/ValidationError' }, '401': { $ref: '#/components/responses/Error' } }
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      security: []
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RefreshTokenRequest' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '400': { $ref: '#/components/responses/ValidationError' }, '401': { $ref: '#/components/responses/Error' } }
+  /api/auth/logout-all:
+    post:
+      tags: [Auth]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '401': { $ref: '#/components/responses/Error' } }
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/UserEnvelope' } } } }, '401': { $ref: '#/components/responses/Error' } }
+  /api/auth/change-password:
+    post:
+      tags: [Auth]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ChangePasswordRequest' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '400': { $ref: '#/components/responses/ValidationError' }, '401': { $ref: '#/components/responses/Error' } }
+  /api/bookings:
+    post:
+      tags: [Booking]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateBookingRequest' } } } }
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/BookingEnvelope' } } } }, '400': { $ref: '#/components/responses/ValidationError' }, '409': { $ref: '#/components/responses/Error' } }
+  /api/bookings/{bookingId}:
+    get:
+      tags: [Booking]
+      parameters: [{ $ref: '#/components/parameters/bookingId' }]
+      responses: { '200': { description: OK }, '401': { $ref: '#/components/responses/Error' }, '403': { $ref: '#/components/responses/Error' }, '404': { $ref: '#/components/responses/Error' } }
+  /api/bookings/me:
+    get:
+      tags: [Booking]
+      parameters: [{ $ref: '#/components/parameters/page' }, { $ref: '#/components/parameters/size' }]
+      responses: { '200': { $ref: '#/components/responses/PageSuccess' } }
+  /api/bookings/salon/{salonId}:
+    get:
+      tags: [Booking]
+      parameters: [{ $ref: '#/components/parameters/salonId' }, { $ref: '#/components/parameters/page' }, { $ref: '#/components/parameters/size' }]
+      responses: { '200': { $ref: '#/components/responses/PageSuccess' }, '403': { $ref: '#/components/responses/Error' } }
+  /api/bookings/stylist/{stylistId}:
+    get:
+      tags: [Booking]
+      parameters: [{ $ref: '#/components/parameters/stylistId' }, { $ref: '#/components/parameters/page' }, { $ref: '#/components/parameters/size' }]
+      responses: { '200': { $ref: '#/components/responses/PageSuccess' } }
+  /api/bookings/{bookingId}/confirm:
+    patch:
+      tags: [Booking]
+      parameters: [{ $ref: '#/components/parameters/bookingId' }]
+      responses: { '200': { $ref: '#/components/responses/BookingResponse' }, '403': { $ref: '#/components/responses/Error' } }
+  /api/bookings/{bookingId}/cancel:
+    patch:
+      tags: [Booking]
+      parameters: [{ $ref: '#/components/parameters/bookingId' }]
+      requestBody: { required: false, content: { application/json: { schema: { $ref: '#/components/schemas/CancelBookingRequest' } } } }
+      responses: { '200': { $ref: '#/components/responses/BookingResponse' }, '400': { $ref: '#/components/responses/Error' }, '403': { $ref: '#/components/responses/Error' } }
+  /api/bookings/{bookingId}/complete:
+    patch:
+      tags: [Booking]
+      parameters: [{ $ref: '#/components/parameters/bookingId' }]
+      responses: { '200': { $ref: '#/components/responses/BookingResponse' }, '403': { $ref: '#/components/responses/Error' } }
+  /api/salons:
+    post:
+      tags: [Salon]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SalonRequest' } } } }
+      responses: { '200': { $ref: '#/components/responses/SalonResponse' }, '400': { $ref: '#/components/responses/ValidationError' }, '403': { $ref: '#/components/responses/Error' } }
+    get:
+      tags: [Salon]
+      parameters: [{ name: status, in: query, required: false, schema: { type: string } }, { $ref: '#/components/parameters/page' }, { $ref: '#/components/parameters/size' }]
+      responses: { '200': { $ref: '#/components/responses/PageSuccess' } }
+  /api/salons/{salonId}:
+    get:
+      tags: [Salon]
+      parameters: [{ $ref: '#/components/parameters/salonId' }]
+      responses: { '200': { $ref: '#/components/responses/SalonResponse' } }
+    put:
+      tags: [Salon]
+      parameters: [{ $ref: '#/components/parameters/salonId' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SalonRequest' } } } }
+      responses: { '200': { $ref: '#/components/responses/SalonResponse' }, '400': { $ref: '#/components/responses/ValidationError' }, '403': { $ref: '#/components/responses/Error' } }
+  /api/salons/{salonId}/status:
+    patch:
+      tags: [Salon]
+      parameters: [{ $ref: '#/components/parameters/salonId' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/StatusRequest' } } } }
+      responses: { '200': { $ref: '#/components/responses/SalonResponse' }, '400': { $ref: '#/components/responses/ValidationError' }, '403': { $ref: '#/components/responses/Error' } }
+  /api/salons/my-salons:
+    get:
+      tags: [Salon]
+      parameters: [{ $ref: '#/components/parameters/page' }, { $ref: '#/components/parameters/size' }]
+      responses: { '200': { $ref: '#/components/responses/PageSuccess' }, '403': { $ref: '#/components/responses/Error' } }
+  /api/salons/{salonId}/business-hours:
+    put:
+      tags: [Salon]
+      parameters: [{ $ref: '#/components/parameters/salonId' }]
+      requestBody: { required: true, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/BusinessHourRequest' } } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '400': { $ref: '#/components/responses/ValidationError' } }
+  /api/salons/{salonId}/stylists:
+    post:
+      tags: [Stylist]
+      parameters: [{ $ref: '#/components/parameters/salonId' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateStylistRequest' } } } }
+      responses: { '200': { $ref: '#/components/responses/StylistResponse' }, '400': { $ref: '#/components/responses/ValidationError' } }
+    get:
+      tags: [Stylist]
+      parameters: [{ $ref: '#/components/parameters/salonId' }, { $ref: '#/components/parameters/page' }, { $ref: '#/components/parameters/size' }]
+      responses: { '200': { $ref: '#/components/responses/PageSuccess' } }
+  /api/stylists/{stylistId}:
+    get:
+      tags: [Stylist]
+      parameters: [{ $ref: '#/components/parameters/stylistId' }]
+      responses: { '200': { $ref: '#/components/responses/StylistResponse' } }
+    put:
+      tags: [Stylist]
+      parameters: [{ $ref: '#/components/parameters/stylistId' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UpdateStylistRequest' } } } }
+      responses: { '200': { $ref: '#/components/responses/StylistResponse' }, '403': { $ref: '#/components/responses/Error' } }
+  /api/salons/{salonId}/services:
+    post:
+      tags: [Catalog]
+      parameters: [{ $ref: '#/components/parameters/salonId' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ServiceRequest' } } } }
+      responses: { '200': { $ref: '#/components/responses/ServiceResponse' }, '400': { $ref: '#/components/responses/ValidationError' } }
+    get:
+      tags: [Catalog]
+      parameters: [{ $ref: '#/components/parameters/salonId' }, { $ref: '#/components/parameters/page' }, { $ref: '#/components/parameters/size' }]
+      responses: { '200': { $ref: '#/components/responses/PageSuccess' } }
+  /api/services/{serviceId}:
+    get:
+      tags: [Catalog]
+      parameters: [{ $ref: '#/components/parameters/serviceId' }]
+      responses: { '200': { $ref: '#/components/responses/ServiceResponse' } }
+    put:
+      tags: [Catalog]
+      parameters: [{ $ref: '#/components/parameters/serviceId' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ServiceUpdateRequest' } } } }
+      responses: { '200': { $ref: '#/components/responses/ServiceResponse' }, '400': { $ref: '#/components/responses/ValidationError' } }
+  /api/catalog/hairstyle-categories:
+    post:
+      tags: [Catalog]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CategoryRequest' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
+    get:
+      tags: [Catalog]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+  /api/catalog/hairstyles:
+    post:
+      tags: [Catalog]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/HairstyleRequest' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '400': { $ref: '#/components/responses/ValidationError' } }
+    get:
+      tags: [Catalog]
+      parameters: [{ name: categoryId, in: query, required: false, schema: { type: integer, format: int64 } }, { $ref: '#/components/parameters/page' }, { $ref: '#/components/parameters/size' }]
+      responses: { '200': { $ref: '#/components/responses/PageSuccess' } }
+  /api/catalog/hairstyles/{hairstyleId}:
+    get:
+      tags: [Catalog]
+      parameters: [{ $ref: '#/components/parameters/hairstyleId' }]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+    put:
+      tags: [Catalog]
+      parameters: [{ $ref: '#/components/parameters/hairstyleId' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/HairstyleUpdateRequest' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '400': { $ref: '#/components/responses/ValidationError' } }
+  /api/salons/{salonId}/hairstyles/{hairstyleId}:
+    post:
+      tags: [Catalog]
+      parameters: [{ $ref: '#/components/parameters/salonId' }, { $ref: '#/components/parameters/hairstyleId' }]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+    delete:
+      tags: [Catalog]
+      parameters: [{ $ref: '#/components/parameters/salonId' }, { $ref: '#/components/parameters/hairstyleId' }]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+  /api/salons/{salonId}/hairstyles:
+    get:
+      tags: [Catalog]
+      parameters: [{ $ref: '#/components/parameters/salonId' }]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+  /api/reviews:
+    post:
+      tags: [Review]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateReviewRequest' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '400': { $ref: '#/components/responses/ValidationError' } }
+  /api/reviews/{reviewId}:
+    get:
+      tags: [Review]
+      parameters: [{ $ref: '#/components/parameters/reviewId' }]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+    put:
+      tags: [Review]
+      parameters: [{ $ref: '#/components/parameters/reviewId' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UpdateReviewRequest' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '400': { $ref: '#/components/responses/ValidationError' } }
+  /api/salons/{salonId}/reviews:
+    get:
+      tags: [Review]
+      parameters: [{ $ref: '#/components/parameters/salonId' }, { $ref: '#/components/parameters/page' }, { $ref: '#/components/parameters/size' }]
+      responses: { '200': { $ref: '#/components/responses/PageSuccess' } }
+  /api/salons/{salonId}/reviews/summary:
+    get:
+      tags: [Review]
+      parameters: [{ $ref: '#/components/parameters/salonId' }]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+  /api/notifications:
+    get:
+      tags: [Notification]
+      parameters: [{ $ref: '#/components/parameters/page' }, { $ref: '#/components/parameters/size' }]
+      responses: { '200': { $ref: '#/components/responses/PageSuccess' } }
+  /api/notifications/unread-count:
+    get:
+      tags: [Notification]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+  /api/notifications/{notificationId}/read:
+    patch:
+      tags: [Notification]
+      parameters: [{ $ref: '#/components/parameters/notificationId' }]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+  /api/notifications/read-all:
+    patch:
+      tags: [Notification]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+  /api/bookings/{bookingId}/payment:
+    get:
+      tags: [Payment]
+      parameters: [{ $ref: '#/components/parameters/bookingId' }]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+  /api/payments/{paymentId}:
+    get:
+      tags: [Payment]
+      parameters: [{ $ref: '#/components/parameters/paymentId' }]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+  /api/payment/webhook/sepay:
+    post:
+      tags: [Payment]
+      security: []
+      description: Public route but Authorization must contain the configured SePay API key.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SepayWebhookRequest' } } } }
+      responses: { '200': { description: SePay acknowledgement, content: { application/json: { example: { success: true } } } }, '401': { description: Unauthorized } }
+  /api/admin/users:
+    get:
+      tags: [Admin]
+      parameters: [{ name: status, in: query, required: false, schema: { type: string } }, { $ref: '#/components/parameters/page' }, { $ref: '#/components/parameters/size' }]
+      responses: { '200': { $ref: '#/components/responses/PageSuccess' }, '403': { $ref: '#/components/responses/Error' } }
+  /api/admin/users/{userId}/status:
+    patch:
+      tags: [Admin]
+      parameters: [{ $ref: '#/components/parameters/userId' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/StatusRequest' } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '400': { $ref: '#/components/responses/ValidationError' }, '403': { $ref: '#/components/responses/Error' } }
+  /api/admin/salons:
+    get:
+      tags: [Admin]
+      parameters: [{ name: status, in: query, required: false, schema: { type: string } }, { $ref: '#/components/parameters/page' }, { $ref: '#/components/parameters/size' }]
+      responses: { '200': { $ref: '#/components/responses/PageSuccess' } }
+  /api/admin/salons/{salonId}/approve:
+    patch:
+      tags: [Admin]
+      parameters: [{ $ref: '#/components/parameters/salonId' }]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+  /api/admin/salons/{salonId}/reject:
+    patch:
+      tags: [Admin]
+      parameters: [{ $ref: '#/components/parameters/salonId' }]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+  /api/dashboard/overview:
+    get:
+      tags: [Reporting]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
+  /api/dashboard/revenue:
+    get:
+      tags: [Reporting]
+      parameters:
+        - { name: from, in: query, required: true, schema: { type: string, format: date-time } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date-time } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '400': { $ref: '#/components/responses/Error' } }
+  /api/dashboard/bookings/statistics:
+    get:
+      tags: [Reporting]
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    page: { name: page, in: query, required: false, schema: { type: integer, format: int32 } }
+    size: { name: size, in: query, required: false, schema: { type: integer, format: int32 } }
+    bookingId: { name: bookingId, in: path, required: true, schema: { type: integer, format: int64 } }
+    salonId: { name: salonId, in: path, required: true, schema: { type: integer, format: int64 } }
+    stylistId: { name: stylistId, in: path, required: true, schema: { type: integer, format: int64 } }
+    serviceId: { name: serviceId, in: path, required: true, schema: { type: integer, format: int64 } }
+    hairstyleId: { name: hairstyleId, in: path, required: true, schema: { type: integer, format: int64 } }
+    reviewId: { name: reviewId, in: path, required: true, schema: { type: integer, format: int64 } }
+    notificationId: { name: notificationId, in: path, required: true, schema: { type: integer, format: int64 } }
+    paymentId: { name: paymentId, in: path, required: true, schema: { type: integer, format: int64 } }
+    userId: { name: userId, in: path, required: true, schema: { type: integer, format: int64 } }
+  schemas:
+    RegisterRequest: { type: object, required: [email, password, fullName], properties: { email: { type: string, format: email }, password: { type: string, minLength: 6, maxLength: 100 }, fullName: { type: string, maxLength: 150 }, phone: { type: string, nullable: true } } }
+    LoginRequest: { type: object, required: [email, password], properties: { email: { type: string, format: email }, password: { type: string } } }
+    GoogleLoginRequest: { type: object, required: [idToken], properties: { idToken: { type: string } } }
+    RefreshTokenRequest: { type: object, required: [refreshToken], properties: { refreshToken: { type: string } } }
+    ChangePasswordRequest: { type: object, required: [oldPassword, newPassword], properties: { oldPassword: { type: string }, newPassword: { type: string, minLength: 6, maxLength: 100 } } }
+    CreateBookingRequest: { type: object, required: [salonId, stylistId, serviceId, startAt], properties: { salonId: { type: integer, format: int64 }, stylistId: { type: integer, format: int64 }, serviceId: { type: integer, format: int64 }, hairstyleId: { type: integer, format: int64, nullable: true }, startAt: { type: string, format: date-time }, note: { type: string, nullable: true } } }
+    CancelBookingRequest: { type: object, properties: { reason: { type: string, nullable: true } } }
+    SalonRequest: { type: object, required: [name], properties: { name: { type: string, maxLength: 200 }, phone: { type: string }, address: { type: string }, description: { type: string }, imageUrl: { type: string } } }
+    StatusRequest: { type: object, required: [status], properties: { status: { type: string } } }
+    CreateStylistRequest: { type: object, required: [userId], properties: { userId: { type: integer, format: int64 }, bio: { type: string }, experienceYears: { type: integer, format: int32 } } }
+    UpdateStylistRequest: { type: object, properties: { bio: { type: string }, experienceYears: { type: integer, format: int32 }, status: { type: string } } }
+    BusinessHourRequest: { type: object, required: [dayOfWeek], properties: { dayOfWeek: { type: integer, format: int32, minimum: 1, maximum: 7 }, openTime: { type: string, format: time, nullable: true }, closeTime: { type: string, format: time, nullable: true }, closed: { type: boolean } } }
+    ServiceRequest: { type: object, required: [name, price, durationMinutes], properties: { name: { type: string }, description: { type: string }, price: { type: number, format: double, minimum: 0 }, durationMinutes: { type: integer, minimum: 1 } } }
+    ServiceUpdateRequest: { allOf: [{ $ref: '#/components/schemas/ServiceRequest' }, { type: object, properties: { status: { type: string } } }] }
+    CategoryRequest: { type: object, required: [name], properties: { name: { type: string }, description: { type: string } } }
+    HairstyleRequest: { type: object, required: [name, imageUrl], properties: { name: { type: string }, description: { type: string }, imageUrl: { type: string }, categoryId: { type: integer, format: int64 }, gender: { type: string } } }
+    HairstyleUpdateRequest: { allOf: [{ $ref: '#/components/schemas/HairstyleRequest' }, { type: object, properties: { status: { type: string } } }] }
+    CreateReviewRequest: { type: object, required: [bookingId, rating], properties: { bookingId: { type: integer, format: int64 }, rating: { type: integer, format: int32, minimum: 1, maximum: 5 }, comment: { type: string, maxLength: 2000 } } }
+    UpdateReviewRequest: { type: object, required: [rating], properties: { rating: { type: integer, minimum: 1, maximum: 5 }, comment: { type: string, maxLength: 2000 } } }
+    SepayWebhookRequest: { type: object, properties: { id: { type: integer, format: int64 }, gateway: { type: string }, transactionDate: { type: string }, accountNumber: { type: string }, content: { type: string }, transferType: { type: string }, transferAmount: { type: number }, accumulated: { type: number } } }
+    User: { type: object, properties: { id: { type: integer, format: int64 }, email: { type: string }, fullName: { type: string }, phone: { type: string, nullable: true }, avatarUrl: { type: string, nullable: true }, status: { type: string }, roles: { type: array, items: { type: string } }, createdAt: { type: string, format: date-time } } }
+    Login: { type: object, properties: { accessToken: { type: string }, refreshToken: { type: string }, tokenType: { type: string, example: Bearer }, expiresIn: { type: integer, format: int64 }, user: { $ref: '#/components/schemas/User' } } }
+    Token: { type: object, properties: { accessToken: { type: string }, refreshToken: { type: string }, tokenType: { type: string }, expiresIn: { type: integer, format: int64 } } }
+    Envelope: { type: object, properties: { success: { type: boolean }, message: { type: string, nullable: true }, data: {}, timestamp: { type: string, format: date-time } } }
+    Error: { type: object, properties: { success: { type: boolean, example: false }, errorCode: { type: string }, message: { type: string }, timestamp: { type: string, format: date-time }, path: { type: string }, fieldErrors: { type: array, items: { type: object, properties: { field: { type: string }, message: { type: string } } } } } }
+  responses:
+    Success: { description: Success, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+    LoginSuccess: { description: Success, content: { application/json: { schema: { allOf: [{ $ref: '#/components/schemas/Envelope' }, { type: object, properties: { data: { $ref: '#/components/schemas/Login' } } }] } } } }
+    TokenResponseEnvelope: { description: Success, content: { application/json: { schema: { allOf: [{ $ref: '#/components/schemas/Envelope' }, { type: object, properties: { data: { $ref: '#/components/schemas/Token' } } }] } } } }
+    UserEnvelope: { description: Success, content: { application/json: { schema: { allOf: [{ $ref: '#/components/schemas/Envelope' }, { type: object, properties: { data: { $ref: '#/components/schemas/User' } } }] } } } }
+    BookingEnvelope: { description: Success, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+    BookingResponse: { description: Success, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+    SalonResponse: { description: Success, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+    StylistResponse: { description: Success, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+    ServiceResponse: { description: Success, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+    PageSuccess: { description: Success, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+    Error: { description: Error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    ValidationError: { description: Validation error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }

@@ -24,5 +24,5 @@ public interface PaymentService {
 
     PaymentResponse getPaymentByBooking(Long bookingId, Long requesterId);
 
-    PaymentResponse getPayment(Long paymentId);
+    PaymentResponse getPayment(Long paymentId, Long requesterId);
 }
