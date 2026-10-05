@@ -27,7 +27,7 @@ app:
   jwt:
     secret: test-secret-key-that-is-at-least-32-characters-long
     access-token-expiration-ms: 900000
-    refresh-token-expiration-ms: 604800000
+    refresh-token-expiration-ms: 2592000000
     issuer: salon-backend-test
 
   sepay:

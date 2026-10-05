@@ -27,6 +27,7 @@ import be.exe.common.exception.ForbiddenException;
 import be.exe.common.exception.ResourceNotFoundException;
 import be.exe.common.exception.ValidationException;
 import be.exe.salon.dto.response.SalonSummaryResponse;
+import be.exe.salon.dto.response.StylistResponse;
 import be.exe.salon.dto.response.StylistSummaryResponse;
 import be.exe.salon.service.SalonService;
 import be.exe.salon.service.StylistService;
@@ -150,7 +151,7 @@ public class BookingServiceImpl implements BookingService {
         eventPublisher.publishEvent(new BookingCreatedEvent(
                 booking.getId(), booking.getCustomerId(), booking.getSalonId(), booking.getTotalAmount()));
 
-        return BookingMapper.toResponse(booking);
+        return toEnrichedResponse(booking);
     }
 
     @Override
@@ -160,7 +161,7 @@ public class BookingServiceImpl implements BookingService {
 
         eventPublisher.publishEvent(new BookingConfirmedEvent(booking.getId(), booking.getCustomerId()));
 
-        return BookingMapper.toResponse(booking);
+        return toEnrichedResponse(booking);
     }
 
     @Override
@@ -188,7 +189,7 @@ public class BookingServiceImpl implements BookingService {
         String reason = (request != null) ? request.getReason() : null;
         eventPublisher.publishEvent(new BookingCancelledEvent(booking.getId(), booking.getCustomerId(), reason));
 
-        return BookingMapper.toResponse(booking);
+        return toEnrichedResponse(booking);
     }
 
     @Override
@@ -241,7 +242,7 @@ public class BookingServiceImpl implements BookingService {
         eventPublisher.publishEvent(new BookingCompletedEvent(
                 booking.getId(), booking.getCustomerId(), booking.getSalonId()));
 
-        return BookingMapper.toResponse(booking);
+        return toEnrichedResponse(booking);
     }
 
     @Override
@@ -253,13 +254,20 @@ public class BookingServiceImpl implements BookingService {
             throw new ForbiddenException("Bạn không có quyền xem lịch hẹn này");
         }
 
-        String salonName = salonService.getSalonOrThrow(booking.getSalonId()).name();
+        var salon = salonService.getSalonDetail(booking.getSalonId());
+        StylistResponse stylist = stylistService.getStylist(booking.getStylistId());
         String serviceName = serviceCatalogService.getServiceOrThrow(booking.getServiceId()).name();
         String hairstyleName = (booking.getHairstyleId() != null)
                 ? hairstyleService.getHairstyleOrThrow(booking.getHairstyleId()).name()
                 : null;
 
-        return BookingMapper.toDetailResponse(booking, salonName, serviceName, hairstyleName);
+        return BookingMapper.toDetailResponse(
+                booking,
+                salon.name(),
+                salon.address(),
+                stylist.fullName(),
+                serviceName,
+                hairstyleName);
     }
 
     @Override
@@ -274,7 +282,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional(readOnly = true)
     public Page<BookingResponse> getMyBookings(Long customerId, Pageable pageable) {
-        return bookingRepository.findByCustomerId(customerId, pageable).map(BookingMapper::toResponse);
+        return bookingRepository.findByCustomerId(customerId, pageable).map(this::toEnrichedResponse);
     }
 
     @Override
@@ -284,13 +292,13 @@ public class BookingServiceImpl implements BookingService {
         if (!salon.ownerId().equals(ownerId)) {
             throw new ForbiddenException("Bạn không phải chủ sở hữu salon này");
         }
-        return bookingRepository.findBySalonId(salonId, pageable).map(BookingMapper::toResponse);
+        return bookingRepository.findBySalonId(salonId, pageable).map(this::toEnrichedResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<BookingResponse> getStylistBookings(Long stylistId, Pageable pageable) {
-        return bookingRepository.findByStylistId(stylistId, pageable).map(BookingMapper::toResponse);
+        return bookingRepository.findByStylistId(stylistId, pageable).map(this::toEnrichedResponse);
     }
 
     @Override
@@ -343,5 +351,22 @@ public class BookingServiceImpl implements BookingService {
     private Booking findOrThrow(Long bookingId) {
         return bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
+    }
+
+    private BookingResponse toEnrichedResponse(Booking booking) {
+        var salon = salonService.getSalonDetail(booking.getSalonId());
+        StylistResponse stylist = stylistService.getStylist(booking.getStylistId());
+        String serviceName = serviceCatalogService.getServiceOrThrow(booking.getServiceId()).name();
+        String hairstyleName = (booking.getHairstyleId() != null)
+                ? hairstyleService.getHairstyleOrThrow(booking.getHairstyleId()).name()
+                : null;
+
+        return BookingMapper.toResponse(
+                booking,
+                salon.name(),
+                salon.address(),
+                stylist.fullName(),
+                serviceName,
+                hairstyleName);
     }
 }

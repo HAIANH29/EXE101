@@ -1,10 +1,13 @@
 package be.exe.auth.controller;
 
 import be.exe.auth.dto.request.ChangePasswordRequest;
+import be.exe.auth.dto.request.ForgotPasswordRequest;
 import be.exe.auth.dto.request.GoogleLoginRequest;
 import be.exe.auth.dto.request.LoginRequest;
 import be.exe.auth.dto.request.RefreshTokenRequest;
 import be.exe.auth.dto.request.RegisterRequest;
+import be.exe.auth.dto.request.ResetPasswordRequest;
+import be.exe.auth.dto.request.UpdateProfileRequest;
 import be.exe.auth.dto.response.LoginResponse;
 import be.exe.auth.dto.response.TokenResponse;
 import be.exe.auth.dto.response.UserResponse;
@@ -13,9 +16,11 @@ import be.exe.auth.service.AuthService;
 import be.exe.common.response.ApiResponse;
 import be.exe.common.security.CustomUserDetails;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -85,11 +90,42 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @PatchMapping("/me")
+    public ResponseEntity<ApiResponse<UserResponse>> updateCurrentUser(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @Valid @RequestBody UpdateProfileRequest request) {
+        UserResponse response = authService.updateCurrentUser(principal.getUserId(), request);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật hồ sơ thành công", response));
+    }
+
+    @PostMapping(value = "/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<UserResponse>> uploadAvatar(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @RequestPart("file") MultipartFile file) {
+        UserResponse response = authService.uploadAvatar(principal.getUserId(), file);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật ảnh đại diện thành công", response));
+    }
+
     @PostMapping("/change-password")
     public ResponseEntity<ApiResponse<Void>> changePassword(
             @AuthenticationPrincipal CustomUserDetails principal,
             @Valid @RequestBody ChangePasswordRequest request) {
         authService.changePassword(principal.getUserId(), request);
+        return ResponseEntity.ok(ApiResponse.success("Đổi mật khẩu thành công"));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest request) {
+        authService.requestPasswordReset(request);
+        return ResponseEntity.ok(ApiResponse.success(
+                "Nếu email tồn tại, hệ thống đã gửi link đặt lại mật khẩu"));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
         return ResponseEntity.ok(ApiResponse.success("Đổi mật khẩu thành công"));
     }
 

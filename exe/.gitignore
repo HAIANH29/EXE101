@@ -1,5 +1,9 @@
 HELP.md
 target/
+.m2/
+logs/
+*.log
+uploads/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
@@ -33,3 +37,5 @@ build/
 .vscode/
 
 .env
+.env.*
+!.env.example

@@ -2,10 +2,12 @@ package be.exe.common.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -23,7 +25,7 @@ import be.exe.common.audit.AuditFilter;
 /**
  * Cấu hình Spring Security tổng thể:
  * - Stateless (không dùng session, mọi request xác thực qua JWT)
- * - Public endpoint: /api/auth/**, /api/public/**, Swagger, webhook SePay
+ * - Public endpoint: login/register/reset password, /api/public/**, Swagger, webhook SePay, uploaded files
  * - Còn lại: bắt buộc phải có JWT hợp lệ
  *
  * GHI CHÚ VỀ GOOGLE LOGIN: không dùng oauth2Login() của Spring Security (redirect-based,
@@ -49,20 +51,35 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
+                .cors(Customizer.withDefaults())
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Public - không cần đăng nhập
                         .requestMatchers(
-                            "/api/auth/register",
-                            "/api/auth/login",
-                            "/api/auth/google",
-                            "/api/auth/refresh",
-                            "/api/auth/logout",
                                 "/api/public/**",
                                 "/api/payment/webhook/**",
+                                "/swagger-ui.html",
                                 "/swagger-ui/**",
-                                "/api-docs/**"
+                                "/api-docs/**",
+                                "/v3/api-docs/**",
+                                "/uploads/**"
+                        ).permitAll()
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/auth/register",
+                                "/api/auth/login",
+                                "/api/auth/google",
+                                "/api/auth/refresh",
+                                "/api/auth/logout",
+                                "/api/auth/forgot-password",
+                                "/api/auth/reset-password"
+                        ).permitAll()
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/salons",
+                                "/api/salons/**",
+                                "/api/catalog/**",
+                                "/api/services/**",
+                                "/api/stylists/**"
                         ).permitAll()
                         // Còn lại bắt buộc phải đăng nhập
                         .anyRequest().authenticated()
