@@ -95,7 +95,7 @@ public class PaymentServiceImpl implements PaymentService {
             return;
         }
 
-        Payment payment = matchingPayments.getFirst();
+        Payment payment = matchingPayments.get(0);
 
         // Cho phép khách chuyển dư (ví dụ làm tròn số), nhưng không chấp nhận chuyển thiếu
         if (payload.transferAmount().compareTo(payment.getAmount()) < 0) {

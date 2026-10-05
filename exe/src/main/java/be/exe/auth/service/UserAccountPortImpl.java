@@ -28,6 +28,18 @@ public class UserAccountPortImpl implements UserAccountPort {
                 .map(this::toAccountInfo);
     }
 
+    @Override
+    public Optional<PublicProfile> findPublicProfileById(Long userId) {
+        return userRepository.findById(userId)
+                .map(user -> new PublicProfile(
+                        user.getId(),
+                        user.getEmail(),
+                        user.getFullName(),
+                        user.getPhone(),
+                        user.getAvatarUrl()
+                ));
+    }
+
     private AccountInfo toAccountInfo(User user) {
         return new AccountInfo(
                 user.getId(),

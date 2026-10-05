@@ -42,7 +42,7 @@ public class JwtService {
 
         return Jwts.builder()
                 .subject(String.valueOf(userId))
-            .id(UUID.randomUUID().toString())
+                .id(UUID.randomUUID().toString())
                 .claims(Map.of("email", email, "roles", roles, "type", "ACCESS"))
                 .issuer(jwtProperties.getIssuer())
                 .issuedAt(now)
@@ -57,7 +57,7 @@ public class JwtService {
 
         return Jwts.builder()
                 .subject(String.valueOf(userId))
-            .id(UUID.randomUUID().toString())
+                .id(UUID.randomUUID().toString())
                 .claims(Map.of("type", "REFRESH"))
                 .issuer(jwtProperties.getIssuer())
                 .issuedAt(now)

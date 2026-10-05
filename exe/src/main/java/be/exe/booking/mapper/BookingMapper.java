@@ -10,13 +10,28 @@ public final class BookingMapper {
     }
 
     public static BookingResponse toResponse(Booking booking) {
+        return toResponse(booking, null, null, null, null, null);
+    }
+
+    public static BookingResponse toResponse(
+            Booking booking,
+            String salonName,
+            String salonAddress,
+            String stylistName,
+            String serviceName,
+            String hairstyleName) {
         return new BookingResponse(
                 booking.getId(),
                 booking.getCustomerId(),
                 booking.getSalonId(),
+                salonName,
+                salonAddress,
                 booking.getStylistId(),
+                stylistName,
                 booking.getServiceId(),
+                serviceName,
                 booking.getHairstyleId(),
+                hairstyleName,
                 booking.getStartAt(),
                 booking.getEndAt(),
                 booking.getStatus().name(),
@@ -27,13 +42,20 @@ public final class BookingMapper {
     }
 
     public static BookingDetailResponse toDetailResponse(
-            Booking booking, String salonName, String serviceName, String hairstyleName) {
+            Booking booking,
+            String salonName,
+            String salonAddress,
+            String stylistName,
+            String serviceName,
+            String hairstyleName) {
         return new BookingDetailResponse(
                 booking.getId(),
                 booking.getCustomerId(),
                 booking.getSalonId(),
                 salonName,
+                salonAddress,
                 booking.getStylistId(),
+                stylistName,
                 booking.getServiceId(),
                 serviceName,
                 booking.getHairstyleId(),
