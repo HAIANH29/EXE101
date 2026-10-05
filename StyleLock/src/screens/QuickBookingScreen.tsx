@@ -244,7 +244,7 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
       {/* Fixed Top App Bar */}
       <View style={styles.topAppBar}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <AppIcon name="arrowLeft" size={21} color="#6F6256" />
+          <AppIcon name="arrowLeft" size={21} color="#687572" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Booking</Text>
         <View style={{ width: 40 }} />
@@ -253,7 +253,7 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
       {/* Success Toast */}
       {confirmed && (
         <View style={styles.successToast}>
-          <AppIcon name="check" size={18} color="#A97845" />
+          <AppIcon name="check" size={18} color="#005C55" />
           <Text style={styles.toastText}>Booking Confirmed!</Text>
         </View>
       )}
@@ -322,7 +322,7 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
                 styles.anyoneAvatarWrap,
                 activeStylistId === 'anyone' && styles.stylistAvatarActive
               ]}>
-                <AppIcon name="search" size={22} color="#A97845" />
+                <AppIcon name="search" size={22} color="#005C55" />
               </View>
               <Text style={[
                 styles.stylistName,
@@ -343,13 +343,13 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
             {/* Month Navigation Header */}
             <View style={styles.calendarHeader}>
               <TouchableOpacity onPress={handlePrevMonth} style={styles.calNavBtn}>
-                <AppIcon name="arrowLeft" size={20} color="#6F6256" />
+                <AppIcon name="arrowLeft" size={20} color="#687572" />
               </TouchableOpacity>
               <Text style={styles.calMonthTitle}>
                 {monthNames[calMonth]} {calYear}
               </Text>
               <TouchableOpacity onPress={handleNextMonth} style={styles.calNavBtn}>
-                <AppIcon name="arrowRight" size={20} color="#6F6256" />
+                <AppIcon name="arrowRight" size={20} color="#687572" />
               </TouchableOpacity>
             </View>
 
@@ -449,7 +449,7 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
               value={customerName}
               onChangeText={setCustomerName}
               placeholder="Enter your name"
-              placeholderTextColor="#9A8A7A"
+              placeholderTextColor="#8A9894"
             />
 
             <Text style={styles.inputLabel}>Phone Number *</Text>
@@ -459,7 +459,7 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
               onChangeText={setCustomerPhone}
               placeholder="e.g. 0988 123 456"
               keyboardType="phone-pad"
-              placeholderTextColor="#9A8A7A"
+              placeholderTextColor="#8A9894"
             />
           </View>
         </View>
@@ -505,7 +505,7 @@ export const QuickBookingScreen: React.FC<QuickBookingScreenProps> = ({ navigati
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FF'
+    backgroundColor: '#FBFFFE'
   },
   topAppBar: {
     position: 'absolute',
@@ -517,10 +517,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    backgroundColor: 'rgba(248, 249, 255, 0.9)',
+    backgroundColor: 'rgba(251, 255, 254, 0.9)',
     zIndex: 30,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(217, 227, 246, 0.5)'
+    borderBottomColor: 'rgba(208, 216, 212, 0.5)'
   },
   backBtn: {
     width: 40,
@@ -531,12 +531,12 @@ const styles = StyleSheet.create({
   },
   backIcon: {
     fontSize: 18,
-    color: '#6F6256'
+    color: '#687572'
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#A97845',
+    color: '#005C55',
     letterSpacing: -0.3
   },
   successToast: {
@@ -552,7 +552,7 @@ const styles = StyleSheet.create({
     gap: 8,
     zIndex: 50,
     borderWidth: 1,
-    borderColor: 'rgba(169, 120, 69, 0.20)',
+    borderColor: 'rgba(0, 92, 85, 0.20)',
     elevation: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -565,7 +565,7 @@ const styles = StyleSheet.create({
   toastText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#2A211C'
+    color: '#182C2A'
   },
   scrollContent: {
     paddingTop: 76,
@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 22,
     fontWeight: '600',
-    color: '#2A211C',
+    color: '#182C2A',
     marginBottom: 14,
     letterSpacing: -0.3
   },
@@ -593,17 +593,17 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#B89062',
+    borderColor: '#6F8B7A',
     backgroundColor: '#FFFFFF'
   },
   serviceChipActive: {
-    backgroundColor: '#A97845',
-    borderColor: '#A97845'
+    backgroundColor: '#005C55',
+    borderColor: '#005C55'
   },
   serviceChipText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#6F6256'
+    color: '#687572'
   },
   serviceChipTextActive: {
     color: '#FFFFFF',
@@ -624,13 +624,13 @@ const styles = StyleSheet.create({
     height: 68,
     borderRadius: 34,
     borderWidth: 1,
-    borderColor: '#B89062',
+    borderColor: '#6F8B7A',
     overflow: 'hidden',
     position: 'relative'
   },
   stylistAvatarActive: {
     borderWidth: 2,
-    borderColor: '#A97845',
+    borderColor: '#005C55',
     padding: 2
   },
   stylistAvatar: {
@@ -645,7 +645,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#A97845',
+    backgroundColor: '#005C55',
     justifyContent: 'center',
     alignItems: 'center'
   },
@@ -655,7 +655,7 @@ const styles = StyleSheet.create({
     fontWeight: '800'
   },
   anyoneAvatarWrap: {
-    backgroundColor: '#EFE2D2',
+    backgroundColor: '#E3EFEB',
     justifyContent: 'center',
     alignItems: 'center'
   },
@@ -665,10 +665,10 @@ const styles = StyleSheet.create({
   stylistName: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#6F6256'
+    color: '#687572'
   },
   stylistNameActive: {
-    color: '#A97845',
+    color: '#005C55',
     fontWeight: '700'
   },
   // Calendar
@@ -677,7 +677,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#EAD7BF',
+    borderColor: '#DDEBE3',
     marginBottom: 14,
     elevation: 2,
     shadowColor: '#000',
@@ -699,13 +699,13 @@ const styles = StyleSheet.create({
   },
   calNavIcon: {
     fontSize: 22,
-    color: '#6F6256',
+    color: '#687572',
     fontWeight: '300'
   },
   calMonthTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#2A211C'
+    color: '#182C2A'
   },
   calDayLabels: {
     flexDirection: 'row',
@@ -716,7 +716,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 11,
     fontWeight: '700',
-    color: '#6F6256',
+    color: '#687572',
     letterSpacing: 0.5
   },
   calGrid: {
@@ -731,7 +731,7 @@ const styles = StyleSheet.create({
     borderRadius: 999
   },
   calDaySelected: {
-    backgroundColor: '#A97845'
+    backgroundColor: '#005C55'
   },
   calDayOtherMonth: {
     opacity: 0.35
@@ -739,14 +739,14 @@ const styles = StyleSheet.create({
   calDayText: {
     fontSize: 15,
     fontWeight: '400',
-    color: '#2A211C'
+    color: '#182C2A'
   },
   calDayTextSelected: {
     color: '#FFFFFF',
     fontWeight: '700'
   },
   calDayTextOther: {
-    color: '#9A8A7A'
+    color: '#8A9894'
   },
   // Time Slots
   timeSlotsScroll: {
@@ -761,14 +761,14 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#B89062',
+    borderColor: '#6F8B7A',
     backgroundColor: '#FFFFFF'
   },
   timeSlotActive: {
-    backgroundColor: '#A97845',
-    borderColor: '#A97845',
+    backgroundColor: '#005C55',
+    borderColor: '#005C55',
     elevation: 2,
-    shadowColor: '#A97845',
+    shadowColor: '#005C55',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4
@@ -779,14 +779,14 @@ const styles = StyleSheet.create({
   timeSlotText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#6F6256'
+    color: '#687572'
   },
   timeSlotTextActive: {
     color: '#FFFFFF',
     fontWeight: '700'
   },
   timeSlotTextDisabled: {
-    color: '#9A8A7A'
+    color: '#8A9894'
   },
   // Try-On Card
   tryOnCard: {
@@ -796,31 +796,31 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#A97845',
+    borderColor: '#005C55',
     gap: 12
   },
   tryOnImg: {
     width: 52,
     height: 52,
     borderRadius: 10,
-    backgroundColor: '#EFE2D2'
+    backgroundColor: '#E3EFEB'
   },
   tryOnInfo: { flex: 1 },
   tryOnLabel: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#A97845',
+    color: '#005C55',
     letterSpacing: 0.8,
     marginBottom: 2
   },
   tryOnName: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#2A211C'
+    color: '#182C2A'
   },
   tryOnSub: {
     fontSize: 11,
-    color: '#6F6256'
+    color: '#687572'
   },
   // Contact form
   formCard: {
@@ -828,25 +828,25 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#EAD7BF',
+    borderColor: '#DDEBE3',
     elevation: 1
   },
   inputLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6F6256',
+    color: '#687572',
     marginBottom: 6
   },
   input: {
-    backgroundColor: '#F8F9FF',
+    backgroundColor: '#FBFFFE',
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 14,
-    color: '#2A211C',
+    color: '#182C2A',
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#B89062'
+    borderColor: '#6F8B7A'
   },
   // Bottom Bar
   bottomBar: {
@@ -856,7 +856,7 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: 'rgba(255, 255, 255, 0.85)',
     borderTopWidth: 1,
-    borderTopColor: '#EAD7BF',
+    borderTopColor: '#DDEBE3',
     paddingHorizontal: 20,
     paddingTop: 14,
     paddingBottom: 28,
@@ -877,14 +877,14 @@ const styles = StyleSheet.create({
   totalLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#6F6256',
+    color: '#687572',
     letterSpacing: 0.8,
     marginBottom: 2
   },
   totalPrice: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#A97845',
+    color: '#005C55',
     letterSpacing: -0.5
   },
   summaryRight: {
@@ -893,21 +893,21 @@ const styles = StyleSheet.create({
   summaryDateTime: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#2A211C'
+    color: '#182C2A'
   },
   summaryWith: {
     fontSize: 12,
-    color: '#6F6256'
+    color: '#687572'
   },
   confirmBtn: {
     width: '100%',
     height: 58,
-    backgroundColor: '#A97845',
+    backgroundColor: '#005C55',
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 6,
-    shadowColor: '#A97845',
+    shadowColor: '#005C55',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 10

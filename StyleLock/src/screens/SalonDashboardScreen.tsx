@@ -47,7 +47,7 @@ export const SalonDashboardScreen: React.FC<SalonDashboardScreenProps> = ({ navi
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <View style={styles.backRow}><AppIcon name="arrowLeft" size={15} color="#A97845" /><Text style={styles.backBtnText}>Về App Khách</Text></View>
+            <View style={styles.backRow}><AppIcon name="arrowLeft" size={15} color="#005C55" /><Text style={styles.backBtnText}>Về App Khách</Text></View>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Salon Merchant Dashboard</Text>
           <View style={{ width: 60 }} />
@@ -211,7 +211,7 @@ export const SalonDashboardScreen: React.FC<SalonDashboardScreenProps> = ({ navi
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F6EFE6'
+    backgroundColor: '#F7F9F4'
   },
   scrollContent: {
     padding: 16
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4
   },
   backBtnText: {
-    color: '#A97845',
+    color: '#005C55',
     fontSize: 13,
     fontWeight: '600'
   },
@@ -238,10 +238,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#2A211C'
+    color: '#182C2A'
   },
   sectionLabel: {
-    color: '#9A8A7A',
+    color: '#8A9894',
     fontSize: 12,
     marginBottom: 6
   },
@@ -255,14 +255,14 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: '#DDCDB9'
+    borderColor: '#D0D8D4'
   },
   activeSalonPill: {
-    backgroundColor: '#A97845',
-    borderColor: '#E1C7AA'
+    backgroundColor: '#005C55',
+    borderColor: '#B7D3C6'
   },
   salonPillText: {
-    color: '#9A8A7A',
+    color: '#8A9894',
     fontSize: 12,
     fontWeight: '600'
   },
@@ -271,12 +271,12 @@ const styles = StyleSheet.create({
     fontWeight: '800'
   },
   protectionCard: {
-    backgroundColor: '#FFF4E4',
+    backgroundColor: '#EFF6F1',
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#B89062'
+    borderColor: '#6F8B7A'
   },
   protectionTitleRow: {
     flexDirection: 'row',
@@ -290,13 +290,13 @@ const styles = StyleSheet.create({
     borderRadius: 17
   },
   protectionTitle: {
-    color: '#A97845',
+    color: '#005C55',
     fontSize: 12,
     fontWeight: '800',
     marginBottom: 2
   },
   protectionText: {
-    color: '#6B4227',
+    color: '#074D44',
     fontSize: 11,
     lineHeight: 16
   },
@@ -312,22 +312,22 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#DDCDB9'
+    borderColor: '#D0D8D4'
   },
   activePendingTab: {
-    backgroundColor: '#A97845',
-    borderColor: '#E1C7AA'
+    backgroundColor: '#005C55',
+    borderColor: '#B7D3C6'
   },
   activeConfirmedTab: {
-    backgroundColor: '#A97845',
+    backgroundColor: '#005C55',
     borderColor: '#CCD8B6'
   },
   activeCompletedTab: {
-    backgroundColor: '#A97845',
-    borderColor: '#B89062'
+    backgroundColor: '#005C55',
+    borderColor: '#6F8B7A'
   },
   filterTabText: {
-    color: '#9A8A7A',
+    color: '#8A9894',
     fontSize: 11,
     fontWeight: '700'
   },
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
     padding: 30,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#DDCDB9'
+    borderColor: '#D0D8D4'
   },
   emptyIcon: {
     fontSize: 36,
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
     marginBottom: 10
   },
   emptyText: {
-    color: '#9A8A7A',
+    color: '#8A9894',
     fontSize: 13
   },
   requestCard: {
@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#DDCDB9'
+    borderColor: '#D0D8D4'
   },
   cardHeader: {
     flexDirection: 'row',
@@ -372,18 +372,18 @@ const styles = StyleSheet.create({
     marginBottom: 10
   },
   badgePending: {
-    backgroundColor: '#EAD7BF',
+    backgroundColor: '#DDEBE3',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6
   },
   badgePendingText: {
-    color: '#A97845',
+    color: '#005C55',
     fontSize: 11,
     fontWeight: '700'
   },
   cardTime: {
-    color: '#9A8A7A',
+    color: '#8A9894',
     fontSize: 11
   },
   cardMain: {
@@ -394,28 +394,28 @@ const styles = StyleSheet.create({
     flex: 1
   },
   custName: {
-    color: '#2A211C',
+    color: '#182C2A',
     fontSize: 14,
     fontWeight: '700',
     marginBottom: 2
   },
   custPhone: {
-    color: '#A97845',
+    color: '#005C55',
     fontSize: 13,
     fontWeight: '700',
     marginBottom: 4
   },
   appointmentTime: {
-    color: '#6F6256',
+    color: '#687572',
     fontSize: 12,
     marginBottom: 2
   },
   timeHighlight: {
-    color: '#A97845',
+    color: '#005C55',
     fontWeight: '800'
   },
   serviceText: {
-    color: '#9A8A7A',
+    color: '#8A9894',
     fontSize: 12,
     marginBottom: 2
   },
@@ -434,11 +434,11 @@ const styles = StyleSheet.create({
     width: 65,
     height: 65,
     borderRadius: 10,
-    backgroundColor: '#EAD7BF',
+    backgroundColor: '#DDEBE3',
     marginBottom: 4
   },
   tryOnTag: {
-    color: '#A97845',
+    color: '#005C55',
     fontSize: 9,
     fontWeight: '700',
     textAlign: 'center'
@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     borderTopWidth: 1,
-    borderTopColor: '#6F6256',
+    borderTopColor: '#687572',
     paddingTop: 10
   },
   cancelBtn: {
@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
   },
   confirmBtn: {
     flex: 1.5,
-    backgroundColor: '#A97845',
+    backgroundColor: '#005C55',
     borderRadius: 10,
     paddingVertical: 10,
     alignItems: 'center'
@@ -478,7 +478,7 @@ const styles = StyleSheet.create({
   },
   completeBtn: {
     flex: 1.5,
-    backgroundColor: '#A97845',
+    backgroundColor: '#005C55',
     borderRadius: 10,
     paddingVertical: 10,
     alignItems: 'center'
@@ -490,13 +490,13 @@ const styles = StyleSheet.create({
   },
   completedBadge: {
     flex: 1,
-    backgroundColor: 'rgba(169, 120, 69, 0.14)',
+    backgroundColor: 'rgba(0, 92, 85, 0.14)',
     paddingVertical: 8,
     borderRadius: 8,
     alignItems: 'center'
   },
   completedBadgeText: {
-    color: '#A97845',
+    color: '#005C55',
     fontSize: 12,
     fontWeight: '700'
   },

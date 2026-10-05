@@ -150,7 +150,7 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
           <TextInput
             style={styles.searchInput}
             placeholder="Search hairstyles, colors, trends..."
-            placeholderTextColor="#A9A29A"
+            placeholderTextColor="#8A9894"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -196,7 +196,7 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
                     <AppIcon
                       name={isFav ? "heartFilled" : "heart"}
                       size={19}
-                      color={isFav ? "#E63946" : "#A97845"}
+                      color={isFav ? "#E63946" : "#005C55"}
                     />
                   </TouchableOpacity>
                 </TouchableOpacity>
@@ -253,7 +253,7 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Filters</Text>
               <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-                <AppIcon name="close" size={22} color="#6F6256" />
+                <AppIcon name="close" size={22} color="#687572" />
               </TouchableOpacity>
             </View>
 
@@ -338,7 +338,7 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F5F1'
+    backgroundColor: '#F7F9F4'
   },
   topAppBar: {
     height: 60,
@@ -431,14 +431,14 @@ const styles = StyleSheet.create({
   mainTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#2A211C',
+    color: '#182C2A',
     letterSpacing: -0.5,
     marginBottom: 4
   },
   subTitle: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#2A211C'
+    color: '#182C2A'
   },
   grid: {
     flexDirection: 'row',
@@ -452,9 +452,9 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#E8DED1',
+    borderColor: '#DCE4DF',
     elevation: 2,
-    shadowColor: '#2A211C',
+    shadowColor: '#182C2A',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -464,7 +464,7 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 1,
     position: 'relative',
-    backgroundColor: '#EFE2D2'
+    backgroundColor: '#E3EFEB'
   },
   hairImg: {
     width: '100%',
@@ -490,12 +490,12 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#2A211C',
+    color: '#182C2A',
     marginBottom: 2
   },
   cardDesc: {
     fontSize: 11,
-    color: '#7E6F62',
+    color: '#687572',
     lineHeight: 14,
     marginBottom: 8
   },

@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, TextStyle, View, ViewStyle } from 'react-native';
+import { StyleProp, StyleSheet, TextStyle, View, ViewStyle } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
@@ -107,7 +107,7 @@ type AppIconProps = {
   style?: TextStyle;
 };
 
-export const AppIcon = ({ name, size = 20, color = '#A97845', style }: AppIconProps) => {
+export const AppIcon = ({ name, size = 20, color = '#005C55', style }: AppIconProps) => {
   if (name === 'heartFilled') {
     return <Ionicons name="heart" size={size} color={color} style={style} />;
   }
@@ -120,15 +120,15 @@ export const AppIcon = ({ name, size = 20, color = '#A97845', style }: AppIconPr
 type IconBadgeProps = AppIconProps & {
   backgroundColor?: string;
   borderColor?: string;
-  containerStyle?: ViewStyle;
+  containerStyle?: StyleProp<ViewStyle>;
 };
 
 export const IconBadge = ({
   name,
   size = 18,
-  color = '#A97845',
-  backgroundColor = '#EAD7BF',
-  borderColor = 'rgba(169, 120, 69, 0.16)',
+  color = '#005C55',
+  backgroundColor = '#DDEBE3',
+  borderColor = 'rgba(0, 92, 85, 0.16)',
   containerStyle,
   style
 }: IconBadgeProps) => (

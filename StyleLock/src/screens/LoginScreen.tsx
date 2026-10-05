@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { LocalizedText as Text, LocalizedTextInput as TextInput, LocalizedAlert as Alert } from '../i18n/LocalizedComponents';
 import { backendApi } from '../services/backendApi';
+import { authSessionStore } from '../services/apiClient';
 import { AppIcon } from '../components/AppIcon';
 
 interface LoginScreenProps {
@@ -272,7 +273,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               <TextInput
                 style={styles.input}
                 placeholder="hello@example.com"
-                placeholderTextColor="#A9A29A"
+                placeholderTextColor="#8A9894"
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -295,7 +296,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                 <TextInput
                   style={[styles.input, { flex: 1, marginBottom: 0 }]}
                   placeholder="••••••••"
-                  placeholderTextColor="#A9A29A"
+                  placeholderTextColor="#8A9894"
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
@@ -304,7 +305,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                   style={styles.eyeBtn}
                   onPress={() => setShowPassword(!showPassword)}
                 >
-                  <AppIcon name={showPassword ? "eyeOff" : "eye"} size={18} color="#6F6B64" />
+                  <AppIcon name={showPassword ? "eyeOff" : "eye"} size={18} color="#687572" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -378,7 +379,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F5F1'
+    backgroundColor: '#F7F9F4'
   },
   scrollContent: {
     paddingHorizontal: 24,
@@ -446,7 +447,7 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#38342F',
+    color: '#2D3834',
     marginBottom: 6
   },
   passwordHeader: {
@@ -465,7 +466,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E0D8',
+    borderColor: '#E2E6E1',
     paddingHorizontal: 16,
     fontSize: 15,
     color: '#162524'
@@ -521,7 +522,7 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     fontSize: 14,
-    color: '#706E6B',
+    color: '#687572',
     paddingHorizontal: 16,
     fontWeight: '400'
   },
@@ -573,7 +574,7 @@ const styles = StyleSheet.create({
     marginBottom: 16
   },
   footerText: {
-    color: '#6F6C67',
+    color: '#687572',
     fontSize: 15
   },
   signUpLink: {

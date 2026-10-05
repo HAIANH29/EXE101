@@ -32,7 +32,7 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ navi
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
             <View style={styles.backRow}>
-              <AppIcon name="arrowLeft" size={16} color="#A97845" />
+              <AppIcon name="arrowLeft" size={16} color="#005C55" />
               <Text style={styles.backBtnText}>Trang chủ</Text>
             </View>
           </TouchableOpacity>
@@ -69,8 +69,8 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ navi
           {/* Card 2: Total Bookings */}
           <View style={styles.kpiCard}>
             <View style={styles.kpiCardTop}>
-              <IconBadge name="calendar" size={18} containerStyle={[styles.kpiIconBadge, { backgroundColor: '#F0E6D8' }]} />
-              <Text style={[styles.kpiTrendTag, { color: '#B37D46', backgroundColor: '#FAF2E8' }]}>O2O</Text>
+              <IconBadge name="calendar" size={18} containerStyle={[styles.kpiIconBadge, { backgroundColor: '#E6F0EA' }]} />
+              <Text style={[styles.kpiTrendTag, { color: '#006B60', backgroundColor: '#EFF6F1' }]}>O2O</Text>
             </View>
             <Text style={styles.kpiValue}>{analytics.totalBookings}</Text>
             <Text style={styles.kpiLabel}>Yêu cầu đặt lịch (Bookings)</Text>
@@ -89,10 +89,10 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ navi
           {/* Card 4: Confirmed & Completed */}
           <View style={styles.kpiCard}>
             <View style={styles.kpiCardTop}>
-              <IconBadge name="check" size={18} containerStyle={[styles.kpiIconBadge, { backgroundColor: '#FDF0E6' }]} />
-              <Text style={[styles.kpiTrendTag, { color: '#C86D28', backgroundColor: '#FFF5EC' }]}>Success</Text>
+              <IconBadge name="check" size={18} containerStyle={[styles.kpiIconBadge, { backgroundColor: '#EFF6F1' }]} />
+              <Text style={[styles.kpiTrendTag, { color: '#007A68', backgroundColor: '#EFF6F1' }]}>Success</Text>
             </View>
-            <Text style={[styles.kpiValue, { color: '#A97845' }]}>
+            <Text style={[styles.kpiValue, { color: '#005C55' }]}>
               {analytics.confirmedBookings + analytics.completedBookings}
             </Text>
             <Text style={styles.kpiLabel}>Đơn đặt lịch thành công</Text>
@@ -140,7 +140,7 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ navi
         <View style={styles.mgmtRow}>
           <View style={styles.mgmtCard}>
             <View style={styles.mgmtIconRow}>
-              <AppIcon name="scissors" size={16} color="#A97845" />
+              <AppIcon name="scissors" size={16} color="#005C55" />
               <Text style={styles.mgmtNum}>{MOCK_HAIRSTYLES.length}</Text>
             </View>
             <Text style={styles.mgmtLabel}>Mẫu tóc AI PNG Catalog</Text>
@@ -162,7 +162,7 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ navi
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9F5F0'
+    backgroundColor: '#F7F9F4'
   },
   scrollContent: {
     padding: 16,
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E8DED1'
+    borderColor: '#DCE4DF'
   },
   backRow: {
     flexDirection: 'row',
@@ -188,23 +188,23 @@ const styles = StyleSheet.create({
     gap: 6
   },
   backBtnText: {
-    color: '#A97845',
+    color: '#005C55',
     fontSize: 12,
     fontWeight: '700'
   },
   headerTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#2A211C'
+    color: '#182C2A'
   },
   headerRightBadge: {
-    backgroundColor: '#2A211C',
+    backgroundColor: '#182C2A',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 10
   },
   headerRightBadgeText: {
-    color: '#DDB280',
+    color: '#B7D3C6',
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.5
@@ -215,11 +215,11 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E8DED1',
+    borderColor: '#DCE4DF',
     ...Platform.select({
-      ios: { shadowColor: '#2A211C', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4 },
+      ios: { shadowColor: '#182C2A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4 },
       android: { elevation: 2 },
-      web: { boxShadow: '0 2px 8px rgba(42, 33, 28, 0.04)' }
+      web: { boxShadow: '0 2px 8px rgba(24, 44, 42, 0.04)' }
     })
   },
   pitchHeaderRow: {
@@ -232,28 +232,28 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#FAF2E8'
+    backgroundColor: '#EFF6F1'
   },
   pitchTitle: {
-    color: '#A97845',
+    color: '#005C55',
     fontSize: 13,
     fontWeight: '800',
     letterSpacing: 0.4
   },
   funnelBadge: {
     marginLeft: 'auto',
-    backgroundColor: '#F0E8DD',
+    backgroundColor: '#E8EFEA',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8
   },
   funnelBadgeText: {
-    color: '#6F5C4B',
+    color: '#687572',
     fontSize: 10,
     fontWeight: '700'
   },
   pitchSub: {
-    color: '#7E6F62',
+    color: '#687572',
     fontSize: 12,
     lineHeight: 16
   },
@@ -270,11 +270,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#E8DED1',
+    borderColor: '#DCE4DF',
     ...Platform.select({
-      ios: { shadowColor: '#2A211C', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6 },
+      ios: { shadowColor: '#182C2A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6 },
       android: { elevation: 2 },
-      web: { boxShadow: '0 2px 8px rgba(42, 33, 28, 0.04)' }
+      web: { boxShadow: '0 2px 8px rgba(24, 44, 42, 0.04)' }
     })
   },
   kpiCardTop: {
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 12,
-    backgroundColor: '#FAF2E8'
+    backgroundColor: '#EFF6F1'
   },
   kpiTrendTag: {
     fontSize: 10,
@@ -300,14 +300,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden'
   },
   kpiValue: {
-    color: '#2A211C',
+    color: '#182C2A',
     fontSize: 22,
     fontWeight: '800',
     letterSpacing: -0.5,
     marginBottom: 4
   },
   kpiLabel: {
-    color: '#7E6F62',
+    color: '#687572',
     fontSize: 11,
     fontWeight: '500',
     lineHeight: 15
@@ -318,11 +318,11 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E8DED1',
+    borderColor: '#DCE4DF',
     ...Platform.select({
-      ios: { shadowColor: '#2A211C', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6 },
+      ios: { shadowColor: '#182C2A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6 },
       android: { elevation: 2 },
-      web: { boxShadow: '0 2px 8px rgba(42, 33, 28, 0.04)' }
+      web: { boxShadow: '0 2px 8px rgba(24, 44, 42, 0.04)' }
     })
   },
   revHeaderRow: {
@@ -343,13 +343,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#E8F3EB'
   },
   revTitle: {
-    color: '#2A211C',
+    color: '#182C2A',
     fontSize: 13,
     fontWeight: '700'
   },
   revStatusPill: {
-    backgroundColor: '#F0E6D8',
-    color: '#8A5D2E',
+    backgroundColor: '#E6F0EA',
+    color: '#3E5F55',
     fontSize: 10,
     fontWeight: '800',
     paddingHorizontal: 8,
@@ -358,7 +358,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden'
   },
   revValue: {
-    color: '#2A211C',
+    color: '#182C2A',
     fontSize: 26,
     fontWeight: '800',
     letterSpacing: -0.5,
@@ -367,15 +367,15 @@ const styles = StyleSheet.create({
   currencySymbol: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#8C7C6D'
+    color: '#8A9894'
   },
   divider: {
     height: 1,
-    backgroundColor: '#F2E8DC',
+    backgroundColor: '#E8EFEA',
     marginVertical: 12
   },
   monetizationTitle: {
-    color: '#2A211C',
+    color: '#182C2A',
     fontSize: 12,
     fontWeight: '700',
     marginBottom: 8
@@ -392,15 +392,15 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#A97845'
+    backgroundColor: '#005C55'
   },
   monetizationText: {
-    color: '#7E6F62',
+    color: '#687572',
     fontSize: 11,
     lineHeight: 16
   },
   boldText: {
-    color: '#2A211C',
+    color: '#182C2A',
     fontWeight: '700'
   },
   sectionHeaderRow: {
@@ -410,12 +410,12 @@ const styles = StyleSheet.create({
     marginBottom: 10
   },
   sectionHeader: {
-    color: '#2A211C',
+    color: '#182C2A',
     fontSize: 14,
     fontWeight: '800'
   },
   sectionHeaderSub: {
-    color: '#8C7C6D',
+    color: '#8A9894',
     fontSize: 11
   },
   mgmtRow: {
@@ -428,11 +428,11 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E8DED1',
+    borderColor: '#DCE4DF',
     ...Platform.select({
-      ios: { shadowColor: '#2A211C', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 4 },
+      ios: { shadowColor: '#182C2A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 4 },
       android: { elevation: 1 },
-      web: { boxShadow: '0 2px 6px rgba(42, 33, 28, 0.03)' }
+      web: { boxShadow: '0 2px 6px rgba(24, 44, 42, 0.03)' }
     })
   },
   mgmtIconRow: {
@@ -442,12 +442,12 @@ const styles = StyleSheet.create({
     marginBottom: 4
   },
   mgmtNum: {
-    color: '#2A211C',
+    color: '#182C2A',
     fontSize: 18,
     fontWeight: '800'
   },
   mgmtLabel: {
-    color: '#7E6F62',
+    color: '#687572',
     fontSize: 11,
     fontWeight: '500'
   }

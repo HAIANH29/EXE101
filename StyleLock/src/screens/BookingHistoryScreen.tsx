@@ -69,17 +69,17 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
     const getStatusBadge = (status: BookingStatus) => {
         switch (status) {
             case 'CONFIRMED':
-                return { label: 'CONFIRMED', color: '#6B4227', bg: '#EAD7BF' };
+                return { label: 'CONFIRMED', color: '#074D44', bg: '#DDEBE3' };
             case 'PENDING':
-                return { label: 'PENDING', color: '#6F6256', bg: '#EAD7BF' };
+                return { label: 'PENDING', color: '#687572', bg: '#DDEBE3' };
             case 'IN_SERVICE':
-                return { label: 'IN SERVICE', color: '#A97845', bg: '#EAD7BF' };
+                return { label: 'IN SERVICE', color: '#005C55', bg: '#DDEBE3' };
             case 'COMPLETED':
                 return { label: 'COMPLETED', color: '#7C8A55', bg: 'rgba(124, 138, 85, 0.16)' };
             case 'CANCELLED':
                 return { label: 'CANCELLED', color: '#B65A4B', bg: '#FBE7E1' };
             default:
-                return { label: status, color: '#6F6256', bg: '#EFE2D2' };
+                return { label: status, color: '#687572', bg: '#E3EFEB' };
         }
     };
 
@@ -235,12 +235,12 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
                                             </Text>
 
                                             <View style={styles.metaRow}>
-                                                <AppIcon name="calendar" size={13} color="#9A8A7A" />
+                                                <AppIcon name="calendar" size={13} color="#8A9894" />
                                                 <Text style={styles.metaText}>{b.date}</Text>
                                             </View>
 
                                             <View style={styles.metaRow}>
-                                                <AppIcon name="clock" size={13} color="#9A8A7A" />
+                                                <AppIcon name="clock" size={13} color="#8A9894" />
                                                 <Text style={styles.metaText}>{b.timeSlot}</Text>
                                             </View>
                                         </View>
@@ -289,7 +289,7 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F7F5F1'
+        backgroundColor: '#F7F9F4'
     },
     topAppBar: {
         height: 60,
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
         borderRadius: 24,
         borderWidth: 1,
-        borderColor: '#EFE6DA',
+        borderColor: '#E2E6E1',
         overflow: 'hidden',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
         width: 80,
         height: 80,
         borderRadius: 14,
-        backgroundColor: '#EFE2D2'
+        backgroundColor: '#E3EFEB'
     },
     cardDetails: {
         flex: 1
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
     salonName: {
         fontSize: 16,
         fontWeight: '700',
-        color: '#2A211C',
+        color: '#182C2A',
         flex: 1,
         marginRight: 6
     },
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
     },
     serviceDesc: {
         fontSize: 13,
-        color: '#6F6256',
+        color: '#687572',
         marginBottom: 8
     },
     metaRow: {
@@ -432,12 +432,12 @@ const styles = StyleSheet.create({
     },
     metaText: {
         fontSize: 12,
-        color: '#6F6256'
+        color: '#687572'
     },
     cardActions: {
         flexDirection: 'row',
         borderTopWidth: 1,
-        borderTopColor: '#EFE6DA',
+        borderTopColor: '#E2E6E1',
         padding: 12,
         gap: 10
     },
@@ -540,7 +540,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-around',
         alignItems: 'center',
         borderTopWidth: 1,
-        borderTopColor: '#DDCDB9',
+        borderTopColor: '#D0D8D4',
         elevation: 10,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: -4 },
@@ -555,7 +555,7 @@ const styles = StyleSheet.create({
         borderRadius: 20
     },
     navItemActive: {
-        backgroundColor: 'rgba(169, 120, 69, 0.16)'
+        backgroundColor: 'rgba(0, 92, 85, 0.16)'
     },
     navIcon: {
         fontSize: 18,
@@ -567,10 +567,10 @@ const styles = StyleSheet.create({
     navLabel: {
         fontSize: 11,
         fontWeight: '500',
-        color: '#6F6256'
+        color: '#687572'
     },
     navLabelActive: {
-        color: '#A97845',
+        color: '#005C55',
         fontWeight: '700'
     }
 });

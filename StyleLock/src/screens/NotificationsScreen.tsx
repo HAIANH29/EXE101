@@ -29,8 +29,8 @@ type NotificationMeta = {
 const TYPE_META: Record<NotificationType, NotificationMeta> = {
   BOOKING_CREATED: {
     icon: 'calendar',
-    color: '#A97845',
-    backgroundColor: '#EAD7BF',
+    color: '#005C55',
+    backgroundColor: '#DDEBE3',
     label: 'Đặt lịch'
   },
   BOOKING_CONFIRMED: {
@@ -47,14 +47,14 @@ const TYPE_META: Record<NotificationType, NotificationMeta> = {
   },
   BOOKING_COMPLETED: {
     icon: 'star',
-    color: '#A97845',
-    backgroundColor: '#FEF3C7',
+    color: '#005C55',
+    backgroundColor: '#EFF6F1',
     label: 'Hoàn tất'
   },
   PAYMENT_COMPLETED: {
     icon: 'money',
-    color: '#1D4ED8',
-    backgroundColor: '#DBEAFE',
+    color: '#005C55',
+    backgroundColor: '#E3EFEB',
     label: 'Thanh toán'
   }
 };
@@ -62,8 +62,8 @@ const TYPE_META: Record<NotificationType, NotificationMeta> = {
 function getMeta(type: NotificationItem['type']): NotificationMeta {
   return TYPE_META[type] || {
     icon: 'bell',
-    color: '#A97845',
-    backgroundColor: '#EAD7BF',
+    color: '#005C55',
+    backgroundColor: '#DDEBE3',
     label: 'Thông báo'
   };
 }
@@ -186,7 +186,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ naviga
     if (loading) {
       return (
         <View style={styles.centerState}>
-          <ActivityIndicator color="#A97845" />
+          <ActivityIndicator color="#005C55" />
           <Text style={styles.centerText}>Đang tải thông báo...</Text>
         </View>
       );
@@ -198,7 +198,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ naviga
           <IconBadge
             name="bell"
             size={24}
-            color="#A97845"
+            color="#005C55"
             containerStyle={styles.emptyIcon}
           />
           <Text style={styles.emptyTitle}>Chưa xem được thông báo</Text>
@@ -216,7 +216,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ naviga
           <IconBadge
             name="bell"
             size={24}
-            color="#A97845"
+            color="#005C55"
             containerStyle={styles.emptyIcon}
           />
           <Text style={styles.emptyTitle}>Chưa có thông báo</Text>
@@ -277,7 +277,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ naviga
     <SafeAreaView style={styles.container}>
       <View style={styles.topAppBar}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()}>
-          <AppIcon name="arrowLeft" size={22} color="#A97845" />
+          <AppIcon name="arrowLeft" size={22} color="#005C55" />
         </TouchableOpacity>
 
         <View style={styles.titleWrap}>
@@ -292,7 +292,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ naviga
           onPress={markAllAsRead}
           disabled={unreadCount === 0}
         >
-          <AppIcon name="check" size={18} color={unreadCount === 0 ? '#A99582' : '#A97845'} />
+          <AppIcon name="check" size={18} color={unreadCount === 0 ? '#8A9894' : '#005C55'} />
         </TouchableOpacity>
       </View>
 
@@ -303,8 +303,8 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ naviga
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => loadNotifications(true)}
-            tintColor="#A97845"
-            colors={['#A97845']}
+            tintColor="#005C55"
+            colors={['#005C55']}
           />
         }
       >
@@ -317,7 +317,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ naviga
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FF'
+    backgroundColor: '#FBFFFE'
   },
   topAppBar: {
     minHeight: 68,
@@ -326,9 +326,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: 'rgba(248, 249, 255, 0.96)',
+    backgroundColor: 'rgba(251, 255, 254, 0.96)',
     borderBottomWidth: 1,
-    borderBottomColor: '#DDCDB9'
+    borderBottomColor: '#D0D8D4'
   },
   iconBtn: {
     width: 40,
@@ -344,12 +344,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#2A211C'
+    color: '#182C2A'
   },
   subtitle: {
     marginTop: 2,
     fontSize: 12,
-    color: '#9A8A7A',
+    color: '#8A9894',
     fontWeight: '600'
   },
   markAllButton: {
@@ -358,13 +358,13 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EAD7BF',
+    backgroundColor: '#DDEBE3',
     borderWidth: 1,
-    borderColor: 'rgba(169, 120, 69, 0.16)'
+    borderColor: 'rgba(0, 92, 85, 0.16)'
   },
   markAllButtonDisabled: {
     backgroundColor: '#F1F5F9',
-    borderColor: '#DDCDB9'
+    borderColor: '#D0D8D4'
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#EFE2D2',
+    borderColor: '#E3EFEB',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
     elevation: 2
   },
   notificationCardUnread: {
-    borderColor: 'rgba(169, 120, 69, 0.28)',
+    borderColor: 'rgba(0, 92, 85, 0.28)',
     backgroundColor: '#FBFFFE'
   },
   notificationIcon: {
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '800',
-    color: '#2A211C'
+    color: '#182C2A'
   },
   unreadDot: {
     width: 9,
@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
   notificationContent: {
     fontSize: 13,
     lineHeight: 19,
-    color: '#6F6256'
+    color: '#687572'
   },
   notificationMetaRow: {
     marginTop: 10,
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
   },
   timeText: {
     fontSize: 12,
-    color: '#9A8A7A',
+    color: '#8A9894',
     fontWeight: '600'
   },
   centerState: {
@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
   },
   centerText: {
     marginTop: 12,
-    color: '#6F6256',
+    color: '#687572',
     fontSize: 14,
     fontWeight: '600'
   },
@@ -461,14 +461,14 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#2A211C',
+    color: '#182C2A',
     textAlign: 'center',
     marginBottom: 6
   },
   emptyText: {
     fontSize: 14,
     lineHeight: 20,
-    color: '#9A8A7A',
+    color: '#8A9894',
     textAlign: 'center'
   },
   retryButton: {
@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 11,
     borderRadius: 12,
-    backgroundColor: '#A97845'
+    backgroundColor: '#005C55'
   },
   retryButtonText: {
     color: '#FFFFFF',

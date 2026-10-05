@@ -60,6 +60,8 @@ export interface Booking {
   tryOnImageUrl?: string;
   serviceId?: string;
   serviceName?: string;
+  stylistId?: string;
+  stylistName?: string;
   date: string; // YYYY-MM-DD
   timeSlot: string; // HH:mm
   status: BookingStatus;

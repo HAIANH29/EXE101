@@ -66,7 +66,7 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
 
         {/* Face Guide Frame indicator */}
         <View style={styles.guideBadge}>
-          <View style={styles.guideBadgeRow}><AppIcon name="lightbulb" size={14} color="#DDCDB9" /><Text style={styles.guideBadgeText}>Di chuyển & chỉnh tỉ lệ cho khớp với khuôn mặt</Text></View>
+          <View style={styles.guideBadgeRow}><AppIcon name="lightbulb" size={14} color="#D0D8D4" /><Text style={styles.guideBadgeText}>Di chuyển & chỉnh tỉ lệ cho khớp với khuôn mặt</Text></View>
         </View>
       </View>
 
@@ -131,12 +131,12 @@ const styles = StyleSheet.create({
     height: CANVAS_SIZE * 1.25,
     borderRadius: 20,
     overflow: 'hidden',
-    backgroundColor: '#3A2E26',
+    backgroundColor: '#162524',
     position: 'relative',
     borderWidth: 2,
-    borderColor: '#B89062',
+    borderColor: '#6F8B7A',
     elevation: 8,
-    shadowColor: '#6B4227',
+    shadowColor: '#074D44',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 10
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     bottom: 12,
     left: 12,
     right: 12,
-    backgroundColor: 'rgba(42, 33, 28, 0.84)',
+    backgroundColor: 'rgba(22, 37, 36, 0.84)',
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 12,
@@ -175,23 +175,23 @@ const styles = StyleSheet.create({
     gap: 6
   },
   guideBadgeText: {
-    color: '#DDCDB9',
+    color: '#D0D8D4',
     fontSize: 12,
     fontWeight: '500'
   },
   controlPanel: {
     width: '100%',
     marginTop: 16,
-    backgroundColor: '#FFFDF8',
+    backgroundColor: '#FBFFFE',
     padding: 14,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#DDCDB9'
+    borderColor: '#D0D8D4'
   },
   controlTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6F6256',
+    color: '#687572',
     marginBottom: 10,
     textAlign: 'center'
   },
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 5,
-    backgroundColor: '#A97845',
+    backgroundColor: '#005C55',
     paddingVertical: 8,
     paddingHorizontal: 4,
     borderRadius: 8,
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 4,
-    backgroundColor: '#6B4227',
+    backgroundColor: '#074D44',
     paddingVertical: 8,
     paddingHorizontal: 2,
     borderRadius: 8,

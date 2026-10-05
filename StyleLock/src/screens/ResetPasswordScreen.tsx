@@ -92,7 +92,7 @@ export const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ naviga
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.topBar}>
             <TouchableOpacity style={styles.backBtn} onPress={() => navigation.navigate('Login')}>
-              <View style={styles.backRow}><AppIcon name="arrowLeft" size={16} color="#A97845" /><Text style={styles.backText}>Login</Text></View>
+              <View style={styles.backRow}><AppIcon name="arrowLeft" size={16} color="#005C55" /><Text style={styles.backText}>Login</Text></View>
             </TouchableOpacity>
           </View>
 
@@ -119,7 +119,7 @@ export const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ naviga
                 <TextInput
                   style={styles.input}
                   placeholder="Paste token from reset link"
-                  placeholderTextColor="#A99582"
+                  placeholderTextColor="#8A9894"
                   value={token}
                   onChangeText={setToken}
                   autoCapitalize="none"
@@ -133,7 +133,7 @@ export const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ naviga
                 <TextInput
                   style={[styles.input, styles.passwordInput]}
                   placeholder="At least 8 characters"
-                  placeholderTextColor="#A99582"
+                  placeholderTextColor="#8A9894"
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
@@ -149,7 +149,7 @@ export const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ naviga
               <TextInput
                 style={styles.input}
                 placeholder="Re-enter new password"
-                placeholderTextColor="#A99582"
+                placeholderTextColor="#8A9894"
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!showPassword}
@@ -174,7 +174,7 @@ export const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ naviga
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F6EFE6'
+    backgroundColor: '#F7F9F4'
   },
   keyboardView: {
     flex: 1
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     gap: 6
   },
   backText: {
-    color: '#A97845',
+    color: '#005C55',
     fontSize: 14,
     fontWeight: '700'
   },
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: 'rgba(169, 120, 69, 0.16)',
+    borderColor: 'rgba(0, 92, 85, 0.16)',
     backgroundColor: '#FFFFFF'
   },
   logoImage: {
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: 'rgba(169, 120, 69, 0.25)',
+    backgroundColor: 'rgba(0, 92, 85, 0.25)',
     justifyContent: 'center',
     alignItems: 'center'
   },
@@ -239,12 +239,12 @@ const styles = StyleSheet.create({
   brandTitle: {
     fontSize: 30,
     fontWeight: '800',
-    color: '#A97845',
+    color: '#005C55',
     marginBottom: 6
   },
   brandSubtitle: {
     maxWidth: 300,
-    color: '#6F6256',
+    color: '#687572',
     textAlign: 'center',
     fontSize: 14,
     lineHeight: 20
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 24,
     borderWidth: 1,
-    borderColor: '#EFE6DA',
+    borderColor: '#E2E6E1',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
@@ -267,19 +267,19 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#6F6256',
+    color: '#687572',
     letterSpacing: 0.8,
     marginBottom: 6
   },
   input: {
     height: 52,
-    backgroundColor: '#FFFDF8',
+    backgroundColor: '#FBFFFE',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#DDCDB9',
+    borderColor: '#D0D8D4',
     paddingHorizontal: 16,
     fontSize: 15,
-    color: '#2A211C'
+    color: '#182C2A'
   },
   passwordInputWrapper: {
     flexDirection: 'row',
@@ -296,18 +296,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2
   },
   eyeIcon: {
-    color: '#A97845',
+    color: '#005C55',
     fontSize: 12,
     fontWeight: '800'
   },
   primaryBtn: {
     height: 52,
-    backgroundColor: '#A97845',
+    backgroundColor: '#005C55',
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 6,
-    shadowColor: '#A97845',
+    shadowColor: '#005C55',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,

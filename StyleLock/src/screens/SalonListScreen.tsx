@@ -135,7 +135,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
             <TextInput
               style={styles.searchInput}
               placeholder="Search salons near you..."
-              placeholderTextColor="#A9A29A"
+              placeholderTextColor="#8A9894"
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
@@ -302,7 +302,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F5F1'
+    backgroundColor: '#F7F9F4'
   },
   topAppBar: {
     height: 52,
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    backgroundColor: '#F7F5F1'
+    backgroundColor: '#F7F9F4'
   },
   iconBtn: {
     width: 38,
@@ -506,7 +506,7 @@ const styles = StyleSheet.create({
   },
   starIcon: {
     fontSize: 14,
-    color: '#D97706'
+    color: '#7C8A55'
   },
   ratingScore: {
     fontSize: 13,

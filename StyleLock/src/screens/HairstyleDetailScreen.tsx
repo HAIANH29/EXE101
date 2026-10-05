@@ -250,7 +250,7 @@ export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ na
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F5F1'
+    backgroundColor: '#F7F9F4'
   },
   appHeader: {
     height: 56,
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    backgroundColor: '#F7F5F1'
+    backgroundColor: '#F7F9F4'
   },
   headerIconBtn: {
     width: 40,
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: '#F7F5F1',
+    backgroundColor: '#F7F9F4',
     marginBottom: 20
   },
   heroImage: {
@@ -509,7 +509,7 @@ const styles = StyleSheet.create({
   tryOnActionBtn: {
     width: 116,
     height: 48,
-    backgroundColor: '#EBE5DB',
+    backgroundColor: '#E8EFEA',
     borderRadius: 12,
     flexDirection: 'row',
     justifyContent: 'center',

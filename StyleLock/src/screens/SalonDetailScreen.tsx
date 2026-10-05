@@ -455,7 +455,7 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F5F1'
+    backgroundColor: '#F7F9F4'
   },
   topAppBar: {
     height: 52,
@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    backgroundColor: '#F7F5F1'
+    backgroundColor: '#F7F9F4'
   },
   headerIconBtn: {
     width: 38,
@@ -531,12 +531,12 @@ const styles = StyleSheet.create({
   },
   starText: {
     fontSize: 15,
-    color: '#D97706'
+    color: '#7C8A55'
   },
   ratingText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#A3743B'
+    color: '#5F744F'
   },
   tabsRow: {
     flexDirection: 'row',
@@ -732,7 +732,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 8,
-    backgroundColor: '#F7F5F1',
+    backgroundColor: '#F7F9F4',
     borderWidth: 1,
     borderColor: '#E2E6E1'
   },
@@ -825,7 +825,7 @@ const styles = StyleSheet.create({
   msgBtn: {
     width: 110,
     height: 48,
-    backgroundColor: '#EBE5DB',
+    backgroundColor: '#E8EFEA',
     borderRadius: 12,
     flexDirection: 'row',
     justifyContent: 'center',

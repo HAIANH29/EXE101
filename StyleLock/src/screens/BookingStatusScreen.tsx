@@ -75,8 +75,8 @@ const QR_CELLS = [
 
 const IconBadge = ({
   name,
-  color = '#A97845',
-  bg = '#EAD7BF',
+  color = '#005C55',
+  bg = '#DDEBE3',
   size = 'md'
 }: {
   name: LineIconName;
@@ -115,7 +115,7 @@ const DetailRow = ({
 }) => (
   <View style={styles.detailRow}>
     <View style={styles.detailLabelGroup}>
-      <IconBadge name={icon} size="sm" color={accent || '#A97845'} bg="#F0FDF9" />
+      <IconBadge name={icon} size="sm" color={accent || '#005C55'} bg="#F0FDF9" />
       <Text style={styles.detailLabel}>{label}</Text>
     </View>
     <Text style={[styles.detailValue, strong && styles.detailValueStrong, accent ? { color: accent } : undefined]}>
@@ -131,9 +131,9 @@ function getStatusVisual(status: BookingStatus): StatusVisual {
         title: 'Đang chờ salon xác nhận',
         code: 'PENDING',
         icon: 'pending',
-        color: '#A97845',
-        bg: '#FFF4E4',
-        border: '#B89062',
+        color: '#005C55',
+        bg: '#EFF6F1',
+        border: '#6F8B7A',
         desc: 'Yêu cầu đặt lịch đã được gửi đến salon. Salon sẽ xác nhận trong vòng vài phút.'
       };
     case 'CONFIRMED':
@@ -151,9 +151,9 @@ function getStatusVisual(status: BookingStatus): StatusVisual {
         title: 'Đang phục vụ tại salon',
         code: 'IN_SERVICE',
         icon: 'service',
-        color: '#A97845',
-        bg: '#EFE2D2',
-        border: '#B89062',
+        color: '#005C55',
+        bg: '#E3EFEB',
+        border: '#6F8B7A',
         desc: 'Lịch hẹn đang được thực hiện. Bạn có thể theo dõi trạng thái hoàn tất tại đây.'
       };
     case 'COMPLETED':
@@ -161,9 +161,9 @@ function getStatusVisual(status: BookingStatus): StatusVisual {
         title: 'Dịch vụ đã hoàn thành',
         code: 'COMPLETED',
         icon: 'complete',
-        color: '#6B4227',
-        bg: '#EFE2D2',
-        border: '#7DD3FC',
+        color: '#074D44',
+        bg: '#E3EFEB',
+        border: '#95C5B5',
         desc: 'Dịch vụ đã hoàn tất. Cảm ơn bạn đã sử dụng StyleLock.'
       };
     case 'CANCELLED':
@@ -181,9 +181,9 @@ function getStatusVisual(status: BookingStatus): StatusVisual {
         title: status,
         code: status,
         icon: 'service',
-        color: '#6F6256',
-        bg: '#FFFDF8',
-        border: '#DDCDB9',
+        color: '#687572',
+        bg: '#FBFFFE',
+        border: '#D0D8D4',
         desc: ''
       };
   }
@@ -258,7 +258,7 @@ export const BookingStatusScreen: React.FC<BookingStatusScreenProps> = ({ naviga
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.homeLink}>
-            <IconBadge name="home" size="sm" color="#A97845" bg="#EAD7BF" />
+            <IconBadge name="home" size="sm" color="#005C55" bg="#DDEBE3" />
             <Text style={styles.homeLinkText}>Trang chủ</Text>
           </TouchableOpacity>
 
@@ -283,7 +283,7 @@ export const BookingStatusScreen: React.FC<BookingStatusScreenProps> = ({ naviga
         {booking.status === 'PENDING' && !booking.apiId && (
           <View style={styles.demoBox}>
             <View style={styles.demoHeader}>
-              <IconBadge name="arrow" size="sm" color="#A97845" bg="#EFE2D2" />
+              <IconBadge name="arrow" size="sm" color="#005C55" bg="#E3EFEB" />
               <Text style={styles.demoTitle}>Simulator cho demo</Text>
             </View>
             <TouchableOpacity style={styles.demoBtn} onPress={handleSimulateApprove}>
@@ -306,7 +306,7 @@ export const BookingStatusScreen: React.FC<BookingStatusScreenProps> = ({ naviga
 
         <View style={styles.qrCard}>
           <View style={styles.sectionHeader}>
-            <IconBadge name="qr" color="#A97845" bg="#EAD7BF" />
+            <IconBadge name="qr" color="#005C55" bg="#DDEBE3" />
             <View>
               <Text style={styles.sectionTitle}>Mã xác minh tại salon</Text>
               <Text style={styles.sectionSub}>Đưa mã này cho thu ngân khi đến salon</Text>
@@ -328,7 +328,7 @@ export const BookingStatusScreen: React.FC<BookingStatusScreenProps> = ({ naviga
 
         <View style={styles.detailsCard}>
           <View style={styles.sectionHeader}>
-            <IconBadge name="pin" color="#A97845" bg="#EAD7BF" />
+            <IconBadge name="pin" color="#005C55" bg="#DDEBE3" />
             <View>
               <Text style={styles.sectionTitle}>Thông tin lịch hẹn</Text>
               <Text style={styles.sectionSub}>Các thông tin salon cần để phục vụ bạn</Text>
@@ -339,7 +339,7 @@ export const BookingStatusScreen: React.FC<BookingStatusScreenProps> = ({ naviga
             <DetailRow icon="qr" label="Mã đặt lịch" value={`#${booking.id}`} strong />
             <DetailRow icon="home" label="Salon tiếp nhận" value={booking.salonName} strong />
             <View style={styles.addressBox}>
-              <IconBadge name="pin" size="sm" color="#9A8A7A" bg="#FFFDF8" />
+              <IconBadge name="pin" size="sm" color="#8A9894" bg="#FBFFFE" />
               <Text style={styles.addressText}>{booking.salonAddress}</Text>
             </View>
             <View style={styles.divider} />
@@ -347,7 +347,7 @@ export const BookingStatusScreen: React.FC<BookingStatusScreenProps> = ({ naviga
               icon="calendar"
               label="Thời gian làm tóc"
               value={`${booking.timeSlot} - Ngày ${booking.date}`}
-              accent="#A97845"
+              accent="#005C55"
               strong
             />
             <DetailRow icon="service" label="Dịch vụ chọn" value={booking.serviceName || 'Cắt tạo kiểu'} />
@@ -357,7 +357,7 @@ export const BookingStatusScreen: React.FC<BookingStatusScreenProps> = ({ naviga
                 icon="wallet"
                 label="Tổng chi phí dịch vụ"
                 value={`${booking.totalPrice?.toLocaleString('vi-VN')} đ`}
-                accent="#A97845"
+                accent="#005C55"
                 strong
               />
             )}
@@ -367,7 +367,7 @@ export const BookingStatusScreen: React.FC<BookingStatusScreenProps> = ({ naviga
         {booking.hairstyleName && (
           <View style={styles.hairstylePreviewCard}>
             <View style={styles.sectionHeader}>
-              <IconBadge name="hair" color="#A97845" bg="#EFE2D2" />
+              <IconBadge name="hair" color="#005C55" bg="#E3EFEB" />
               <View>
                 <Text style={styles.sectionTitle}>Mẫu tóc Try-On đã chọn</Text>
                 <Text style={styles.sectionSub}>Salon sẽ dùng ảnh này làm tham chiếu tạo kiểu</Text>
@@ -397,7 +397,7 @@ export const BookingStatusScreen: React.FC<BookingStatusScreenProps> = ({ naviga
             style={styles.secondaryButton}
             onPress={() => navigation.navigate('BookingHistory')}
           >
-            <IconBadge name="history" size="sm" color="#A97845" bg="#FFFFFF" />
+            <IconBadge name="history" size="sm" color="#005C55" bg="#FFFFFF" />
             <Text style={styles.secondaryButtonText}>Lịch sử đặt lịch</Text>
           </TouchableOpacity>
 
@@ -417,7 +417,7 @@ export const BookingStatusScreen: React.FC<BookingStatusScreenProps> = ({ naviga
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F6EFE6'
+    backgroundColor: '#F7F9F4'
   },
   scrollContent: {
     width: '100%',
@@ -443,10 +443,10 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#DDCDB9'
+    borderColor: '#D0D8D4'
   },
   homeLinkText: {
-    color: '#A97845',
+    color: '#005C55',
     fontSize: 13,
     fontWeight: '700'
   },
@@ -455,14 +455,14 @@ const styles = StyleSheet.create({
     flex: 1
   },
   headerEyebrow: {
-    color: '#9A8A7A',
+    color: '#8A9894',
     fontSize: 12,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.8
   },
   headerTitle: {
-    color: '#2A211C',
+    color: '#182C2A',
     fontSize: 28,
     fontWeight: '900',
     marginTop: 2
@@ -473,7 +473,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingVertical: 7,
     paddingHorizontal: 10,
-    backgroundColor: '#A97845'
+    backgroundColor: '#005C55'
   },
   headerPillText: {
     color: '#FFFFFF',
@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
     marginBottom: 5
   },
   statusDesc: {
-    color: '#6F6256',
+    color: '#687572',
     fontSize: 13,
     lineHeight: 19
   },
@@ -539,7 +539,7 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#DDCDB9'
+    borderColor: '#D0D8D4'
   },
   demoHeader: {
     flexDirection: 'row',
@@ -548,18 +548,18 @@ const styles = StyleSheet.create({
     marginBottom: 10
   },
   demoTitle: {
-    color: '#A97845',
+    color: '#005C55',
     fontSize: 13,
     fontWeight: '900'
   },
   demoBtn: {
-    backgroundColor: '#A97845',
+    backgroundColor: '#005C55',
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center'
   },
   demoBtnSuccess: {
-    backgroundColor: '#A97845'
+    backgroundColor: '#005C55'
   },
   demoBtnText: {
     color: '#FFFFFF',
@@ -572,8 +572,8 @@ const styles = StyleSheet.create({
     padding: 18,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#DDCDB9',
-    shadowColor: '#2A211C',
+    borderColor: '#D0D8D4',
+    shadowColor: '#182C2A',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.05,
     shadowRadius: 18,
@@ -586,12 +586,12 @@ const styles = StyleSheet.create({
     marginBottom: 14
   },
   sectionTitle: {
-    color: '#2A211C',
+    color: '#182C2A',
     fontSize: 16,
     fontWeight: '900'
   },
   sectionSub: {
-    color: '#9A8A7A',
+    color: '#8A9894',
     fontSize: 12,
     lineHeight: 17,
     marginTop: 1
@@ -603,9 +603,9 @@ const styles = StyleSheet.create({
     gap: 20,
     borderRadius: 18,
     padding: 18,
-    backgroundColor: '#FFFDF8',
+    backgroundColor: '#FBFFFE',
     borderWidth: 1,
-    borderColor: '#DDCDB9'
+    borderColor: '#D0D8D4'
   },
   qrMatrix: {
     width: 98,
@@ -617,23 +617,23 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#DDCDB9'
+    borderColor: '#D0D8D4'
   },
   qrCell: {
     width: 8,
     height: 8,
     borderRadius: 2,
-    backgroundColor: '#DDCDB9'
+    backgroundColor: '#D0D8D4'
   },
   qrCellFilled: {
-    backgroundColor: '#A97845'
+    backgroundColor: '#005C55'
   },
   qrCodeGroup: {
     flex: 1,
     minWidth: 180
   },
   qrLabel: {
-    color: '#9A8A7A',
+    color: '#8A9894',
     fontSize: 12,
     fontWeight: '800',
     textTransform: 'uppercase',
@@ -641,7 +641,7 @@ const styles = StyleSheet.create({
     marginBottom: 6
   },
   qrCodeText: {
-    color: '#A97845',
+    color: '#005C55',
     fontSize: 22,
     fontWeight: '900',
     letterSpacing: 1.2
@@ -652,8 +652,8 @@ const styles = StyleSheet.create({
     padding: 18,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#DDCDB9',
-    shadowColor: '#2A211C',
+    borderColor: '#D0D8D4',
+    shadowColor: '#182C2A',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.05,
     shadowRadius: 18,
@@ -676,20 +676,20 @@ const styles = StyleSheet.create({
     minWidth: 170
   },
   detailLabel: {
-    color: '#9A8A7A',
+    color: '#8A9894',
     fontSize: 13,
     fontWeight: '700'
   },
   detailValue: {
     flex: 1,
-    color: '#6F6256',
+    color: '#687572',
     fontSize: 14,
     fontWeight: '700',
     textAlign: 'right',
     flexShrink: 1
   },
   detailValueStrong: {
-    color: '#2A211C',
+    color: '#182C2A',
     fontSize: 15,
     fontWeight: '900'
   },
@@ -699,19 +699,19 @@ const styles = StyleSheet.create({
     gap: 9,
     borderRadius: 14,
     padding: 12,
-    backgroundColor: '#FFFDF8',
+    backgroundColor: '#FBFFFE',
     borderWidth: 1,
-    borderColor: '#DDCDB9'
+    borderColor: '#D0D8D4'
   },
   addressText: {
     flex: 1,
-    color: '#9A8A7A',
+    color: '#8A9894',
     fontSize: 13,
     fontWeight: '600'
   },
   divider: {
     height: 1,
-    backgroundColor: '#DDCDB9',
+    backgroundColor: '#D0D8D4',
     marginVertical: 2
   },
   hairstylePreviewCard: {
@@ -720,8 +720,8 @@ const styles = StyleSheet.create({
     padding: 18,
     marginBottom: 18,
     borderWidth: 1,
-    borderColor: '#DDCDB9',
-    shadowColor: '#2A211C',
+    borderColor: '#D0D8D4',
+    shadowColor: '#182C2A',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.05,
     shadowRadius: 18,
@@ -736,7 +736,7 @@ const styles = StyleSheet.create({
     width: 76,
     height: 76,
     borderRadius: 16,
-    backgroundColor: '#DDCDB9'
+    backgroundColor: '#D0D8D4'
   },
   previewImgPlaceholder: {
     width: 76,
@@ -744,12 +744,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EFE2D2',
+    backgroundColor: '#E3EFEB',
     borderWidth: 1,
-    borderColor: '#DDCDB9'
+    borderColor: '#D0D8D4'
   },
   previewPlaceholderText: {
-    color: '#A97845',
+    color: '#005C55',
     fontSize: 18,
     fontWeight: '900'
   },
@@ -757,13 +757,13 @@ const styles = StyleSheet.create({
     flex: 1
   },
   previewName: {
-    color: '#2A211C',
+    color: '#182C2A',
     fontSize: 16,
     fontWeight: '900',
     marginBottom: 4
   },
   previewDesc: {
-    color: '#9A8A7A',
+    color: '#8A9894',
     fontSize: 13,
     lineHeight: 18
   },
@@ -775,7 +775,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     flex: 1,
     minHeight: 50,
-    backgroundColor: '#A97845',
+    backgroundColor: '#005C55',
     borderRadius: 15,
     paddingVertical: 13,
     paddingHorizontal: 14,
@@ -801,10 +801,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     borderWidth: 1,
-    borderColor: '#DDCDB9'
+    borderColor: '#D0D8D4'
   },
   secondaryButtonText: {
-    color: '#A97845',
+    color: '#005C55',
     fontSize: 14,
     fontWeight: '900'
   },
