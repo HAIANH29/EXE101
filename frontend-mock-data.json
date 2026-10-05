@@ -1,0 +1,490 @@
+{
+  "currentUser": {
+    "id": 1,
+    "email": "hoang.minh.95@gmail.com",
+    "fullName": "Trần Hoàng Minh",
+    "phone": "0987654321",
+    "avatarUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
+    "role": "CUSTOMER",
+    "status": "ACTIVE"
+  },
+  "users": [
+    {
+      "id": 1,
+      "email": "hoang.minh.95@gmail.com",
+      "fullName": "Trần Hoàng Minh",
+      "role": "CUSTOMER",
+      "status": "ACTIVE"
+    },
+    {
+      "id": 2,
+      "email": "owner.ironcap@gmail.com",
+      "fullName": "Lê Văn Chủ",
+      "role": "SALON_OWNER",
+      "status": "ACTIVE"
+    },
+    {
+      "id": 3,
+      "email": "admin.hethong@gmail.com",
+      "fullName": "Quản Trị Viên",
+      "role": "ADMIN",
+      "status": "ACTIVE"
+    },
+    {
+      "id": 4,
+      "email": "baduser@gmail.com",
+      "fullName": "Khách Hay Bom Hàng",
+      "role": "CUSTOMER",
+      "status": "LOCKED"
+    }
+  ],
+  "salons": [
+    {
+      "id": 1,
+      "ownerId": 2,
+      "name": "Ironcap Barbershop - Ngã Tư Sở",
+      "phone": "0812345678",
+      "address": "21 Ngõ 192 Lê Trọng Tấn, Thanh Xuân, Hà Nội",
+      "description": "Không gian Barber cổ điển phong cách Châu Âu. Chuyên các dòng tóc cổ điển như Pompadour, Classic Side Part.",
+      "imageUrl": "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      "status": "ACTIVE",
+      "createdAt": "2024-02-15T08:00:00Z"
+    },
+    {
+      "id": 2,
+      "ownerId": 2,
+      "name": "Mane Man Barber House - Cầu Giấy",
+      "phone": "0912345678",
+      "address": "Số K31, Ngõ 68 Trung Kính, Cầu Giấy, Hà Nội",
+      "description": "Premium Barber House với đội ngũ thợ lành nghề, kết hợp quán cà phê không gian mở hiện đại.",
+      "imageUrl": "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      "status": "ACTIVE",
+      "createdAt": "2024-05-20T08:00:00Z"
+    },
+    {
+      "id": 3,
+      "ownerId": 5,
+      "name": "Phong BVB - Sài Gòn",
+      "phone": "0934123123",
+      "address": "456 Nguyễn Đình Chiểu, Quận 3, TP. Hồ Chí Minh",
+      "description": "Thương hiệu tóc nam hàng đầu cho giới trẻ Sài Gòn. Chuyên tẩy nhuộm màu nổi bật, cắt Mohican, Premlock.",
+      "imageUrl": "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      "status": "ACTIVE",
+      "createdAt": "2024-10-10T08:00:00Z"
+    },
+    {
+      "id": 4,
+      "ownerId": 6,
+      "name": "House of Barbaard",
+      "phone": "0243123456",
+      "address": "36 Hàng Trống, Hoàn Kiếm, Hà Nội",
+      "description": "Trải nghiệm cắt tóc chuẩn quý ông đích thực đến từ Hà Lan. Không gian sang trọng, dịch vụ Cigar và Whisky.",
+      "imageUrl": "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+      "status": "PENDING_APPROVAL",
+      "createdAt": "2026-10-01T08:00:00Z"
+    }
+  ],
+  "stylists": [
+    {
+      "id": 1,
+      "salonId": 1,
+      "name": "Vũ Anh Tú (Tú Master)",
+      "avatarUrl": "https://images.unsplash.com/photo-1618077360395-f3068be8e001?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
+      "bio": "Hơn 7 năm kinh nghiệm với Classic và Skin Fade. Đạt giải Á Quân Vietnam Barber Battles 2022.",
+      "status": "ACTIVE",
+      "createdAt": "2024-02-16T09:00:00Z"
+    },
+    {
+      "id": 2,
+      "salonId": 1,
+      "name": "Hoàng Hải (Hải Baber)",
+      "avatarUrl": "https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
+      "bio": "Chuyên gia uốn Pre-styling, kiểu tóc rủ Hàn Quốc.",
+      "status": "ACTIVE",
+      "createdAt": "2024-03-01T09:30:00Z"
+    },
+    {
+      "id": 3,
+      "salonId": 2,
+      "name": "Lê Tuấn Phong",
+      "avatarUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
+      "bio": "Kinh nghiệm phục hồi tóc, tẩy nhuộm màu khói thời trang.",
+      "status": "ACTIVE",
+      "createdAt": "2024-06-10T10:00:00Z"
+    },
+    {
+      "id": 4,
+      "salonId": 3,
+      "name": "Duy Mohican",
+      "avatarUrl": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
+      "bio": "Bàn tay vàng trong làng cắt Mohican chéo và xăm tóc (Hair Tattoo).",
+      "status": "ACTIVE",
+      "createdAt": "2024-11-01T10:00:00Z"
+    },
+    {
+      "id": 5,
+      "salonId": 3,
+      "name": "Khang Premlock",
+      "avatarUrl": "https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80",
+      "bio": "Bậc thầy uốn Premlock, Dreadlock đậm chất Hip Hop.",
+      "status": "INACTIVE",
+      "createdAt": "2024-11-05T10:00:00Z"
+    }
+  ],
+  "services": [
+    {
+      "id": 1,
+      "salonId": 1,
+      "name": "Cắt Sấy Tạo Kiểu Premium",
+      "description": "Tư vấn kiểu tóc, cắt xả, gội massage 10 phút, sấy pre-styling.",
+      "price": 120000,
+      "duration": 45,
+      "imageUrl": "https://images.unsplash.com/photo-1593702288056-ccbfebdd7d70?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+      "status": "ACTIVE"
+    },
+    {
+      "id": 2,
+      "salonId": 1,
+      "name": "Cạo Khăn Nóng Hơi Nước",
+      "description": "Dịch vụ cạo râu thư giãn kết hợp chườm khăn nóng tinh dầu.",
+      "price": 80000,
+      "duration": 30,
+      "imageUrl": "https://images.unsplash.com/photo-1532710093739-9470ac1bf081?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+      "status": "ACTIVE"
+    },
+    {
+      "id": 3,
+      "salonId": 2,
+      "name": "Uốn Tóc Hàn Quốc",
+      "description": "Sử dụng thuốc uốn hữu cơ cao cấp, không gây khô tóc.",
+      "price": 350000,
+      "duration": 90,
+      "imageUrl": "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+      "status": "ACTIVE"
+    },
+    {
+      "id": 4,
+      "salonId": 3,
+      "name": "Nhuộm Tẩy Bạch Kim",
+      "description": "Tẩy tóc 2-3 lần lên nền trắng sáng, bọc Keratin bảo vệ.",
+      "price": 1200000,
+      "duration": 240,
+      "imageUrl": "https://images.unsplash.com/photo-1562322140-8baeececf3df?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+      "status": "ACTIVE"
+    },
+    {
+      "id": 5,
+      "salonId": 3,
+      "name": "Uốn Premlock / Dreadlock",
+      "description": "Uốn xù châu Phi, độ bền cực cao, phong cách đường phố.",
+      "price": 850000,
+      "duration": 180,
+      "imageUrl": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+      "status": "ACTIVE"
+    }
+  ],
+  "categories": [
+    {
+      "id": 1,
+      "name": "Undercut & Fade",
+      "description": "Phong cách cạo sát hai bên mạnh mẽ, lịch lãm."
+    },
+    {
+      "id": 2,
+      "name": "Side Part & Quiff",
+      "description": "Phân chia ngôi cổ điển, độ phồng cao."
+    },
+    {
+      "id": 3,
+      "name": "Layer & Mullet",
+      "description": "Tóc cắt lớp bồng bềnh, che khuyết điểm trán cao."
+    },
+    {
+      "id": 4,
+      "name": "Tóc Ngắn Thể Thao",
+      "description": "Buzz Cut, Crew Cut, Mohican - Gọn gàng mát mẻ."
+    }
+  ],
+  "hairstyles": [
+    {
+      "id": 1,
+      "categoryId": 2,
+      "name": "Short Quiff",
+      "description": "Kiểu tóc ngắn vuốt dựng phần mái, năng động dễ chăm sóc.",
+      "imageUrl": "https://images.unsplash.com/photo-1621605815971-fbc98d665033?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+      "gender": "MALE",
+      "status": "ACTIVE",
+      "createdAt": "2024-01-10T10:00:00Z"
+    },
+    {
+      "id": 2,
+      "categoryId": 2,
+      "name": "Side Part 7/3 Rủ",
+      "description": "Mái chia tỷ lệ 7/3, phần mái uốn rủ tự nhiên chuẩn phong cách Hàn Quốc.",
+      "imageUrl": "https://images.unsplash.com/photo-1595152452543-e5fc28ebc2b8?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+      "gender": "MALE",
+      "status": "ACTIVE",
+      "createdAt": "2024-01-15T10:30:00Z"
+    },
+    {
+      "id": 3,
+      "categoryId": 3,
+      "name": "Modern Mullet",
+      "description": "Hai bên cắt gọn, đuôi gáy để dài. Xu hướng thời trang phá cách cho giới trẻ.",
+      "imageUrl": "https://images.unsplash.com/photo-1605497788044-5a32c7078486?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+      "gender": "MALE",
+      "status": "ACTIVE",
+      "createdAt": "2024-02-01T11:00:00Z"
+    },
+    {
+      "id": 4,
+      "categoryId": 4,
+      "name": "Mohican Chéo",
+      "description": "Cắt ngắn hai bên, vuốt nhọn phần đỉnh hướng về trước.",
+      "imageUrl": "https://images.unsplash.com/photo-1518063162624-9519ce3f46f5?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+      "gender": "MALE",
+      "status": "ACTIVE",
+      "createdAt": "2024-03-01T11:00:00Z"
+    },
+    {
+      "id": 5,
+      "categoryId": 1,
+      "name": "Pompadour Classic",
+      "description": "Phần mái vuốt ngược bồng bềnh sang trọng.",
+      "imageUrl": "https://images.unsplash.com/photo-1579213123847-a41e97de6965?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+      "gender": "MALE",
+      "status": "ACTIVE",
+      "createdAt": "2024-04-01T11:00:00Z"
+    }
+  ],
+  "bookings": [
+    {
+      "id": 1,
+      "customerId": 1,
+      "salonId": 1,
+      "stylistId": 1,
+      "serviceId": 1,
+      "hairstyleId": 5,
+      "startAt": "2026-10-10T09:00:00Z",
+      "endAt": "2026-10-10T09:45:00Z",
+      "status": "CONFIRMED",
+      "totalAmount": 120000,
+      "note": "Da đầu mình hơi nhạy cảm nên lúc massage kỹ giúp mình nhé.",
+      "createdAt": "2026-10-05T08:15:00Z"
+    },
+    {
+      "id": 2,
+      "customerId": 1,
+      "salonId": 1,
+      "stylistId": 2,
+      "serviceId": 2,
+      "hairstyleId": null,
+      "startAt": "2026-10-12T14:00:00Z",
+      "endAt": "2026-10-12T14:30:00Z",
+      "status": "PENDING",
+      "totalAmount": 80000,
+      "note": "Cạo sạch râu cằm giúp mình.",
+      "createdAt": "2026-10-05T10:30:00Z"
+    },
+    {
+      "id": 3,
+      "customerId": 4,
+      "salonId": 3,
+      "stylistId": 5,
+      "serviceId": 5,
+      "hairstyleId": null,
+      "startAt": "2026-10-01T15:00:00Z",
+      "endAt": "2026-10-01T18:00:00Z",
+      "status": "CANCELLED",
+      "totalAmount": 850000,
+      "note": "Hủy vì kẹt xe.",
+      "createdAt": "2026-09-29T10:30:00Z"
+    },
+    {
+      "id": 4,
+      "customerId": 1,
+      "salonId": 2,
+      "stylistId": 3,
+      "serviceId": 3,
+      "hairstyleId": 2,
+      "startAt": "2026-09-01T09:00:00Z",
+      "endAt": "2026-09-01T10:30:00Z",
+      "status": "COMPLETED",
+      "totalAmount": 350000,
+      "note": "",
+      "createdAt": "2026-08-30T10:30:00Z"
+    },
+    {
+      "id": 5,
+      "customerId": 1,
+      "salonId": 3,
+      "stylistId": 4,
+      "serviceId": 4,
+      "hairstyleId": 4,
+      "startAt": "2026-09-15T13:00:00Z",
+      "endAt": "2026-09-15T17:00:00Z",
+      "status": "COMPLETED",
+      "totalAmount": 1200000,
+      "note": "Tẩy trắng tinh luôn nhé.",
+      "createdAt": "2026-09-10T10:30:00Z"
+    }
+  ],
+  "payments": [
+    {
+      "id": 1,
+      "bookingId": 1,
+      "provider": "SEPAY",
+      "transactionId": "FT2401010892019",
+      "referenceCode": "DH1A2B3",
+      "amount": 120000,
+      "status": "PAID",
+      "paymentUrl": "https://qr.sepay.vn/img?bank=Vietcombank&acc=123456789&amount=120000&des=DH1A2B3",
+      "paidAt": "2026-10-05T08:16:22Z",
+      "createdAt": "2026-10-05T08:15:05Z",
+      "refundAmount": null,
+      "refundReason": null
+    },
+    {
+      "id": 2,
+      "bookingId": 2,
+      "provider": "SEPAY",
+      "transactionId": null,
+      "referenceCode": "DH2X9F1",
+      "amount": 80000,
+      "status": "PENDING",
+      "paymentUrl": "https://qr.sepay.vn/img?bank=Vietcombank&acc=123456789&amount=80000&des=DH2X9F1",
+      "paidAt": null,
+      "createdAt": "2026-10-05T10:30:10Z"
+    },
+    {
+      "id": 3,
+      "bookingId": 3,
+      "provider": "SEPAY",
+      "transactionId": "FT240212000213",
+      "referenceCode": "DH3CANCEL",
+      "amount": 850000,
+      "status": "REFUNDED",
+      "paymentUrl": "https://qr.sepay.vn/img?bank=Vietcombank&acc=123456789&amount=850000&des=DH3CANCEL",
+      "paidAt": "2026-09-29T10:35:00Z",
+      "createdAt": "2026-09-29T10:30:05Z",
+      "refundAmount": 850000,
+      "refundReason": "Khách hủy do kẹt xe, đã chuyển khoản hoàn lại",
+      "refundReference": "CK_HOAN_123",
+      "refundRequestedAt": "2026-10-01T14:00:00Z",
+      "refundedAt": "2026-10-01T18:00:00Z"
+    },
+    {
+      "id": 4,
+      "bookingId": 4,
+      "provider": "SEPAY",
+      "transactionId": "FT2608301111",
+      "referenceCode": "DH4COMPLETED",
+      "amount": 350000,
+      "status": "PAID",
+      "paymentUrl": "https://qr.sepay.vn/img?bank=Vietcombank&acc=123456789&amount=350000&des=DH4COMPLETED",
+      "paidAt": "2026-08-30T10:35:00Z",
+      "createdAt": "2026-08-30T10:30:05Z"
+    }
+  ],
+  "tryon_requests": [
+    {
+      "id": 1,
+      "userId": 1,
+      "hairstyleId": 2,
+      "status": "DONE",
+      "inputImageUrl": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+      "createdAt": "2026-10-04T15:15:00Z"
+    },
+    {
+      "id": 2,
+      "userId": 1,
+      "hairstyleId": 1,
+      "status": "READY_FOR_ADJUST",
+      "inputImageUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+      "createdAt": "2026-10-05T11:00:00Z"
+    },
+    {
+      "id": 3,
+      "userId": 1,
+      "hairstyleId": 4,
+      "status": "PENDING",
+      "inputImageUrl": "https://images.unsplash.com/photo-1618077360395-f3068be8e001?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+      "createdAt": "2026-10-05T13:00:00Z"
+    }
+  ],
+  "tryon_results": [
+    {
+      "requestId": 1,
+      "status": "DONE",
+      "resultImageUrl": "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+      "createdAt": "2026-10-04T15:20:00Z"
+    }
+  ],
+  "reviews": [
+    {
+      "id": 1,
+      "bookingId": 4,
+      "customerId": 1,
+      "rating": 5,
+      "comment": "Uốn tóc rất đẹp, thuốc không bị hôi. Bạn Phong tư vấn nhiệt tình.",
+      "createdAt": "2026-09-02T10:00:00Z"
+    },
+    {
+      "id": 2,
+      "bookingId": 5,
+      "customerId": 1,
+      "rating": 4,
+      "comment": "Tẩy tóc lên màu khói khá chuẩn. Tuy nhiên thợ làm hơi lâu.",
+      "createdAt": "2026-09-16T09:00:00Z"
+    }
+  ],
+  "notifications": [
+    {
+      "id": 1,
+      "userId": 1,
+      "title": "Nhắc nhở lịch hẹn sắp diễn ra",
+      "content": "Lịch hẹn cắt tóc của bạn tại Ironcap Barbershop sẽ bắt đầu sau 2 giờ nữa. Vui lòng đến đúng giờ.",
+      "type": "BOOKING_REMINDER",
+      "isRead": false,
+      "createdAt": "2026-10-05T07:00:00Z"
+    },
+    {
+      "id": 2,
+      "userId": 1,
+      "title": "Thanh toán thành công",
+      "content": "Cảm ơn bạn đã thanh toán 120,000đ cho lịch hẹn DH1A2B3.",
+      "type": "PAYMENT_SUCCESS",
+      "isRead": true,
+      "createdAt": "2026-10-05T08:16:22Z"
+    },
+    {
+      "id": 3,
+      "userId": 1,
+      "title": "Hoàn tiền thành công",
+      "content": "Bạn đã được hoàn 850,000đ cho lịch hẹn DH3CANCEL bị hủy. Vui lòng kiểm tra tài khoản ngân hàng.",
+      "type": "PAYMENT_REFUNDED",
+      "isRead": true,
+      "createdAt": "2026-10-01T18:05:00Z"
+    }
+  ],
+  "dashboard_stats": {
+    "overview": {
+      "totalUsers": 1250,
+      "totalSalons": 42,
+      "totalStylists": 156,
+      "activeBookings": 85
+    },
+    "revenue": {
+      "totalRevenue": 450000000,
+      "currency": "VND",
+      "period": "October 2026"
+    },
+    "bookings": {
+      "pending": 25,
+      "confirmed": 40,
+      "completed": 1200,
+      "cancelled": 50,
+      "total": 1315
+    }
+  }
+}
