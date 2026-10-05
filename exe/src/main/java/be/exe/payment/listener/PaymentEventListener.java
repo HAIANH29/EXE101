@@ -4,6 +4,8 @@ import be.exe.booking.domain.event.BookingCancelledEvent;
 import be.exe.booking.domain.event.BookingCreatedEvent;
 import be.exe.payment.service.PaymentService;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
@@ -16,6 +18,10 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * @EventListener thường, code sẽ chạy TRONG CÙNG transaction với việc tạo booking -
  * nếu tạo payment lỗi vì lý do gì đó, sẽ vô tình rollback luôn cả booking, gây coupling
  * không mong muốn giữa 2 module.
+ *
+ * Bắt buộc dùng REQUIRES_NEW: ở pha AFTER_COMMIT transaction gốc đã commit nhưng
+ * resource vẫn còn bind vào thread - nếu service chạy với REQUIRED, nó sẽ "tham gia"
+ * transaction đã commit đó và thay đổi có thể không bao giờ được ghi xuống DB.
  */
 @Component
 public class PaymentEventListener {
@@ -27,11 +33,13 @@ public class PaymentEventListener {
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onBookingCreated(BookingCreatedEvent event) {
         paymentService.createPaymentForBooking(event.bookingId(), event.totalAmount());
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onBookingCancelled(BookingCancelledEvent event) {
         paymentService.cancelPaymentForBooking(event.bookingId());
     }

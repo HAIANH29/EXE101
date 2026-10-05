@@ -18,8 +18,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import be.exe.tryon.dto.request.TryOnFinalizeRequest;
 
 @RestController
 @RequestMapping("/api/tryon")
@@ -50,14 +52,14 @@ public class TryOnController {
      * Bước 2: khách chỉnh xong bên FE (kéo/resize/xoay), FE tự merge ảnh
      * bằng canvas rồi gửi file ảnh cuối lên đây để lưu kết quả.
      */
-    @PutMapping(value = "/{requestId}/finalize", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(value = "/{requestId}/finalize", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ApiResponse<TryOnFinalizeResponseDto> finalize(
                 @AuthenticationPrincipal CustomUserDetails principal,
             @PathVariable Long requestId,
-            @RequestParam("resultImage") MultipartFile resultImage) {
+            @RequestBody TryOnFinalizeRequest request) {
 
             TryOnFinalizeResponseDto response = tryOnService.finalize(
-                    requestId, resultImage, principal.getUserId());
+                    requestId, request, principal.getUserId());
         return ApiResponse.success("Lưu kết quả thử tóc thành công", response);
     }
 

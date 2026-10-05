@@ -41,3 +41,27 @@ def compute_overlay(image_url: str, hairstyle_id: int, hairstyle_image_url: str)
         "width": target_width,
         "height": target_height,
     }
+
+import base64
+from io import BytesIO
+
+def merge_images(image_url: str, hairstyle_image_url: str, x: int, y: int, width: int, height: int) -> str:
+    original_rgb = download_image(image_url)
+    hairstyle_rgba = download_image_rgba(hairstyle_image_url)
+    
+    # Resize hairstyle
+    hairstyle_resized = hairstyle_rgba.resize((width, height))
+    
+    # Create a copy of the original image (converted to RGBA for pasting)
+    result = original_rgb.convert("RGBA")
+    
+    # Paste hairstyle using its alpha channel as mask
+    result.paste(hairstyle_resized, (x, y), hairstyle_resized)
+    
+    # Convert back to RGB and save to buffer
+    result = result.convert("RGB")
+    buffer = BytesIO()
+    result.save(buffer, format="JPEG")
+    buffer.seek(0)
+    
+    return base64.b64encode(buffer.read()).decode("utf-8")

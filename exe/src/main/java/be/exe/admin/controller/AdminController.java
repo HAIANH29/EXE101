@@ -7,9 +7,13 @@ import be.exe.common.response.ApiResponse;
 import be.exe.common.response.PageResponse;
 import be.exe.common.util.PaginationUtils;
 import be.exe.salon.dto.response.SalonResponse;
+import be.exe.payment.dto.response.PaymentResponse;
+import be.exe.admin.dto.request.RefundPaymentRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import be.exe.common.security.CustomUserDetails;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -47,6 +51,14 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success("Đã cập nhật trạng thái tài khoản", response));
     }
 
+    @DeleteMapping("/users/{userId}")
+    public ResponseEntity<ApiResponse<Void>> deleteUser(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @PathVariable Long userId) {
+        adminService.deleteUser(principal.getUserId(), userId);
+        return ResponseEntity.ok(ApiResponse.success("Đã xóa tài khoản"));
+    }
+
     // ===== Quản lý salon =====
 
     @GetMapping("/salons")
@@ -69,5 +81,16 @@ public class AdminController {
     public ResponseEntity<ApiResponse<SalonResponse>> rejectSalon(@PathVariable Long salonId) {
         return ResponseEntity.ok(ApiResponse.success(
                 "Đã từ chối salon", adminService.rejectSalon(salonId)));
+    }
+
+    // ===== Quản lý thanh toán =====
+
+    @PatchMapping("/payments/{paymentId}/refund")
+    public ResponseEntity<ApiResponse<PaymentResponse>> refundPayment(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @PathVariable Long paymentId,
+            @Valid @RequestBody RefundPaymentRequest request) {
+        PaymentResponse response = adminService.refundPayment(principal.getUserId(), paymentId, request);
+        return ResponseEntity.ok(ApiResponse.success("Đã ghi nhận hoàn tiền thành công", response));
     }
 }

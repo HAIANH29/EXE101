@@ -19,6 +19,8 @@ import be.exe.tryon.validator.ImageFileValidator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import java.util.Base64;
+import be.exe.tryon.dto.request.TryOnFinalizeRequest;
 
 import java.time.OffsetDateTime;
 import java.util.HashMap;
@@ -71,21 +73,26 @@ public class TryOnService {
 
         String inputUrl = storageService.upload(file, "tryon/originals");
 
-        TryOnRequest request = new TryOnRequest();
-        request.setUserId(userId);
-        request.setHairstyleId(hairstyleId);
-        request.setInputImageUrl(inputUrl);
-        request.setStatus("PENDING");
-        request.setCreatedAt(OffsetDateTime.now());
-        requestRepository.save(request);
+        try {
+            TryOnRequest request = new TryOnRequest();
+            request.setUserId(userId);
+            request.setHairstyleId(hairstyleId);
+            request.setInputImageUrl(inputUrl);
+            request.setStatus("PENDING");
+            request.setCreatedAt(OffsetDateTime.now());
+            requestRepository.save(request);
 
-        AiTryOnClient.AiOverlayResponse overlay = aiTryOnClient.computeOverlay(
-            inputUrl, hairstyleId, hairstyle.imageUrl());
+            AiTryOnClient.AiOverlayResponse overlay = aiTryOnClient.computeOverlay(
+                inputUrl, hairstyleId, hairstyle.imageUrl());
 
-        request.setStatus("READY_FOR_ADJUST");
-        requestRepository.save(request);
+            request.setStatus("READY_FOR_ADJUST");
+            requestRepository.save(request);
 
-        return mapper.toDto(request, overlay);
+            return mapper.toDto(request, overlay);
+        } catch (Exception e) {
+            storageService.delete(inputUrl);
+            throw e;
+        }
     }
 
     /**
@@ -93,9 +100,7 @@ public class TryOnService {
      * canvas rồi gửi file ảnh cuối lên đây để lưu.
      */
     @Transactional
-    public TryOnFinalizeResponseDto finalize(Long requestId, MultipartFile resultImage, Long userId) {
-        validator.validate(resultImage);
-
+    public TryOnFinalizeResponseDto finalize(Long requestId, TryOnFinalizeRequest finalizeRequest, Long userId) {
         TryOnRequest request = requestRepository.findByIdAndUserId(requestId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("TryOnRequest", requestId));
 
@@ -106,20 +111,37 @@ public class TryOnService {
         if (resultRepository.existsByRequestId(requestId)) {
             throw new BusinessException(ErrorCode.TRYON_RESULT_ALREADY_EXISTS);
         }
+        
+        HairstyleSummaryResponse hairstyle = hairstyleService.getHairstyleOrThrow(request.getHairstyleId());
 
-        String resultUrl = storageService.upload(resultImage, "tryon/results");
+        AiTryOnClient.AiMergeResponse mergeResponse = aiTryOnClient.mergeImages(
+                request.getInputImageUrl(),
+                hairstyle.imageUrl(),
+                finalizeRequest.x(),
+                finalizeRequest.y(),
+                finalizeRequest.width(),
+                finalizeRequest.height()
+        );
 
-        TryOnResult result = new TryOnResult();
-        result.setRequestId(request.getId());
-        result.setResultImageUrl(resultUrl);
-        result.setCreatedAt(OffsetDateTime.now());
-        resultRepository.save(result);
+        byte[] imageBytes = Base64.getDecoder().decode(mergeResponse.base64Image());
+        String resultUrl = storageService.upload(imageBytes, "tryon/results");
 
-        request.setStatus("DONE");
-        request.setCompletedAt(OffsetDateTime.now());
-        requestRepository.save(request);
+        try {
+            TryOnResult result = new TryOnResult();
+            result.setRequestId(request.getId());
+            result.setResultImageUrl(resultUrl);
+            result.setCreatedAt(OffsetDateTime.now());
+            resultRepository.save(result);
 
-        return mapper.toFinalizeDto(request, result);
+            request.setStatus("DONE");
+            request.setCompletedAt(OffsetDateTime.now());
+            requestRepository.save(request);
+
+            return mapper.toFinalizeDto(request, result);
+        } catch (Exception e) {
+            storageService.delete(resultUrl);
+            throw e;
+        }
     }
 
     @Transactional(readOnly = true)

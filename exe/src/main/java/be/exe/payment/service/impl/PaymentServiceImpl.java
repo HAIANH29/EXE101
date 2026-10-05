@@ -139,6 +139,17 @@ public class PaymentServiceImpl implements PaymentService {
         return toResponse(payment);
     }
 
+    @Override
+    @Transactional
+    public PaymentResponse refundPayment(Long paymentId, BigDecimal refundAmount, String refundReference, String note, Long adminId) {
+        Payment payment = paymentRepository.findById(Objects.requireNonNull(paymentId))
+                .orElseThrow(() -> new ResourceNotFoundException("Payment", paymentId));
+
+        payment.markRefunded(refundAmount, refundReference, note, adminId);
+
+        return toResponse(payment);
+    }
+
     /**
      * Mã tham chiếu ngắn gọn, dễ gõ/copy vào nội dung chuyển khoản.
      * Ví dụ: "DH1023-A1B2". Phần random 4 ký tự cuối để tránh trùng nếu bookingId
@@ -160,7 +171,12 @@ public class PaymentServiceImpl implements PaymentService {
                 payment.getStatus().name(),
                 payment.getPaymentUrl(),
                 payment.getPaidAt(),
-                payment.getCreatedAt()
+                payment.getCreatedAt(),
+                payment.getRefundAmount(),
+                payment.getRefundReason(),
+                payment.getRefundReference(),
+                payment.getRefundRequestedAt(),
+                payment.getRefundedAt()
         );
     }
 }

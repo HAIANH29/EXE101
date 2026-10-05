@@ -617,11 +617,11 @@ Các response được trả trong `data` gồm các trường tương ứng DTO
 
 **API-62 - PUT `/api/tryon/{requestId}/finalize`**
 
-- Mục đích: nhận ảnh đã được frontend tự merge sau khi người dùng kéo/resize/xoay, lưu ảnh kết quả.
-- Input: path `requestId` Long; multipart part `resultImage` bắt buộc.
+- Mục đích: nhận tọa độ ảnh đã được frontend điều chỉnh, server-side merge ảnh bằng Python AI service, lưu ảnh kết quả.
+- Input: path `requestId` Long; body JSON `TryOnFinalizeRequest` chứa `x, y, width, height` bắt buộc.
 - Xác thực: JWT bắt buộc; service chỉ truy cập request thuộc `userId` hiện tại.
 - Thành công theo code: HTTP 200, message `Lưu kết quả thử tóc thành công`; `data` gồm requestId, status `DONE`, resultImageUrl.
-- Lỗi: 400 `TRYON_001` với cùng quy tắc file; 404 resource not found nếu requestId không tồn tại (`COMMON_003` theo ResourceNotFoundException); 500 nếu upload/DB lỗi. Bảng `tryon_results` unique theo request_id nên finalize lần hai có thể gây lỗi 500 nếu không được xử lý.
+- Lỗi: 400 nếu payload JSON sai; 404 resource not found nếu requestId không tồn tại (`COMMON_003` theo ResourceNotFoundException); 500 nếu gọi AI `/merge` hoặc upload/DB lỗi. Bảng `tryon_results` unique theo request_id nên finalize lần hai có thể gây lỗi 500 nếu không được xử lý.
 
 ### 3.11 Availability, reschedule và try-on result
 
@@ -711,13 +711,15 @@ Các response được trả trong `data` gồm các trường tương ứng DTO
 
 - Tạo salon gắn với owner hiện tại; owner sửa salon, business hours, stylist và service theo các service public. Admin thay trạng thái salon. Chi tiết ownership cụ thể phụ thuộc implementation/service method và không phải route nào cũng có controller annotation riêng.
 
-**FUNC-13 - `TryOnService.process(file, hairstyleId, userId)`**
+**FUNC-13 - `TryOnService.process` và `TryOnService.finalize`**
 
-- Validate file, upload vào `tryon/originals`, lưu request PENDING, gọi Java `AiTryOnClient`, rồi đổi status thành `READY_FOR_ADJUST` và map overlay. AI client POST JSON `{imageUrl, hairstyleId}` tới base URL cấu hình + `/tryon`; mọi exception từ client bị đổi thành `TRYON_002`.
+- `process(file, hairstyleId, userId)`: Validate file, upload vào `tryon/originals`, lưu request PENDING, gọi Java `AiTryOnClient.computeOverlay`, rồi đổi status thành `READY_FOR_ADJUST` và map overlay. Có cơ chế compensation: nếu lỗi (AI hoặc DB), sẽ xóa file vừa upload trên Cloudinary.
+- `finalize(requestId, request, userId)`: Lấy tọa độ từ request JSON, gọi Java `AiTryOnClient.mergeImages`, nhận base64 kết quả, decode và upload lên Cloudinary `tryon/results`, lưu kết quả vào DB. Có compensation tự động xóa ảnh nếu lưu DB thất bại.
 
 **FUNC-14 - Python `compute_overlay(image_url, hairstyle_id)`**
 
-- Tải ảnh gốc và ảnh tóc qua HTTP timeout 15 giây, convert RGB/RGBA, dùng MediaPipe Face Mesh tối đa một mặt. Dùng landmark 10, 234, 454 để tính forehead anchor và face width. URL ảnh tóc được lấy từ catalog Java và truyền vào request; không còn map hairstyle id hardcode. Width tóc = face width * 2.2; y dịch = -35% target height; trả URL và x/y/width/height. Không ghép ảnh và không upload kết quả.
+- `compute_overlay(image_url, hairstyle_id)`: Tải ảnh gốc và ảnh tóc, tính toán bằng MediaPipe Face Mesh, trả về tọa độ đặt tóc.
+- `merge_images(image_url, hairstyle_image_url, x, y, width, height)`: Tải 2 ảnh, resize ảnh tóc theo tọa độ, dùng Pillow dán ảnh tóc lên ảnh gốc bằng alpha channel mask, sau đó convert sang JPEG và encode Base64 trả về cho Java.
 
 **FUNC-15 - `ImageFileValidator.validate(file)`
 
@@ -737,11 +739,12 @@ Các response được trả trong `data` gồm các trường tương ứng DTO
 6. Chưa có test tự động hoặc runtime smoke test cho flow try-on mới: JWT ownership, request status, duplicate finalize, AI timeout, ảnh không có mặt, ảnh nhiều mặt, URL ảnh lỗi và payload webhook thiếu field.
 8. Python service có health endpoint và báo `DEGRADED` nếu thiếu internal token, nhưng chưa kiểm tra readiness thực tế của MediaPipe hoặc khả năng tải các nguồn ảnh.
 9. [Đã xử lý] Booking validate `startAt` phải ở tương lai; revenue từ chối `from > to`; domain chỉ cho chuyển trạng thái `PENDING -> CONFIRMED -> COMPLETED`. Chưa có test runtime xác nhận đầy đủ các chuyển trạng thái.
-10. Chưa có scheduler/worker thể hiện việc gửi nhắc lịch; module notification hiện chủ yếu nhận event và cung cấp API đọc/đánh dấu.
-11. AI chỉ tính overlay; việc merge ảnh cuối vẫn do frontend canvas thực hiện. Không có server-side render/scan nội dung ảnh cuối.
-12. Khi AI/storage lỗi sau khi upload ảnh gốc, transaction DB có thể rollback nhưng file Cloudinary đã upload có thể trở thành orphan; chưa thấy cleanup/compensation job.
-13. API inventory cũ ghi 59 endpoint; source hiện tại có 66 mapping theo tài liệu này. Các tài liệu Postman/OpenAPI cũ chưa phản ánh đầy đủ endpoint availability, reschedule, try-on result và các status 201 mới.
+10. [Đã xử lý] Đã thêm `BookingReminderService` (cron job nhắc lịch tự động trước 2 giờ) và tạo `BookingReminderEvent` gửi qua notification.
+11. [Đã xử lý] AI service giờ có endpoint `/merge` (server-side merge bằng Python Pillow); Java gửi tọa độ thay vì ảnh client tự merge.
+12. [Đã xử lý] Đã thêm logic compensation trong `TryOnService`: catch Exception và gọi `StorageService.delete` để dọn file orphan Cloudinary ngay khi giao dịch lỗi.
+13. Đã thêm `AuditLog`, `AuditFilter` (global) để log lại tất cả access/time/userId cho toàn bộ request `/api/`.
+14. [Đã xử lý] Tài liệu cũ `docs/api-inventory.md`, `docs/feature-coverage.md` đã được cập nhật đồng bộ để phản ánh đúng danh sách 68 endpoint.
 
 ## 6. Phạm vi chưa có trong code
 
-Không thấy endpoint cho refund/payment initiate riêng, xóa user, scheduler nhắc lịch hoặc audit log. Payment hiện được tạo tự động qua booking event; try-on result, availability và reschedule đã có API như trên.
+Không thấy endpoint cho payment initiate trực tiếp từ cổng thanh toán. Try-on result, availability, reschedule, audit log, nhắc lịch, xóa user, **và refund payment** đã được thêm.

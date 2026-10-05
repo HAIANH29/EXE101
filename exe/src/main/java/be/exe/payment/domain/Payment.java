@@ -1,5 +1,6 @@
 package be.exe.payment.domain;
 
+import be.exe.common.exception.ValidationException;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -49,6 +50,25 @@ public class Payment {
     @Column(name = "paid_at")
     private Instant paidAt;
 
+    @Column(name = "refund_amount", precision = 12, scale = 2)
+    private BigDecimal refundAmount;
+
+    @Column(name = "refund_reason", columnDefinition = "TEXT")
+    private String refundReason;
+
+    /** Mã giao dịch chuyển khoản hoàn tiền (admin nhập sau khi chuyển thủ công). */
+    @Column(name = "refund_reference")
+    private String refundReference;
+
+    @Column(name = "refund_requested_at")
+    private Instant refundRequestedAt;
+
+    @Column(name = "refunded_at")
+    private Instant refundedAt;
+
+    @Column(name = "refunded_by")
+    private Long refundedBy;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -90,6 +110,43 @@ public class Payment {
         return this.status == PaymentStatus.PENDING;
     }
 
+    public boolean isPaid() {
+        return this.status == PaymentStatus.PAID;
+    }
+
+    /** PAID -> REFUND_PENDING (booking đã thanh toán bị hủy). */
+    public void requestRefund(String reason) {
+        if (this.status != PaymentStatus.PAID) {
+            throw new ValidationException("Chỉ payment PAID mới có thể yêu cầu hoàn tiền");
+        }
+        this.status = PaymentStatus.REFUND_PENDING;
+        this.refundReason = reason;
+        this.refundRequestedAt = Instant.now();
+    }
+
+    /** PAID hoặc REFUND_PENDING -> REFUNDED, sau khi admin đã chuyển khoản hoàn tiền. */
+    public void markRefunded(BigDecimal refundAmount, String refundReference, String note, Long adminId) {
+        if (this.status != PaymentStatus.PAID && this.status != PaymentStatus.REFUND_PENDING) {
+            throw new ValidationException("Chỉ payment PAID hoặc REFUND_PENDING mới có thể hoàn tiền");
+        }
+        if (refundAmount == null || refundAmount.signum() <= 0 || refundAmount.compareTo(this.amount) > 0) {
+            throw new ValidationException("Số tiền hoàn phải lớn hơn 0 và không vượt quá số tiền đã thanh toán");
+        }
+        if (this.refundRequestedAt == null) {
+            this.refundRequestedAt = Instant.now();
+        }
+        if (note != null && !note.isBlank()) {
+            this.refundReason = (this.refundReason == null || this.refundReason.isBlank())
+                    ? note
+                    : this.refundReason + " | " + note;
+        }
+        this.status = PaymentStatus.REFUNDED;
+        this.refundAmount = refundAmount;
+        this.refundReference = refundReference;
+        this.refundedAt = Instant.now();
+        this.refundedBy = adminId;
+    }
+
     public Long getId() {
         return id;
     }
@@ -124,6 +181,30 @@ public class Payment {
 
     public Instant getPaidAt() {
         return paidAt;
+    }
+
+    public BigDecimal getRefundAmount() {
+        return refundAmount;
+    }
+
+    public String getRefundReason() {
+        return refundReason;
+    }
+
+    public String getRefundReference() {
+        return refundReference;
+    }
+
+    public Instant getRefundRequestedAt() {
+        return refundRequestedAt;
+    }
+
+    public Instant getRefundedAt() {
+        return refundedAt;
+    }
+
+    public Long getRefundedBy() {
+        return refundedBy;
     }
 
     public Instant getCreatedAt() {

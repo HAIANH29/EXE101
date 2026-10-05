@@ -3,6 +3,8 @@ package be.exe.admin.service.impl;
 import be.exe.admin.service.AdminService;
 import be.exe.auth.dto.response.UserResponse;
 import be.exe.auth.service.AuthService;
+import be.exe.common.exception.BusinessException;
+import be.exe.common.exception.ErrorCode;
 import be.exe.salon.domain.SalonStatus;
 import be.exe.salon.dto.response.SalonResponse;
 import be.exe.salon.service.SalonService;
@@ -10,6 +12,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import be.exe.payment.service.PaymentService;
+import be.exe.payment.dto.response.PaymentResponse;
+import be.exe.admin.dto.request.RefundPaymentRequest;
 
 /**
  * Module admin KHÔNG có domain/repository riêng - toàn bộ thao tác đi qua Service interface
@@ -24,10 +29,12 @@ public class AdminServiceImpl implements AdminService {
 
     private final AuthService authService;
     private final SalonService salonService;
+    private final PaymentService paymentService;
 
-    public AdminServiceImpl(AuthService authService, SalonService salonService) {
+    public AdminServiceImpl(AuthService authService, SalonService salonService, PaymentService paymentService) {
         this.authService = authService;
         this.salonService = salonService;
+        this.paymentService = paymentService;
     }
 
     // ===== Quản lý người dùng =====
@@ -41,6 +48,16 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public UserResponse updateUserStatus(Long userId, String status) {
         return authService.updateUserStatus(userId, status);
+    }
+
+    @Override
+    public void deleteUser(Long adminUserId, Long userId) {
+        if (adminUserId != null && adminUserId.equals(userId)) {
+            throw new BusinessException(
+                    ErrorCode.VALIDATION_FAILED,
+                    "Admin không thể tự xóa tài khoản của mình qua API quản trị");
+        }
+        authService.deleteAccount(userId);
     }
 
     // ===== Quản lý salon =====
@@ -62,5 +79,12 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public SalonResponse rejectSalon(Long salonId) {
         return salonService.updateSalonStatus(salonId, SalonStatus.INACTIVE);
+    }
+
+    // ===== Quản lý thanh toán =====
+
+    @Override
+    public PaymentResponse refundPayment(Long adminId, Long paymentId, RefundPaymentRequest request) {
+        return paymentService.refundPayment(paymentId, request.refundAmount(), request.refundReference(), request.note(), adminId);
     }
 }

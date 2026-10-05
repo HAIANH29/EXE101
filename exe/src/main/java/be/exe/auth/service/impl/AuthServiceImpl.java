@@ -133,6 +133,10 @@ public class AuthServiceImpl implements AuthService {
 
         User user = storedToken.getUser();
 
+        if (!user.isEnabled()) {
+            throw new BusinessException(ErrorCode.ACCOUNT_DISABLED);
+        }
+
         // Rotate refresh token
         storedToken.revoke();
 
@@ -204,6 +208,16 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    public void deleteAccount(Long userId) {
+        User user = userRepository.findById(userId)
+                .filter(u -> !u.isDeleted())
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+
+        refreshTokenRepository.revokeAllByUserId(userId);
+        user.markDeleted(passwordEncoder.encode(java.util.UUID.randomUUID().toString()));
+    }
+
+    @Override
     public LoginResponse loginOrRegisterViaOAuth2(
             String email,
             String fullName,
@@ -271,9 +285,25 @@ public class AuthServiceImpl implements AuthService {
                                 userId
                         ));
 
-        user.setStatus(
-                UserStatus.valueOf(status)
-        );
+        if (user.isDeleted()) {
+            throw new BusinessException(
+                    ErrorCode.VALIDATION_FAILED,
+                    "Tài khoản đã bị xóa, không thể thay đổi trạng thái"
+            );
+        }
+
+        UserStatus newStatus = UserStatus.valueOf(status);
+        if (newStatus == UserStatus.DELETED) {
+            throw new BusinessException(
+                    ErrorCode.VALIDATION_FAILED,
+                    "Dùng API xóa tài khoản thay vì cập nhật trạng thái DELETED"
+            );
+        }
+
+        user.setStatus(newStatus);
+        if (newStatus != UserStatus.ACTIVE) {
+            refreshTokenRepository.revokeAllByUserId(userId);
+        }
 
         return UserMapper.toResponse(user);
     }

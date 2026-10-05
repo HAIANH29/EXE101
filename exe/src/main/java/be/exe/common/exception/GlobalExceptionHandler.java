@@ -12,6 +12,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.util.List;
 
@@ -92,6 +93,34 @@ public class GlobalExceptionHandler {
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+    }
+
+    /**
+     * Bắt lỗi unique/exclusion constraint từ Database.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolationException(
+            DataIntegrityViolationException ex, HttpServletRequest request) {
+
+        log.warn("Data integrity violation at {}: {}", request.getRequestURI(), ex.getMessage());
+
+        String message = ErrorCode.VALIDATION_FAILED.getDefaultMessage();
+        String errorMsg = ex.getMessage() != null ? ex.getMessage().toLowerCase() : "";
+
+        if (errorMsg.contains("excl_stylist_overlap")) {
+            message = "Stylist đã có lịch hẹn bận trong khoảng thời gian này. Vui lòng chọn khung giờ khác.";
+        } else if (errorMsg.contains("users_email_key")) {
+            message = "Email này đã được sử dụng.";
+        } else if (errorMsg.contains("users_phone_key")) {
+            message = "Số điện thoại này đã được sử dụng.";
+        }
+
+        ErrorResponse body = new ErrorResponse(
+                ErrorCode.VALIDATION_FAILED.getCode(),
+                message,
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
     /**

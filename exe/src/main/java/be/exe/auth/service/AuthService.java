@@ -28,6 +28,8 @@ public interface AuthService {
 
     void changePassword(Long userId, ChangePasswordRequest request);
 
+    void deleteAccount(Long userId);
+
     /**
      * Đăng nhập qua Google OAuth2 - nếu email chưa tồn tại thì tự tạo tài khoản mới (role CUSTOMER),
      * nếu đã tồn tại thì đăng nhập bình thường và cập nhật avatar mới nhất từ Google.

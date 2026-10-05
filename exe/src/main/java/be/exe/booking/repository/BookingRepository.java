@@ -23,6 +23,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
         List<Booking> findByStylistIdAndStartAtLessThanAndEndAtGreaterThanAndStatusNot(
           Long stylistId, Instant endAt, Instant startAt, BookingStatus status);
 
+    List<Booking> findByStatusInAndRemindedFalseAndStartAtBetween(
+            List<BookingStatus> statuses, Instant start, Instant end);
+
     /**
      * Kiểm tra trước (application-level) xem stylist đã có booking (chưa hủy) trùng khung giờ chưa.
      * Đây là lớp bảo vệ ĐẦU TIÊN, giúp trả lỗi thân thiện ngay khi tạo booking.

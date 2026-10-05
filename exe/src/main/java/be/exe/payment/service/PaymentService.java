@@ -25,4 +25,6 @@ public interface PaymentService {
     PaymentResponse getPaymentByBooking(Long bookingId, Long requesterId);
 
     PaymentResponse getPayment(Long paymentId, Long requesterId);
+
+    PaymentResponse refundPayment(Long paymentId, BigDecimal refundAmount, String refundReference, String note, Long adminId);
 }

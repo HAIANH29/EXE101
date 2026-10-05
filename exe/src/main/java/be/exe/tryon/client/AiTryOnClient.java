@@ -43,6 +43,12 @@ public class AiTryOnClient {
                     .retrieve()
                     .body(AiOverlayResponse.class);
             return response;
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            String errorResponse = e.getResponseBodyAsString().toLowerCase();
+            if (errorResponse.contains("no face detected") || errorResponse.contains("face not found")) {
+                throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Không phát hiện thấy khuôn mặt trong ảnh, vui lòng chụp trực diện và rõ mặt hơn.");
+            }
+            throw new BusinessException(ErrorCode.TRYON_AI_SERVICE_FAILED);
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.TRYON_AI_SERVICE_FAILED);
         }
@@ -59,4 +65,28 @@ public class AiTryOnClient {
             int height
     ) {
     }
+
+    public AiMergeResponse mergeImages(String imageUrl, String hairstyleImageUrl, int x, int y, int width, int height) {
+        try {
+            var request = restClient.post()
+                .uri("/merge")
+                .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON));
+
+            if (!internalToken.isBlank()) {
+                request.header("X-Internal-Token", internalToken);
+            }
+
+            return request
+                .body(new AiMergeRequest(imageUrl, hairstyleImageUrl, x, y, width, height))
+                .retrieve()
+                .body(AiMergeResponse.class);
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            throw new BusinessException(ErrorCode.TRYON_AI_SERVICE_FAILED, "Quá trình ghép ảnh thất bại do ảnh đầu vào không hợp lệ.");
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.TRYON_AI_SERVICE_FAILED);
+        }
+    }
+
+    record AiMergeRequest(String imageUrl, String hairstyleImageUrl, int x, int y, int width, int height) {}
+    public record AiMergeResponse(String base64Image) {}
 }

@@ -4,12 +4,12 @@
 
 ## Scope and evidence
 - Source: code under `exe/src/main/java`, especially controllers, DTO validation annotations, `SecurityConfig`, `GlobalExceptionHandler`, and `ErrorCode`.
-- Code-confirmed endpoints in this historical snapshot: 59. Current source is documented as 66 endpoints in `requirements.md`.
+- Code-confirmed endpoints in this historical snapshot: 59. Current source is documented as 68 endpoints in `requirements.md` (after adding Refund/Delete/Reschedule/Try-on etc).
 - Runtime-confirmed endpoints: 10 functional requests in the safe Newman run, plus 3 explicitly disabled/skipped policy entries. The run executed 13 requests, 23 assertions, 0 failures, with average response time 266 ms and maximum 997 ms. Maven context test also passed: 1 test, 0 failures.
 - Base URL in generated Postman environment: `http://localhost:8080`.
 - This historical snapshot described all successful controller methods as HTTP 200. Current creation endpoints return HTTP 201; errors follow the common error wrapper where handled.
 - Default auth: JWT is required except `/api/auth/register`, `/api/auth/login`, `/api/auth/google`, `/api/auth/refresh`, `/api/auth/logout`, `/api/public/**`, `/api/payment/webhook/**`, Swagger and API docs. Method roles below are additional `@PreAuthorize` checks.
-- Try-on was absent from this historical inventory. Current source exposes `POST /api/tryon` and `PUT /api/tryon/{requestId}/finalize`; see `requirements.md`.
+- Try-on was absent from this historical inventory. Current source exposes `POST /api/tryon` and `PUT /api/tryon/{requestId}/finalize` along with result getters; see `requirements.md`.
 
 ## Common response and errors
 Success wrapper: `success:boolean`, optional `message:string`, optional `data`, `timestamp:date-time`.
@@ -36,6 +36,8 @@ Known codes: `COMMON_001` 500, `COMMON_002` 400, `COMMON_003` 404, `COMMON_004` 
 | BOOK-06 | PATCH | `/api/bookings/{bookingId}/confirm` | BookingController | JWT + SALON_OWNER/STAFF/ADMIN | none -> BookingResponse |
 | BOOK-07 | PATCH | `/api/bookings/{bookingId}/cancel` | BookingController | JWT | optional CancelBookingRequest -> BookingResponse |
 | BOOK-08 | PATCH | `/api/bookings/{bookingId}/complete` | BookingController | JWT + SALON_OWNER/STAFF/ADMIN | none -> BookingResponse |
+| BOOK-09 | GET | `/api/bookings/salon/{salonId}/stylists/{stylistId}/availability` | BookingController | JWT | date -> AvailabilityResponse |
+| BOOK-10 | PATCH | `/api/bookings/{bookingId}/reschedule` | BookingController | JWT | `{startAt}` -> BookingResponse |
 | SALON-01 | POST | `/api/salons` | SalonController | JWT + SALON_OWNER | CreateSalonRequest -> SalonResponse |
 | SALON-02 | PUT | `/api/salons/{salonId}` | SalonController | JWT + SALON_OWNER | UpdateSalonRequest -> SalonResponse |
 | SALON-03 | PATCH | `/api/salons/{salonId}/status` | SalonController | JWT + ADMIN | UpdateSalonStatusRequest -> SalonResponse |
@@ -74,12 +76,17 @@ Known codes: `COMMON_001` 500, `COMMON_002` 400, `COMMON_003` 404, `COMMON_004` 
 | PAY-03 | POST | `/api/payment/webhook/sepay` | SepayWebhookController | Public route; SePay Authorization API key required | SepayWebhookRequest -> `{"success":true}` |
 | ADMIN-01 | GET | `/api/admin/users` | AdminController | JWT + ADMIN | status?, page?, size? -> page<UserResponse> |
 | ADMIN-02 | PATCH | `/api/admin/users/{userId}/status` | AdminController | JWT + ADMIN | `{status}` -> UserResponse |
-| ADMIN-03 | GET | `/api/admin/salons` | AdminController | JWT + ADMIN | status?, page?, size? -> page<SalonResponse> |
-| ADMIN-04 | PATCH | `/api/admin/salons/{salonId}/approve` | AdminController | JWT + ADMIN | none -> SalonResponse |
-| ADMIN-05 | PATCH | `/api/admin/salons/{salonId}/reject` | AdminController | JWT + ADMIN | none -> SalonResponse |
+| ADMIN-03 | DELETE| `/api/admin/users/{userId}` | AdminController | JWT + ADMIN | none -> void |
+| ADMIN-04 | GET | `/api/admin/salons` | AdminController | JWT + ADMIN | status?, page?, size? -> page<SalonResponse> |
+| ADMIN-05 | PATCH | `/api/admin/salons/{salonId}/approve` | AdminController | JWT + ADMIN | none -> SalonResponse |
+| ADMIN-06 | PATCH | `/api/admin/salons/{salonId}/reject` | AdminController | JWT + ADMIN | none -> SalonResponse |
 | REPORT-01 | GET | `/api/dashboard/overview` | DashboardController | JWT + ADMIN | none -> DashboardOverviewResponse |
 | REPORT-02 | GET | `/api/dashboard/revenue` | DashboardController | JWT + ADMIN | required `from`, `to` ISO date-time -> RevenueReportResponse |
 | REPORT-03 | GET | `/api/dashboard/bookings/statistics` | DashboardController | JWT + ADMIN | none -> BookingStatisticsResponse |
+| TRYON-01 | POST | `/api/tryon` | TryOnController | JWT | multipart (image, hairstyleId) -> TryOnResponseDto |
+| TRYON-02 | PUT | `/api/tryon/{requestId}/finalize` | TryOnController | JWT | JSON TryOnFinalizeRequest -> TryOnFinalizeResponseDto |
+| TRYON-03 | GET | `/api/tryon/{requestId}/result` | TryOnController | JWT | path requestId -> TryOnResultResponseDto |
+| TRYON-04 | GET | `/api/tryon/results` | TryOnController | JWT | page?, size? -> page<TryOnResultResponseDto> |
 
 ## Missing capability confirmed by code
-There is no Hair-AI endpoint, image upload endpoint, saved try-on result endpoint, availability endpoint, reschedule endpoint, or explicit payment-create endpoint. Payment is described in code as created by a booking event. These gaps are documented in `issues-found.md` and `feature-coverage.md`.
+There is no explicit payment-create endpoint. Payment is described in code as created by a booking event. These gaps are documented in `issues-found.md` and `feature-coverage.md`. Try-on result, availability, reschedule and delete user are now available.

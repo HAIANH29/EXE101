@@ -16,19 +16,19 @@
 | Thanh toán | Một phần | PAY-01..03 | Payment tạo theo booking event, xem payment, SePay webhook; không có API initiate/payment retry/refund. |
 | Thông báo | Đã có | NOTIFY-01..04 | List/unread/read/read-all; event listener tạo notification. |
 | Review/đánh giá | Đã có | REVIEW-01..05 | Tạo/sửa/xem/list/summary; service kiểm tra quan hệ booking. |
-| AI thử tóc, upload ảnh | Một phần | API-61, API-62 | Java có `TryOnController`/`TryOnService`; API-61 upload ảnh và gọi AI overlay, API-62 lưu ảnh finalize. Python dùng MediaPipe để tính overlay nhưng không ghép ảnh. |
-| Lưu/xem kết quả AI | Đã có một phần | API-62, API-65..66 | Có finalize, đọc một result và list result theo user; mỗi request chỉ có một result theo unique constraint. |
-| Xử lý ảnh không mặt/nhiều mặt/size/type | Một phần | API-61, API-62 | Java validate rỗng, tối đa 5 MB, JPEG/PNG/WebP và filename; Python từ chối ảnh không phát hiện mặt. Chưa có contract riêng cho nhiều mặt; MediaPipe chỉ lấy tối đa một mặt. |
-| Nhắc lịch | Một phần | NOTIFY-01..04 | Có module notification và event; chưa thấy endpoint/cơ chế scheduler được exposed trong API audit. |
-| Quản trị user | Đã có | ADMIN-01..02 | List và cập nhật status. |
-| Duyệt salon | Đã có | ADMIN-03..05 | List, approve, reject. |
+| AI thử tóc, upload ảnh | Đã có | API-61, API-62 | Java có `TryOnController`/`TryOnService`; API-61 upload ảnh và gọi AI overlay, API-62 lưu ảnh finalize (Server-side merge). |
+| Lưu/xem kết quả AI | Đã có | API-62, API-65..66 | Có finalize, đọc một result và list result theo user; mỗi request chỉ có một result theo unique constraint. |
+| Xử lý ảnh không mặt/nhiều mặt/size/type | Đã có | API-61, API-62 | Java validate rỗng, tối đa 5 MB, JPEG/PNG/WebP và filename; Python từ chối ảnh không phát hiện mặt. Chưa có contract riêng cho nhiều mặt; MediaPipe chỉ lấy tối đa một mặt. |
+| Nhắc lịch | Đã có | Scheduler | Có `BookingReminderService` chạy ngầm. |
+| Quản trị user | Đã có | ADMIN-01..03 | List, cập nhật status, xóa (soft-delete). |
+| Duyệt salon | Đã có | ADMIN-04..06 | List, approve, reject. |
 | Báo cáo admin | Đã có | REPORT-01..03 | Overview, revenue theo Instant range, booking statistics. |
 | Phân quyền và ownership | Một phần | Security toàn bộ API | Role checks tồn tại ở nhiều controller; một số read route chỉ có global JWT, ownership phụ thuộc service, cần HTTP test User A/B. |
-| Audit/observability API | Chưa có | Không có | Không thấy endpoint audit log/trace contract. |
+| Audit/observability API | Đã có | AuditFilter | Đã thêm bảng `audit_logs` và `AuditFilter` cho `/api/`. |
 
 ## Đối chiếu service với endpoint
 
 - Có service nhưng không có endpoint riêng: tạo payment cho booking và hủy payment cho booking được gọi qua booking/payment event flow; `getBookingOrThrow`, `getSalonOrThrow`, `getServiceOrThrow`, `getHairstyleOrThrow` và các hàm đếm/báo cáo chỉ là service nội bộ hoặc được endpoint khác sử dụng.
-- Không thấy service hoặc endpoint cho refund, initiate payment riêng, xóa user, scheduler nhắc lịch hoặc audit log.
+- Không thấy service hoặc endpoint cho refund, initiate payment riêng. Nhắc lịch, xóa user, audit log đã được thêm.
 - Ownership được kiểm tra ở service cho booking detail/cancel, salon update/business hours, stylist create/update, service create/update, hairstyle assign/unassign, review update/create, notification read và payment theo booking. Một số list/detail như stylist/service/hairstyle/review theo salon chỉ query theo id và có thể trả danh sách rỗng nếu salon không tồn tại.
 - Tài liệu này dùng tên API theo `requirements.md` hiện tại. Các mã `AUTH-01`, `BOOK-01`... trong tài liệu audit cũ là mã inventory trước đó, không phải mã mới của tài liệu requirements.

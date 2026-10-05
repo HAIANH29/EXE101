@@ -63,6 +63,9 @@ public class Booking {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Column(name = "reminded", nullable = false)
+    private boolean reminded = false;
+
     protected Booking() {
     }
 
@@ -160,5 +163,13 @@ public class Booking {
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    public boolean isReminded() {
+        return reminded;
+    }
+
+    public void markReminded() {
+        this.reminded = true;
     }
 }
