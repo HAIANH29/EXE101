@@ -14,6 +14,10 @@ import java.time.Instant;
 
 public interface AuthService {
 
+    void sendRegisterOtp(be.exe.auth.dto.request.SendOtpRequest request);
+
+    void verifyRegisterOtp(be.exe.auth.dto.request.VerifyOtpRequest request);
+
     LoginResponse register(RegisterRequest request);
 
     LoginResponse login(LoginRequest request);
@@ -27,6 +31,10 @@ public interface AuthService {
     UserResponse getCurrentUser(Long userId);
 
     void changePassword(Long userId, ChangePasswordRequest request);
+
+    void forgotPassword(be.exe.auth.dto.request.ForgotPasswordRequest request);
+
+    void resetPassword(be.exe.auth.dto.request.ResetPasswordRequest request);
 
     void deleteAccount(Long userId);
 

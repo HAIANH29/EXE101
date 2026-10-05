@@ -5,6 +5,10 @@ import be.exe.auth.dto.request.GoogleLoginRequest;
 import be.exe.auth.dto.request.LoginRequest;
 import be.exe.auth.dto.request.RefreshTokenRequest;
 import be.exe.auth.dto.request.RegisterRequest;
+import be.exe.auth.dto.request.SendOtpRequest;
+import be.exe.auth.dto.request.VerifyOtpRequest;
+import be.exe.auth.dto.request.ForgotPasswordRequest;
+import be.exe.auth.dto.request.ResetPasswordRequest;
 import be.exe.auth.dto.response.LoginResponse;
 import be.exe.auth.dto.response.TokenResponse;
 import be.exe.auth.dto.response.UserResponse;
@@ -27,6 +31,20 @@ public class AuthController {
     public AuthController(AuthService authService, GoogleTokenVerifier googleTokenVerifier) {
         this.authService = authService;
         this.googleTokenVerifier = googleTokenVerifier;
+    }
+
+    @PostMapping("/register/send-otp")
+    public ResponseEntity<ApiResponse<Void>> sendRegisterOtp(
+            @Valid @RequestBody SendOtpRequest request) {
+        authService.sendRegisterOtp(request);
+        return ResponseEntity.ok(ApiResponse.success("Mã OTP đã được gửi đến email của bạn"));
+    }
+
+    @PostMapping("/register/verify-otp")
+    public ResponseEntity<ApiResponse<Void>> verifyRegisterOtp(
+            @Valid @RequestBody VerifyOtpRequest request) {
+        authService.verifyRegisterOtp(request);
+        return ResponseEntity.ok(ApiResponse.success("Xác thực OTP thành công"));
     }
 
     @PostMapping("/register")
@@ -91,6 +109,20 @@ public class AuthController {
             @Valid @RequestBody ChangePasswordRequest request) {
         authService.changePassword(principal.getUserId(), request);
         return ResponseEntity.ok(ApiResponse.success("Đổi mật khẩu thành công"));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request);
+        return ResponseEntity.ok(ApiResponse.success("Yêu cầu khôi phục mật khẩu đã được gửi đến email của bạn"));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
+        return ResponseEntity.ok(ApiResponse.success("Đặt lại mật khẩu thành công"));
     }
 
     @DeleteMapping("/me")

@@ -16,6 +16,16 @@ import be.exe.auth.mapper.UserMapper;
 import be.exe.auth.repository.RefreshTokenRepository;
 import be.exe.auth.repository.RoleRepository;
 import be.exe.auth.repository.UserRepository;
+import be.exe.auth.repository.VerificationTokenRepository;
+import be.exe.auth.domain.VerificationToken;
+import be.exe.auth.domain.VerificationTokenType;
+import be.exe.auth.dto.request.SendOtpRequest;
+import be.exe.auth.dto.request.VerifyOtpRequest;
+import be.exe.auth.dto.request.ForgotPasswordRequest;
+import be.exe.auth.dto.request.ResetPasswordRequest;
+import be.exe.notification.service.EmailService;
+import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Value;
 import be.exe.auth.service.AuthService;
 import be.exe.common.exception.BusinessException;
 import be.exe.common.exception.ErrorCode;
@@ -47,25 +57,80 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final VerificationTokenRepository verificationTokenRepository;
+    private final EmailService emailService;
+
+    @Value("${app.frontend.url:http://localhost:3000}")
+    private String frontendUrl;
 
     public AuthServiceImpl(UserRepository userRepository,
                            RoleRepository roleRepository,
                            RefreshTokenRepository refreshTokenRepository,
                            PasswordEncoder passwordEncoder,
                            JwtService jwtService,
-                           AuthenticationManager authenticationManager) {
+                           AuthenticationManager authenticationManager,
+                           VerificationTokenRepository verificationTokenRepository,
+                           EmailService emailService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
+        this.verificationTokenRepository = verificationTokenRepository;
+        this.emailService = emailService;
+    }
+
+    @Override
+    public void sendRegisterOtp(SendOtpRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new BusinessException(ErrorCode.EMAIL_ALREADY_EXISTS);
+        }
+        
+        String otp = String.format("%06d", new java.util.Random().nextInt(999999));
+        
+        VerificationToken token = new VerificationToken();
+        token.setEmail(request.getEmail());
+        token.setToken(otp);
+        token.setType(VerificationTokenType.REGISTER_OTP);
+        token.setExpiresAt(Instant.now().plusSeconds(5 * 60)); // 5 mins expiration
+        
+        verificationTokenRepository.save(token);
+        
+        emailService.sendEmail(request.getEmail(), "Mã OTP đăng ký tài khoản", 
+            "Mã OTP của bạn là: " + otp + ". Mã có hiệu lực trong vòng 5 phút.");
+    }
+
+    @Override
+    public void verifyRegisterOtp(VerifyOtpRequest request) {
+        VerificationToken token = verificationTokenRepository
+            .findTopByEmailAndTypeOrderByCreatedAtDesc(request.getEmail(), VerificationTokenType.REGISTER_OTP)
+            .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_FAILED, "Không tìm thấy yêu cầu OTP cho email này"));
+            
+        if (token.getExpiresAt().isBefore(Instant.now())) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Mã OTP đã hết hạn");
+        }
+        
+        if (!token.getToken().equals(request.getOtp())) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Mã OTP không chính xác");
+        }
+        
+        token.setVerified(true);
+        verificationTokenRepository.save(token);
     }
 
     @Override
     public LoginResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new BusinessException(ErrorCode.EMAIL_ALREADY_EXISTS);
+        }
+        
+        VerificationToken token = verificationTokenRepository
+            .findTopByEmailAndTypeOrderByCreatedAtDesc(request.getEmail(), VerificationTokenType.REGISTER_OTP)
+            .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_FAILED, "Email chưa được xác thực OTP"));
+            
+        if (!token.isVerified() || token.isUsed()) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "OTP chưa được xác thực hoặc đã được sử dụng");
         }
 
         Role customerRole = roleRepository.findByName(RoleName.CUSTOMER)
@@ -82,6 +147,9 @@ public class AuthServiceImpl implements AuthService {
         user.addRole(customerRole);
 
         userRepository.save(user);
+
+        token.setUsed(true);
+        verificationTokenRepository.save(token);
 
         // Tự động đăng nhập luôn sau khi đăng ký thành công
         return buildLoginResponse(user);
@@ -215,6 +283,52 @@ public class AuthServiceImpl implements AuthService {
 
         refreshTokenRepository.revokeAllByUserId(userId);
         user.markDeleted(passwordEncoder.encode(java.util.UUID.randomUUID().toString()));
+    }
+
+    @Override
+    public void forgotPassword(ForgotPasswordRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+            .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_FAILED, "Email không tồn tại trong hệ thống"));
+            
+        String resetToken = java.util.UUID.randomUUID().toString();
+        
+        VerificationToken token = new VerificationToken();
+        token.setEmail(user.getEmail());
+        token.setToken(resetToken);
+        token.setType(VerificationTokenType.RESET_PASSWORD);
+        token.setExpiresAt(Instant.now().plusSeconds(15 * 60)); // 15 mins expiration
+        
+        verificationTokenRepository.save(token);
+        
+        String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
+        
+        emailService.sendEmail(user.getEmail(), "Yêu cầu khôi phục mật khẩu", 
+            "Vui lòng truy cập đường dẫn sau để đặt lại mật khẩu: " + resetLink + 
+            "\n\nĐường dẫn có hiệu lực trong vòng 15 phút.");
+    }
+
+    @Override
+    public void resetPassword(ResetPasswordRequest request) {
+        VerificationToken token = verificationTokenRepository
+            .findByTokenAndType(request.getToken(), VerificationTokenType.RESET_PASSWORD)
+            .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_FAILED, "Token không hợp lệ hoặc không tồn tại"));
+            
+        if (token.getExpiresAt().isBefore(Instant.now())) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Token đã hết hạn");
+        }
+        
+        if (token.isUsed()) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Token đã được sử dụng");
+        }
+        
+        User user = userRepository.findByEmail(token.getEmail())
+            .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_FAILED, "Người dùng không tồn tại"));
+            
+        user.changePassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+        
+        token.setUsed(true);
+        verificationTokenRepository.save(token);
     }
 
     @Override
