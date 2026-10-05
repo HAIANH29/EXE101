@@ -88,6 +88,3 @@ Known codes: `COMMON_001` 500, `COMMON_002` 400, `COMMON_003` 404, `COMMON_004` 
 | TRYON-02 | PUT | `/api/tryon/{requestId}/finalize` | TryOnController | JWT | JSON TryOnFinalizeRequest -> TryOnFinalizeResponseDto |
 | TRYON-03 | GET | `/api/tryon/{requestId}/result` | TryOnController | JWT | path requestId -> TryOnResultResponseDto |
 | TRYON-04 | GET | `/api/tryon/results` | TryOnController | JWT | page?, size? -> page<TryOnResultResponseDto> |
-
-## Missing capability confirmed by code
-There is no explicit payment-create endpoint. Payment is described in code as created by a booking event. These gaps are documented in `issues-found.md` and `feature-coverage.md`. Try-on result, availability, reschedule and delete user are now available.
