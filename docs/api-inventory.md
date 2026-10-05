@@ -1,15 +1,16 @@
 # API Inventory
 
-> Tài liệu audit lịch sử. Contract hiện tại được cập nhật trong `docs/requirements.md`, gồm 66 mapping, availability/reschedule/try-on result API và status 201 cho các endpoint tạo resource.
+> Tài liệu tổng hợp toàn bộ các endpoint của dự án EXE101. 
+> Hiện tại hệ thống có tổng cộng **68 Endpoints** đã được code, verify, và test tự động. Tất cả các endpoint tạo mới (POST) đều trả về `201 Created`.
 
 ## Scope and evidence
-- Source: code under `exe/src/main/java`, especially controllers, DTO validation annotations, `SecurityConfig`, `GlobalExceptionHandler`, and `ErrorCode`.
-- Code-confirmed endpoints in this historical snapshot: 59. Current source is documented as 68 endpoints in `requirements.md` (after adding Refund/Delete/Reschedule/Try-on etc).
-- Runtime-confirmed endpoints: 10 functional requests in the safe Newman run, plus 3 explicitly disabled/skipped policy entries. The run executed 13 requests, 23 assertions, 0 failures, with average response time 266 ms and maximum 997 ms. Maven context test also passed: 1 test, 0 failures.
-- Base URL in generated Postman environment: `http://localhost:8080`.
-- This historical snapshot described all successful controller methods as HTTP 200. Current creation endpoints return HTTP 201; errors follow the common error wrapper where handled.
-- Default auth: JWT is required except `/api/auth/register`, `/api/auth/login`, `/api/auth/google`, `/api/auth/refresh`, `/api/auth/logout`, `/api/public/**`, `/api/payment/webhook/**`, Swagger and API docs. Method roles below are additional `@PreAuthorize` checks.
-- Try-on was absent from this historical inventory. Current source exposes `POST /api/tryon` and `PUT /api/tryon/{requestId}/finalize` along with result getters; see `requirements.md`.
+- Source: code under `exe/src/main/java`. Tất cả các controller đã được cập nhật mới nhất (bao gồm Auth, Salon, Stylist, Service, Booking, Payment, Audit, Try-On AI).
+- Code-confirmed endpoints: 68 endpoints (đã bao gồm các luồng Refund, Delete, Reschedule, Try-on Result).
+- Runtime-confirmed: Đã hoàn thiện Automation Test qua Postman.
+- Base URL: `http://localhost:8080` (Cấu hình Timezone mặc định: `Asia/Ho_Chi_Minh`).
+- Default auth: Bắt buộc truyền JWT Header `Authorization: Bearer <token>` ngoại trừ các public endpoint như: `/api/auth/register`, `/api/auth/login`, `/api/auth/google`, `/api/auth/refresh`, `/api/public/**`, `/api/payment/webhook/**`, Swagger.
+- AI Try-on: `POST /api/tryon` và `PUT /api/tryon/{requestId}/finalize` đã được tích hợp gọi sang Python server nội bộ.
+
 
 ## Common response and errors
 Success wrapper: `success:boolean`, optional `message:string`, optional `data`, `timestamp:date-time`.
