@@ -33,7 +33,10 @@ public class PaymentController {
     }
 
     @GetMapping("/api/payments/{paymentId}")
-    public ResponseEntity<ApiResponse<PaymentResponse>> getPayment(@PathVariable Long paymentId) {
-        return ResponseEntity.ok(ApiResponse.success(paymentService.getPayment(paymentId)));
+    public ResponseEntity<ApiResponse<PaymentResponse>> getPayment(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @PathVariable Long paymentId) {
+        return ResponseEntity.ok(ApiResponse.success(
+                paymentService.getPayment(paymentId, principal.getUserId())));
     }
 }

@@ -8,9 +8,12 @@ import be.exe.booking.domain.event.BookingConfirmedEvent;
 import be.exe.booking.domain.event.BookingCreatedEvent;
 import be.exe.booking.dto.request.CancelBookingRequest;
 import be.exe.booking.dto.request.CreateBookingRequest;
+import be.exe.booking.dto.request.RescheduleBookingRequest;
 import be.exe.booking.dto.response.BookingDetailResponse;
 import be.exe.booking.dto.response.BookingResponse;
 import be.exe.booking.dto.response.BookingSummaryResponse;
+import be.exe.booking.dto.response.AvailabilityIntervalResponse;
+import be.exe.booking.dto.response.AvailabilityResponse;
 import be.exe.booking.mapper.BookingMapper;
 import be.exe.booking.repository.BookingRepository;
 import be.exe.booking.service.BookingService;
@@ -37,6 +40,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.List;
 import java.math.BigDecimal;
 import java.time.temporal.ChronoUnit;
 
@@ -187,6 +193,48 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    public BookingResponse rescheduleBooking(Long bookingId, Long requesterId,
+                                             RescheduleBookingRequest request) {
+        Booking booking = findOrThrow(bookingId);
+
+        if (!booking.isOwnedBy(requesterId)) {
+            throw new ForbiddenException("Bạn không có quyền đổi lịch hẹn này");
+        }
+
+        if (booking.getStatus() == BookingStatus.CANCELLED
+                || booking.getStatus() == BookingStatus.COMPLETED) {
+            throw new ValidationException("Lịch hẹn đã kết thúc hoặc đã bị hủy");
+        }
+
+        Duration untilStart = Duration.between(Instant.now(), booking.getStartAt());
+        if (untilStart.toHours() < CANCEL_DEADLINE_HOURS) {
+            throw new ValidationException(
+                    "Chỉ có thể đổi lịch trước giờ hẹn ít nhất " + CANCEL_DEADLINE_HOURS + " tiếng");
+        }
+
+        ServiceCatalogSummaryResponse service = serviceCatalogService.getServiceOrThrow(booking.getServiceId());
+        if (!service.isActive()) {
+            throw new ValidationException("Dịch vụ hiện không khả dụng");
+        }
+
+        Instant newStartAt = request.getStartAt();
+        Instant newEndAt = newStartAt.plus(service.durationMinutes(), ChronoUnit.MINUTES);
+        if (bookingRepository.existsOverlappingBookingExcept(
+                bookingId, booking.getStylistId(), newStartAt, newEndAt)) {
+            throw new BusinessException(ErrorCode.BOOKING_SLOT_UNAVAILABLE);
+        }
+
+        try {
+            booking.reschedule(newStartAt, newEndAt);
+            bookingRepository.flush();
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(ErrorCode.BOOKING_SLOT_UNAVAILABLE);
+        }
+
+        return BookingMapper.toResponse(booking);
+    }
+
+    @Override
     public BookingResponse completeBooking(Long bookingId) {
         Booking booking = findOrThrow(bookingId);
         booking.complete();
@@ -251,6 +299,33 @@ public class BookingServiceImpl implements BookingService {
     @Transactional(readOnly = true)
     public Page<BookingResponse> getStylistBookings(Long stylistId, Pageable pageable) {
         return bookingRepository.findByStylistId(stylistId, pageable).map(this::toEnrichedResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AvailabilityResponse getAvailability(Long salonId, Long stylistId, LocalDate date) {
+        StylistSummaryResponse stylist = stylistService.getStylistOrThrow(stylistId);
+        if (!stylist.salonId().equals(salonId)) {
+            throw new ValidationException("Stylist này không thuộc salon đã chọn");
+        }
+        if (!stylist.isActive()) {
+            throw new ValidationException("Stylist hiện không hoạt động");
+        }
+
+        var hour = salonService.getBusinessHour(salonId, date.getDayOfWeek());
+        ZoneId zone = ZoneId.of("Asia/Ho_Chi_Minh");
+        Instant dayStart = date.atStartOfDay(zone).toInstant();
+        Instant dayEnd = date.plusDays(1).atStartOfDay(zone).toInstant();
+        List<AvailabilityIntervalResponse> booked = bookingRepository
+                .findByStylistIdAndStartAtLessThanAndEndAtGreaterThanAndStatusNot(
+                        stylistId, dayEnd, dayStart, BookingStatus.CANCELLED)
+                .stream()
+                .map(booking -> new AvailabilityIntervalResponse(
+                        booking.getStartAt(), booking.getEndAt()))
+                .toList();
+
+        return new AvailabilityResponse(
+                salonId, stylistId, date, hour.closed(), hour.openTime(), hour.closeTime(), booked);
     }
 
     // ===== Dùng cho dashboard (module admin) =====

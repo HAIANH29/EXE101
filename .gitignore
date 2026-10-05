@@ -1,0 +1,53 @@
+# Secrets and local environment files
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.jks
+secrets/
+
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# Java build output
+*.class
+*.jar
+*.war
+*.ear
+
+# IDE metadata
+.idea/
+*.iml
+*.iws
+*.ipr
+.classpath
+.project
+.settings/
+.factorypath
+
+# VS Code local settings
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/settings.example.json
+
+# Spring Boot generated files
+spring-boot-starter.log
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~

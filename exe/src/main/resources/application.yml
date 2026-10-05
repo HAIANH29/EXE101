@@ -109,6 +109,7 @@ app:
   ai:
     tryon:
       base-url: ${AI_TRYON_BASE_URL:http://localhost:8000}
+      internal-token: ${AI_TRYON_INTERNAL_TOKEN:}
 
 springdoc:
   api-docs:

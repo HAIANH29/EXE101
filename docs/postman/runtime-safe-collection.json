@@ -1,0 +1,103 @@
+{
+  "info": {
+    "name": "Salon Backend Runtime Safe Audit",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Safe runtime checks. Creates only an autotest_ user. Business/admin/payment flows require role-specific test accounts and remain skipped."
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register autotest user",
+          "event": [
+            { "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["const email = 'autotest_' + Date.now() + '@example.com';", "pm.environment.set('test_email', email);", "pm.collectionVariables.set('test_email', email);"] } },
+            { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('status is 200', function () { pm.response.to.have.status(200); });", "const body = pm.response.json();", "pm.expect(body.success).to.eql(true);", "pm.expect(body.data.accessToken).to.be.a('string');", "pm.environment.set('token', body.data.accessToken);", "pm.environment.set('refresh_token', body.data.refreshToken);", "pm.environment.set('user_id', String(body.data.user.id));"] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"password\": \"{{test_password}}\",\n  \"fullName\": \"autotest QA User\",\n  \"phone\": \"0900000000\"\n}" },
+            "url": "{{base_url}}/api/auth/register"
+          }
+        },
+        {
+          "name": "Login autotest user",
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('status is 200', function () { pm.response.to.have.status(200); });", "const body = pm.response.json();", "pm.expect(body.success).to.eql(true);", "pm.expect(body.data.accessToken).to.be.a('string');", "pm.environment.set('token', body.data.accessToken);", "pm.environment.set('refresh_token', body.data.refreshToken);"] } }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"password\": \"{{test_password}}\"\n}" },
+            "url": "{{base_url}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Current user",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('status is 200', function () { pm.response.to.have.status(200); });", "pm.expect(pm.response.json().success).to.eql(true);"] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/api/auth/me" }
+        },
+        {
+          "name": "Missing token negative",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('status is 401', function () { pm.response.to.have.status(401); });"] } }],
+          "request": { "method": "GET", "url": "{{base_url}}/api/auth/me" }
+        },
+        {
+          "name": "Invalid register body negative",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('status is 400', function () { pm.response.to.have.status(400); });"] } }],
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"email\":\"bad\",\"password\":\"x\"}" }, "url": "{{base_url}}/api/auth/register" }
+        }
+      ]
+    },
+    {
+      "name": "Read-only authenticated endpoints",
+      "item": [
+        {
+          "name": "My bookings",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('status is 200', function () { pm.response.to.have.status(200); });"] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/api/bookings/me?page=0&size=20" }
+        },
+        {
+          "name": "My notifications",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('status is 200', function () { pm.response.to.have.status(200); });"] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/api/notifications?page=0&size=20" }
+        },
+        {
+          "name": "Notification unread count",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('status is 200', function () { pm.response.to.have.status(200); });"] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/api/notifications/unread-count" }
+        },
+        {
+          "name": "Salon list",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('status is 200', function () { pm.response.to.have.status(200); });"] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/api/salons?page=0&size=20" }
+        },
+        {
+          "name": "Nonexistent salon negative",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('status is 404', function () { pm.response.to.have.status(404); });"] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/api/salons/9223372036854775807" }
+        }
+      ]
+    },
+    {
+      "name": "Skipped by policy",
+      "item": [
+        { "name": "Google OAuth - skipped", "request": { "method": "POST", "url": "{{base_url}}/api/auth/google" }, "disabled": true },
+        { "name": "SePay webhook - skipped, never call real payment", "request": { "method": "POST", "url": "{{base_url}}/api/payment/webhook/sepay" }, "disabled": true },
+        { "name": "Admin and salon-owner flows - skipped without dedicated test roles", "request": { "method": "GET", "url": "{{base_url}}/api/admin/users" }, "disabled": true }
+      ]
+    }
+  ],
+  "event": [
+    { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('response time is below 1000 ms', function () { pm.expect(pm.response.responseTime).to.be.below(1000); });"] } }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8080" },
+    { "key": "test_email", "value": "" },
+    { "key": "test_password", "value": "Autotest123!" },
+    { "key": "token", "value": "" },
+    { "key": "refresh_token", "value": "" },
+    { "key": "user_id", "value": "" }
+  ]
+}

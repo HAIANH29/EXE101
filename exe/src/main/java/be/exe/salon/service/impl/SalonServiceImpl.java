@@ -9,6 +9,7 @@ import be.exe.salon.dto.request.UpdateSalonRequest;
 import be.exe.salon.dto.response.SalonDetailResponse;
 import be.exe.salon.dto.response.SalonResponse;
 import be.exe.salon.dto.response.SalonSummaryResponse;
+import be.exe.salon.dto.response.BusinessHourResponse;
 import be.exe.salon.mapper.SalonMapper;
 import be.exe.salon.repository.SalonBusinessHourRepository;
 import be.exe.salon.repository.SalonRepository;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.time.DayOfWeek;
 
 @Service
 @Transactional
@@ -113,6 +115,17 @@ public class SalonServiceImpl implements SalonService {
             hour.update(req.getOpenTime(), req.getCloseTime(), req.isClosed());
             businessHourRepository.save(hour);
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BusinessHourResponse getBusinessHour(Long salonId, DayOfWeek dayOfWeek) {
+        findOrThrow(salonId);
+        Short day = (short) dayOfWeek.getValue();
+        return businessHourRepository.findBySalonIdAndDayOfWeek(salonId, day)
+                .map(hour -> new BusinessHourResponse(
+                        hour.getDayOfWeek(), hour.getOpenTime(), hour.getCloseTime(), hour.isClosed()))
+                .orElseGet(() -> new BusinessHourResponse(day, null, null, true));
     }
 
     @Override

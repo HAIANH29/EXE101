@@ -6,11 +6,13 @@ import be.exe.salon.dto.response.SalonDetailResponse;
 import be.exe.salon.dto.response.SalonResponse;
 import be.exe.salon.dto.response.SalonSummaryResponse;
 import be.exe.salon.dto.request.UpdateBusinessHourRequest;
+import be.exe.salon.dto.response.BusinessHourResponse;
 import be.exe.salon.domain.SalonStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.time.DayOfWeek;
 
 /**
  * "Public API" của module salon - các module khác (booking, review...) chỉ được gọi qua đây,
@@ -37,6 +39,8 @@ public interface SalonService {
     Page<SalonResponse> getSalonsByOwner(Long ownerId, Pageable pageable);
 
     void updateBusinessHours(Long salonId, Long ownerId, List<UpdateBusinessHourRequest> requests);
+
+    BusinessHourResponse getBusinessHour(Long salonId, DayOfWeek dayOfWeek);
 
     /** Dùng cho dashboard (module admin): đếm số salon theo trạng thái. */
     long countSalonsByStatus(SalonStatus status);

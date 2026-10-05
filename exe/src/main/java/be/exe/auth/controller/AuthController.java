@@ -128,4 +128,11 @@ public class AuthController {
         authService.resetPassword(request);
         return ResponseEntity.ok(ApiResponse.success("Đổi mật khẩu thành công"));
     }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<ApiResponse<Void>> deleteAccount(
+            @AuthenticationPrincipal CustomUserDetails principal) {
+        authService.deleteAccount(principal.getUserId());
+        return ResponseEntity.ok(ApiResponse.success("Tài khoản đã được xóa"));
+    }
 }

@@ -13,6 +13,11 @@ public record PaymentResponse(
         String status,
         String paymentUrl,
         Instant paidAt,
-        Instant createdAt
+        Instant createdAt,
+        BigDecimal refundAmount,
+        String refundReason,
+        String refundReference,
+        Instant refundRequestedAt,
+        Instant refundedAt
 ) {
 }

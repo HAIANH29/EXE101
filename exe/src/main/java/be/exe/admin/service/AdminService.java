@@ -17,6 +17,8 @@ public interface AdminService {
 
     UserResponse updateUserStatus(Long userId, String status);
 
+    void deleteUser(Long adminUserId, Long userId);
+
     // ===== Quản lý salon =====
 
     Page<SalonResponse> getSalons(String statusFilter, Pageable pageable);
@@ -24,4 +26,6 @@ public interface AdminService {
     SalonResponse approveSalon(Long salonId);
 
     SalonResponse rejectSalon(Long salonId);
+
+    be.exe.payment.dto.response.PaymentResponse refundPayment(Long adminId, Long paymentId, be.exe.admin.dto.request.RefundPaymentRequest request);
 }

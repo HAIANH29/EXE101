@@ -29,7 +29,9 @@ public enum ErrorCode {
     // ===== TryOn =====
     TRYON_INVALID_FILE("TRYON_001", "File ảnh không hợp lệ", HttpStatus.BAD_REQUEST),
     TRYON_AI_SERVICE_FAILED("TRYON_002", "Xử lý thử tóc thất bại, vui lòng thử lại", HttpStatus.INTERNAL_SERVER_ERROR),
-    TRYON_RESULT_NOT_FOUND("TRYON_003", "Không tìm thấy kết quả thử tóc", HttpStatus.NOT_FOUND);
+    TRYON_RESULT_NOT_FOUND("TRYON_003", "Không tìm thấy kết quả thử tóc", HttpStatus.NOT_FOUND),
+    TRYON_REQUEST_NOT_READY("TRYON_004", "Yêu cầu thử tóc chưa sẵn sàng để lưu kết quả", HttpStatus.CONFLICT),
+    TRYON_RESULT_ALREADY_EXISTS("TRYON_005", "Yêu cầu thử tóc đã có kết quả", HttpStatus.CONFLICT);
 
     private final String code;
     private final String defaultMessage;

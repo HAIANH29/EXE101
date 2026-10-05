@@ -5,6 +5,7 @@ import be.exe.reporting.dto.response.BookingStatisticsResponse;
 import be.exe.reporting.dto.response.DashboardOverviewResponse;
 import be.exe.reporting.dto.response.RevenueReportResponse;
 import be.exe.reporting.service.ReportingService;
+import be.exe.common.exception.ValidationException;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -40,6 +41,9 @@ public class DashboardController {
     public ResponseEntity<ApiResponse<RevenueReportResponse>> getRevenueReport(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to) {
+        if (from.isAfter(to)) {
+            throw new ValidationException("Thời gian bắt đầu phải trước hoặc bằng thời gian kết thúc");
+        }
         return ResponseEntity.ok(ApiResponse.success(reportingService.getRevenueReport(from, to)));
     }
 

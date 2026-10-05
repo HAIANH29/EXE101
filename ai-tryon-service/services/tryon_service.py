@@ -3,14 +3,6 @@ from services.image_io import download_image, download_image_rgba
 
 detector = FaceLandmarkDetector()
 
-# Map hairstyleId -> ảnh mẫu tóc PNG (đã tách nền, có alpha channel).
-# Dữ liệu tạm để demo. Nên đổi sang gọi API Spring Boot lấy image_url theo
-# hairstyleId (bảng `hairstyles`) thay vì hardcode, để khỏi đồng bộ tay 2 nơi.
-HAIRSTYLE_TEMPLATES = {
-    1: "https://res.cloudinary.com/demo/image/upload/hairstyle_1.png",
-    2: "https://res.cloudinary.com/demo/image/upload/hairstyle_2.png",
-}
-
 # Tỉ lệ chiều rộng ảnh tóc so với chiều rộng khuôn mặt — cần tinh chỉnh theo
 # bộ 20 mẫu thực tế (mỗi mẫu có thể lệch tỉ lệ khác nhau tùy kiểu tóc).
 HAIR_WIDTH_RATIO = 2.2
@@ -19,7 +11,7 @@ HAIR_WIDTH_RATIO = 2.2
 HAIR_Y_OFFSET_RATIO = -0.35
 
 
-def compute_overlay(image_url: str, hairstyle_id: int) -> dict:
+def compute_overlay(image_url: str, hairstyle_id: int, hairstyle_image_url: str) -> dict:
     """
     Chỉ TÍNH TOÁN vị trí/kích thước đặt tóc dựa trên landmark khuôn mặt,
     KHÔNG ghép ảnh, KHÔNG upload kết quả lên Cloudinary. FE nhận tọa độ này
@@ -28,13 +20,12 @@ def compute_overlay(image_url: str, hairstyle_id: int) -> dict:
     original_rgb = download_image(image_url)
     anchor = detector.get_anchor(original_rgb)
 
-    hairstyle_url = HAIRSTYLE_TEMPLATES.get(hairstyle_id)
-    if hairstyle_url is None:
-        raise ValueError(f"Không tìm thấy mẫu tóc id={hairstyle_id}")
+    if not hairstyle_image_url:
+        raise ValueError(f"Không có ảnh mẫu tóc cho id={hairstyle_id}")
 
     # Vẫn cần tải ảnh tóc về để biết tỉ lệ khung hình gốc (width/height) của
     # PNG, dùng tính target_height tương ứng khi scale theo khuôn mặt.
-    hairstyle_rgba = download_image_rgba(hairstyle_url)
+    hairstyle_rgba = download_image_rgba(hairstyle_image_url)
 
     target_width = max(1, int(anchor["face_width_px"] * HAIR_WIDTH_RATIO))
     scale = target_width / hairstyle_rgba.width
@@ -44,9 +35,33 @@ def compute_overlay(image_url: str, hairstyle_id: int) -> dict:
     paste_y = anchor["forehead_y"] + int(target_height * HAIR_Y_OFFSET_RATIO)
 
     return {
-        "hairstyleImageUrl": hairstyle_url,
+        "hairstyleImageUrl": hairstyle_image_url,
         "x": paste_x,
         "y": paste_y,
         "width": target_width,
         "height": target_height,
     }
+
+import base64
+from io import BytesIO
+
+def merge_images(image_url: str, hairstyle_image_url: str, x: int, y: int, width: int, height: int) -> str:
+    original_rgb = download_image(image_url)
+    hairstyle_rgba = download_image_rgba(hairstyle_image_url)
+    
+    # Resize hairstyle
+    hairstyle_resized = hairstyle_rgba.resize((width, height))
+    
+    # Create a copy of the original image (converted to RGBA for pasting)
+    result = original_rgb.convert("RGBA")
+    
+    # Paste hairstyle using its alpha channel as mask
+    result.paste(hairstyle_resized, (x, y), hairstyle_resized)
+    
+    # Convert back to RGB and save to buffer
+    result = result.convert("RGB")
+    buffer = BytesIO()
+    result.save(buffer, format="JPEG")
+    buffer.seek(0)
+    
+    return base64.b64encode(buffer.read()).decode("utf-8")

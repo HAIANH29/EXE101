@@ -16,8 +16,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.context.SecurityContextHolderFilter;
 
 import jakarta.servlet.http.HttpServletResponse;
+
+import be.exe.common.audit.AuditFilter;
 
 /**
  * Cấu hình Spring Security tổng thể:
@@ -37,9 +40,11 @@ import jakarta.servlet.http.HttpServletResponse;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final AuditFilter auditFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, AuditFilter auditFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.auditFilter = auditFilter;
     }
 
     @Bean
@@ -82,7 +87,8 @@ public class SecurityConfig {
                     .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, exception) ->
                             response.sendError(HttpServletResponse.SC_UNAUTHORIZED)))
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(auditFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

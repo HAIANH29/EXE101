@@ -1,6 +1,8 @@
 package be.exe.payment.sepay;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
 
@@ -14,13 +16,13 @@ import java.math.BigDecimal;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record SepayWebhookRequest(
-        Long id,
+        @NotNull(message = "id giao dịch không được để trống") Long id,
         String gateway,
         String transactionDate,
         String accountNumber,
-        String content,
-        String transferType,
-        BigDecimal transferAmount,
+        @NotBlank(message = "content không được để trống") String content,
+        @NotBlank(message = "transferType không được để trống") String transferType,
+        @NotNull(message = "transferAmount không được để trống") BigDecimal transferAmount,
         BigDecimal accumulated
 ) {
     public boolean isIncoming() {

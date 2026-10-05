@@ -2,8 +2,6 @@ package be.exe.payment.service.impl;
 
 import be.exe.booking.dto.response.BookingSummaryResponse;
 import be.exe.booking.service.BookingService;
-import be.exe.common.exception.BusinessException;
-import be.exe.common.exception.ErrorCode;
 import be.exe.common.exception.ForbiddenException;
 import be.exe.common.exception.ResourceNotFoundException;
 import be.exe.payment.domain.Payment;
@@ -20,8 +18,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Optional;
 import java.util.UUID;
+import java.util.Objects;
 
 @Service
 @Transactional
@@ -77,9 +75,14 @@ public class PaymentServiceImpl implements PaymentService {
             return;
         }
 
-        Optional<Payment> maybePayment = paymentRepository.findPendingMatchingContent(payload.content());
+        if (paymentRepository.findByTransactionId(String.valueOf(payload.id())).isPresent()) {
+            log.info("Bỏ qua webhook SePay đã xử lý, transactionId={}", payload.id());
+            return;
+        }
 
-        if (maybePayment.isEmpty()) {
+        var matchingPayments = paymentRepository.findPendingMatchingContent(payload.content());
+
+        if (matchingPayments.isEmpty()) {
             // Không khớp payment nào đang chờ - có thể là giao dịch không liên quan tới hệ thống
             // (khách chuyển nhầm nội dung, hoặc tiền vào vì lý do khác). Vẫn trả 200 OK bình thường,
             // KHÔNG ném lỗi, để SePay không hiểu nhầm là lỗi và spam gọi lại webhook liên tục.
@@ -87,7 +90,12 @@ public class PaymentServiceImpl implements PaymentService {
             return;
         }
 
-        Payment payment = maybePayment.get();
+        if (matchingPayments.size() > 1) {
+            log.warn("Nội dung chuyển khoản khớp nhiều payment pending, transactionId={}", payload.id());
+            return;
+        }
+
+        Payment payment = matchingPayments.get(0);
 
         // Cho phép khách chuyển dư (ví dụ làm tròn số), nhưng không chấp nhận chuyển thiếu
         if (payload.transferAmount().compareTo(payment.getAmount()) < 0) {
@@ -119,9 +127,26 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional(readOnly = true)
-    public PaymentResponse getPayment(Long paymentId) {
-        Payment payment = paymentRepository.findById(paymentId)
+    public PaymentResponse getPayment(Long paymentId, Long requesterId) {
+        Payment payment = paymentRepository.findById(Objects.requireNonNull(paymentId))
                 .orElseThrow(() -> new ResourceNotFoundException("Payment", paymentId));
+
+        BookingSummaryResponse booking = bookingService.getBookingOrThrow(payment.getBookingId());
+        if (!booking.customerId().equals(requesterId)) {
+            throw new ForbiddenException("Bạn không phải chủ của lịch hẹn này");
+        }
+
+        return toResponse(payment);
+    }
+
+    @Override
+    @Transactional
+    public PaymentResponse refundPayment(Long paymentId, BigDecimal refundAmount, String refundReference, String note, Long adminId) {
+        Payment payment = paymentRepository.findById(Objects.requireNonNull(paymentId))
+                .orElseThrow(() -> new ResourceNotFoundException("Payment", paymentId));
+
+        payment.markRefunded(refundAmount, refundReference, note, adminId);
+
         return toResponse(payment);
     }
 
@@ -146,7 +171,12 @@ public class PaymentServiceImpl implements PaymentService {
                 payment.getStatus().name(),
                 payment.getPaymentUrl(),
                 payment.getPaidAt(),
-                payment.getCreatedAt()
+                payment.getCreatedAt(),
+                payment.getRefundAmount(),
+                payment.getRefundReason(),
+                payment.getRefundReference(),
+                payment.getRefundRequestedAt(),
+                payment.getRefundedAt()
         );
     }
 }

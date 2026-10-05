@@ -77,6 +77,23 @@ public class User {
         this.phone = phone;
     }
 
+    public boolean isDeleted() {
+        return this.status == UserStatus.DELETED;
+    }
+
+    /**
+     * Soft delete: giữ lại bản ghi để không vỡ khóa ngoại (booking, payment, review...)
+     * nhưng ẩn danh hóa dữ liệu cá nhân và giải phóng email để có thể đăng ký lại.
+     */
+    public void markDeleted(String unusablePasswordHash) {
+        this.status = UserStatus.DELETED;
+        this.email = "deleted+" + this.id + "." + Instant.now().toEpochMilli() + "@deleted.invalid";
+        this.passwordHash = unusablePasswordHash;
+        this.fullName = "Người dùng đã xóa";
+        this.phone = null;
+        this.avatarUrl = null;
+    }
+
     // ===== Getters =====
 
     public Long getId() {

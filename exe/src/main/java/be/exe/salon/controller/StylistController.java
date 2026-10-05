@@ -9,6 +9,7 @@ import be.exe.common.response.PageResponse;
 import be.exe.common.security.CustomUserDetails;
 import be.exe.common.util.PaginationUtils;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -30,7 +31,8 @@ public class StylistController {
             @PathVariable Long salonId,
             @Valid @RequestBody CreateStylistRequest request) {
         StylistResponse response = stylistService.createStylist(salonId, principal.getUserId(), request);
-        return ResponseEntity.ok(ApiResponse.success("Đã thêm stylist", response));
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(ApiResponse.success("Đã thêm stylist", response));
     }
 
     @PutMapping("/api/stylists/{stylistId}")

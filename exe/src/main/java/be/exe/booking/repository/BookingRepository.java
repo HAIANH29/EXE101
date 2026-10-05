@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
@@ -18,6 +19,12 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     Page<Booking> findBySalonId(Long salonId, Pageable pageable);
 
     Page<Booking> findByStylistId(Long stylistId, Pageable pageable);
+
+        List<Booking> findByStylistIdAndStartAtLessThanAndEndAtGreaterThanAndStatusNot(
+          Long stylistId, Instant endAt, Instant startAt, BookingStatus status);
+
+    List<Booking> findByStatusInAndRemindedFalseAndStartAtBetween(
+            List<BookingStatus> statuses, Instant start, Instant end);
 
     /**
      * Kiểm tra trước (application-level) xem stylist đã có booking (chưa hủy) trùng khung giờ chưa.
@@ -36,6 +43,18 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     boolean existsOverlappingBooking(@Param("stylistId") Long stylistId,
                                       @Param("startAt") Instant startAt,
                                       @Param("endAt") Instant endAt);
+
+    @Query(value = """
+            SELECT COUNT(*) > 0 FROM bookings
+            WHERE id <> :bookingId
+              AND stylist_id = :stylistId
+              AND status <> 'CANCELLED'
+              AND tstzrange(start_at, end_at) && tstzrange(:startAt, :endAt)
+            """, nativeQuery = true)
+    boolean existsOverlappingBookingExcept(@Param("bookingId") Long bookingId,
+                                            @Param("stylistId") Long stylistId,
+                                            @Param("startAt") Instant startAt,
+                                            @Param("endAt") Instant endAt);
 
     // ===== Dùng cho dashboard thống kê =====
 

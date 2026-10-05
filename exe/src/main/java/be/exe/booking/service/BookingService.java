@@ -2,14 +2,17 @@ package be.exe.booking.service;
 
 import be.exe.booking.dto.request.CancelBookingRequest;
 import be.exe.booking.dto.request.CreateBookingRequest;
+import be.exe.booking.dto.request.RescheduleBookingRequest;
 import be.exe.booking.dto.response.BookingDetailResponse;
 import be.exe.booking.dto.response.BookingResponse;
 import be.exe.booking.dto.response.BookingSummaryResponse;
+import be.exe.booking.dto.response.AvailabilityResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 
 public interface BookingService {
 
@@ -18,6 +21,8 @@ public interface BookingService {
     BookingResponse confirmBooking(Long bookingId);
 
     BookingResponse cancelBooking(Long bookingId, Long requesterId, CancelBookingRequest request);
+
+    BookingResponse rescheduleBooking(Long bookingId, Long requesterId, RescheduleBookingRequest request);
 
     BookingResponse completeBooking(Long bookingId);
 
@@ -38,6 +43,8 @@ public interface BookingService {
     Page<BookingResponse> getSalonBookings(Long salonId, Long ownerId, Pageable pageable);
 
     Page<BookingResponse> getStylistBookings(Long stylistId, Pageable pageable);
+
+    AvailabilityResponse getAvailability(Long salonId, Long stylistId, LocalDate date);
 
     // ===== Dùng cho dashboard (module admin) =====
 
