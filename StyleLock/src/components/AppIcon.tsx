@@ -50,7 +50,8 @@ export type AppIconName =
   | 'eye'
   | 'eyeOff'
   | 'settings'
-  | 'trendingUp';
+  | 'trendingUp'
+  | 'trash';
 
 const ICON_MAP: Record<AppIconName, FeatherName> = {
   menu: 'menu',
@@ -97,7 +98,8 @@ const ICON_MAP: Record<AppIconName, FeatherName> = {
   eye: 'eye',
   eyeOff: 'eye-off',
   settings: 'settings',
-  trendingUp: 'trending-up'
+  trendingUp: 'trending-up',
+  trash: 'trash-2'
 };
 
 type AppIconProps = {

@@ -57,6 +57,10 @@ const profileCopy = {
     passwordUpdateFailedMessage: 'Không đổi được mật khẩu.',
     logoutTitle: 'Đăng xuất',
     logoutConfirmMessage: 'Bạn có chắc chắn muốn đăng xuất?',
+    deleteAccountTitle: 'Xóa tài khoản',
+    deleteAccountConfirmMessage: 'Bạn có chắc chắn muốn xóa tài khoản? Thao tác này sẽ vô hiệu hóa tài khoản và không thể hoàn tác.',
+    deleteAccountSuccess: 'Tài khoản đã được xóa thành công.',
+    deleteAccountFailed: 'Không thể xóa tài khoản. Vui lòng thử lại sau.',
     cancel: 'Hủy',
     roles: {
       admin: 'Quản trị viên',
@@ -134,6 +138,10 @@ const profileCopy = {
     passwordUpdateFailedMessage: 'Could not change your password.',
     logoutTitle: 'Log out',
     logoutConfirmMessage: 'Are you sure you want to log out?',
+    deleteAccountTitle: 'Delete account',
+    deleteAccountConfirmMessage: 'Are you sure you want to delete your account? This action cannot be undone.',
+    deleteAccountSuccess: 'Account deleted successfully.',
+    deleteAccountFailed: 'Could not delete account. Please try again later.',
     cancel: 'Cancel',
     roles: {
       admin: 'Admin',
@@ -432,6 +440,38 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
     ]);
   };
 
+  const performDeleteAccount = async () => {
+    try {
+      await backendApi.deleteAccount();
+      bookingService.clear();
+      Alert.alert(t.deleteAccountTitle, t.deleteAccountSuccess);
+      goToLogin();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : t.deleteAccountFailed;
+      Alert.alert(t.deleteAccountTitle, message);
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm(t.deleteAccountConfirmMessage)) {
+        void performDeleteAccount();
+      }
+      return;
+    }
+
+    Alert.alert(t.deleteAccountTitle, t.deleteAccountConfirmMessage, [
+      { text: t.cancel, style: 'cancel' },
+      {
+        text: t.deleteAccountTitle,
+        style: 'destructive',
+        onPress: () => {
+          void performDeleteAccount();
+        }
+      }
+    ]);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Top App Bar */}
@@ -629,6 +669,23 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
               </Text>
             </View>
           </TouchableOpacity>
+
+          {/* Delete Account */}
+          {isAuthenticated && (
+            <TouchableOpacity
+              style={[styles.menuItem, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#E2E8F0' }]}
+              onPress={handleDeleteAccount}
+            >
+              <View style={styles.menuLeft}>
+                <View style={[styles.menuIconBg, { backgroundColor: '#FDE8E8' }]}>
+                  <AppIcon name="trash" size={19} color="#E02424" />
+                </View>
+                <Text style={[styles.logoutTitle, { color: '#E02424' }]}>
+                  {t.deleteAccountTitle}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          )}
         </View>
 
         <View style={{ height: 90 }} />
