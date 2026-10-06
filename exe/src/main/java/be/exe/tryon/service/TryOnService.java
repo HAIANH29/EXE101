@@ -1,34 +1,19 @@
 package be.exe.tryon.service;
 
-import be.exe.catalog.dto.response.HairstyleSummaryResponse;
-import be.exe.catalog.service.HairstyleService;
-import be.exe.common.exception.BusinessException;
 import be.exe.common.exception.ResourceNotFoundException;
-import be.exe.common.exception.ErrorCode;
 import be.exe.common.storage.StorageService;
 import be.exe.tryon.client.AiTryOnClient;
 import be.exe.tryon.domain.TryOnRequest;
 import be.exe.tryon.domain.TryOnResult;
-import be.exe.tryon.dto.TryOnFinalizeResponseDto;
 import be.exe.tryon.dto.TryOnResponseDto;
-import be.exe.tryon.dto.TryOnResultResponseDto;
 import be.exe.tryon.mapper.TryOnMapper;
 import be.exe.tryon.repository.TryOnRequestRepository;
 import be.exe.tryon.repository.TryOnResultRepository;
 import be.exe.tryon.validator.ImageFileValidator;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import java.util.Base64;
-import be.exe.tryon.dto.request.TryOnFinalizeRequest;
 
 import java.time.OffsetDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 @Service
 public class TryOnService {
@@ -39,136 +24,73 @@ public class TryOnService {
     private final TryOnResultRepository resultRepository;
     private final ImageFileValidator validator;
     private final TryOnMapper mapper;
-    private final HairstyleService hairstyleService;
 
     public TryOnService(StorageService storageService,
                          AiTryOnClient aiTryOnClient,
                          TryOnRequestRepository requestRepository,
                          TryOnResultRepository resultRepository,
                          ImageFileValidator validator,
-                         TryOnMapper mapper,
-                         HairstyleService hairstyleService) {
+                         TryOnMapper mapper) {
         this.storageService = storageService;
         this.aiTryOnClient = aiTryOnClient;
         this.requestRepository = requestRepository;
         this.resultRepository = resultRepository;
         this.validator = validator;
         this.mapper = mapper;
-        this.hairstyleService = hairstyleService;
     }
 
     /**
-     * Bước 1: upload ảnh gốc + gọi AI tính vị trí overlay.
-     * Chưa tạo TryOnResult — chỉ có TryOnRequest ở trạng thái READY_FOR_ADJUST.
+     * Upload ảnh khách + chọn mẫu tóc -> AI sinh thẳng ảnh kết quả, lưu luôn.
      */
-    @Transactional
     public TryOnResponseDto process(MultipartFile file, Long hairstyleId, Long userId) {
         validator.validate(file);
 
-        HairstyleSummaryResponse hairstyle = hairstyleService.getHairstyleOrThrow(hairstyleId);
-        if (!hairstyle.isActive() || hairstyle.imageUrl() == null || hairstyle.imageUrl().isBlank()) {
-            throw new BusinessException(ErrorCode.VALIDATION_FAILED,
-                    "Kiểu tóc hiện không khả dụng");
-        }
-
         String inputUrl = storageService.upload(file, "tryon/originals");
 
-        try {
-            TryOnRequest request = new TryOnRequest();
-            request.setUserId(userId);
-            request.setHairstyleId(hairstyleId);
-            request.setInputImageUrl(inputUrl);
-            request.setStatus("PENDING");
-            request.setCreatedAt(OffsetDateTime.now());
-            requestRepository.save(request);
+        TryOnRequest request = new TryOnRequest();
+        request.setUserId(userId);
+        request.setHairstyleId(hairstyleId);
+        request.setInputImageUrl(inputUrl);
+        request.setStatus("PENDING");
+        request.setCreatedAt(OffsetDateTime.now());
+        requestRepository.save(request);
 
-            AiTryOnClient.AiOverlayResponse overlay = aiTryOnClient.computeOverlay(
-                inputUrl, hairstyleId, hairstyle.imageUrl());
+        String resultUrl = aiTryOnClient.process(inputUrl, hairstyleId);
 
-            request.setStatus("READY_FOR_ADJUST");
-            requestRepository.save(request);
+        TryOnResult result = new TryOnResult();
+        result.setRequestId(request.getId());
+        result.setResultImageUrl(resultUrl);
+        result.setCreatedAt(OffsetDateTime.now());
+        resultRepository.save(result);
 
-            return mapper.toDto(request, overlay);
-        } catch (Exception e) {
-            storageService.delete(inputUrl);
-            throw e;
-        }
+        request.setStatus("DONE");
+        request.setCompletedAt(OffsetDateTime.now());
+        requestRepository.save(request);
+
+        return mapper.toDto(request, resultUrl);
     }
 
     /**
-     * Bước 2: khách chỉnh xong (kéo/resize/xoay) bên FE, FE tự merge ảnh bằng
-     * canvas rồi gửi file ảnh cuối lên đây để lưu.
+     * Khách không ưng kết quả -> gọi lại AI với cùng ảnh gốc + mẫu tóc đã chọn,
+     * cập nhật đè lên TryOnResult hiện có (vì request_id là UNIQUE).
      */
-    @Transactional
-    public TryOnFinalizeResponseDto finalize(Long requestId, TryOnFinalizeRequest finalizeRequest, Long userId) {
-        TryOnRequest request = requestRepository.findByIdAndUserId(requestId, userId)
+    public TryOnResponseDto regenerate(Long requestId) {
+        TryOnRequest request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("TryOnRequest", requestId));
 
-        if (!"READY_FOR_ADJUST".equals(request.getStatus())) {
-            throw new BusinessException(ErrorCode.TRYON_REQUEST_NOT_READY);
-        }
+        String resultUrl = aiTryOnClient.process(request.getInputImageUrl(), request.getHairstyleId());
 
-        if (resultRepository.existsByRequestId(requestId)) {
-            throw new BusinessException(ErrorCode.TRYON_RESULT_ALREADY_EXISTS);
-        }
-        
-        HairstyleSummaryResponse hairstyle = hairstyleService.getHairstyleOrThrow(request.getHairstyleId());
-
-        AiTryOnClient.AiMergeResponse mergeResponse = aiTryOnClient.mergeImages(
-                request.getInputImageUrl(),
-                hairstyle.imageUrl(),
-                finalizeRequest.x(),
-                finalizeRequest.y(),
-                finalizeRequest.width(),
-                finalizeRequest.height()
-        );
-
-        byte[] imageBytes = Base64.getDecoder().decode(mergeResponse.base64Image());
-        String resultUrl = storageService.upload(imageBytes, "tryon/results");
-
-        try {
-            TryOnResult result = new TryOnResult();
-            result.setRequestId(request.getId());
-            result.setResultImageUrl(resultUrl);
-            result.setCreatedAt(OffsetDateTime.now());
-            resultRepository.save(result);
-
-            request.setStatus("DONE");
-            request.setCompletedAt(OffsetDateTime.now());
-            requestRepository.save(request);
-
-            return mapper.toFinalizeDto(request, result);
-        } catch (Exception e) {
-            storageService.delete(resultUrl);
-            throw e;
-        }
-    }
-
-    @Transactional(readOnly = true)
-    public TryOnResultResponseDto getResult(Long requestId, Long userId) {
-        TryOnRequest request = requestRepository.findByIdAndUserId(requestId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("TryOnRequest", requestId));
         TryOnResult result = resultRepository.findByRequestId(requestId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.TRYON_RESULT_NOT_FOUND));
-        return toResultDto(request, result);
-    }
+                .orElseGet(TryOnResult::new);
+        result.setRequestId(request.getId());
+        result.setResultImageUrl(resultUrl);
+        result.setCreatedAt(OffsetDateTime.now());
+        resultRepository.save(result);
 
-    @Transactional(readOnly = true)
-    public Page<TryOnResultResponseDto> getResults(Long userId, Pageable pageable) {
-        Page<TryOnRequest> requests = requestRepository.findByUserIdAndStatus(userId, "DONE", pageable);
-        List<Long> requestIds = requests.getContent().stream()
-            .map(request -> Objects.requireNonNull(request.getId()))
-            .toList();
-        Map<Long, TryOnResult> results = new HashMap<>();
-        resultRepository.findByRequestIdIn(requestIds)
-                .forEach(result -> results.put(result.getRequestId(), result));
-        return requests.map(request -> {
-            return toResultDto(request, Objects.requireNonNull(results.get(request.getId())));
-        });
-    }
+        request.setStatus("DONE");
+        request.setCompletedAt(OffsetDateTime.now());
+        requestRepository.save(request);
 
-    private TryOnResultResponseDto toResultDto(TryOnRequest request, TryOnResult result) {
-        return new TryOnResultResponseDto(
-                request.getId(), request.getStatus(), result.getResultImageUrl(), result.getCreatedAt());
+        return mapper.toDto(request, resultUrl);
     }
 }

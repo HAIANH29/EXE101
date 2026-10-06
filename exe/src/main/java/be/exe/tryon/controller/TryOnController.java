@@ -1,27 +1,17 @@
 package be.exe.tryon.controller;
 
 import be.exe.common.response.ApiResponse;
-import be.exe.common.security.CustomUserDetails;
-import be.exe.common.response.PageResponse;
-import be.exe.common.util.PaginationUtils;
-import be.exe.tryon.dto.TryOnFinalizeResponseDto;
 import be.exe.tryon.dto.TryOnResponseDto;
-import be.exe.tryon.dto.TryOnResultResponseDto;
 import be.exe.tryon.service.TryOnService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import be.exe.tryon.dto.request.TryOnFinalizeRequest;
 
 @RestController
 @RequestMapping("/api/tryon")
@@ -34,49 +24,27 @@ public class TryOnController {
     }
 
     /**
-     * Bước 1: upload ảnh khách + chọn mẫu tóc -> AI trả tọa độ overlay
-     * để FE dựng layer cho khách chỉnh.
+     * Upload ảnh khách + chọn mẫu tóc -> AI sinh thẳng ảnh kết quả.
      */
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ApiResponse<TryOnResponseDto>> tryOn(
+    public ApiResponse<TryOnResponseDto> tryOn(
             @RequestParam("image") MultipartFile image,
             @RequestParam("hairstyleId") Long hairstyleId,
-            @AuthenticationPrincipal CustomUserDetails principal) {
+            @AuthenticationPrincipal UserDetails user) {
 
-            TryOnResponseDto response = tryOnService.process(image, hairstyleId, principal.getUserId());
-        return ResponseEntity.status(HttpStatus.CREATED)
-            .body(ApiResponse.success("Đã tính vị trí thử tóc, chờ khách chỉnh", response));
+        // TODO: thay bằng cách lấy userId thật từ UserPrincipal của bạn
+        Long userId = null;
+
+        TryOnResponseDto response = tryOnService.process(image, hairstyleId, userId);
+        return ApiResponse.success("Thử tóc thành công", response);
     }
 
     /**
-     * Bước 2: khách chỉnh xong bên FE (kéo/resize/xoay), FE tự merge ảnh
-     * bằng canvas rồi gửi file ảnh cuối lên đây để lưu kết quả.
+     * Khách không ưng kết quả -> gọi lại AI với cùng ảnh + mẫu tóc đã chọn.
      */
-    @PutMapping(value = "/{requestId}/finalize", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ApiResponse<TryOnFinalizeResponseDto> finalize(
-                @AuthenticationPrincipal CustomUserDetails principal,
-            @PathVariable Long requestId,
-            @RequestBody TryOnFinalizeRequest request) {
-
-            TryOnFinalizeResponseDto response = tryOnService.finalize(
-                    requestId, request, principal.getUserId());
-        return ApiResponse.success("Lưu kết quả thử tóc thành công", response);
-    }
-
-    @GetMapping("/{requestId}/result")
-    public ApiResponse<TryOnResultResponseDto> getResult(
-            @AuthenticationPrincipal CustomUserDetails principal,
-            @PathVariable Long requestId) {
-        return ApiResponse.success(tryOnService.getResult(requestId, principal.getUserId()));
-    }
-
-    @GetMapping("/results")
-    public ApiResponse<PageResponse<TryOnResultResponseDto>> getResults(
-            @AuthenticationPrincipal CustomUserDetails principal,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size) {
-        var result = tryOnService.getResults(
-                principal.getUserId(), PaginationUtils.of(page, size));
-        return ApiResponse.success(PageResponse.from(result));
+    @PostMapping("/{requestId}/regenerate")
+    public ApiResponse<TryOnResponseDto> regenerate(@PathVariable Long requestId) {
+        TryOnResponseDto response = tryOnService.regenerate(requestId);
+        return ApiResponse.success("Đã tạo lại kết quả thử tóc", response);
     }
 }
