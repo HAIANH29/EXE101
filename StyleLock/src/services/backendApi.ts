@@ -444,6 +444,24 @@ export const backendApi = {
     }
   },
 
+  async logoutAllDevices() {
+    authSessionStore.clear();
+    try {
+      await apiRequest<void>('/api/auth/logout-all', {
+        method: 'POST'
+      });
+    } catch {
+      // Local session cleared
+    }
+  },
+
+  async deleteAccount() {
+    await apiRequest<void>('/api/auth/me', {
+      method: 'DELETE'
+    });
+    authSessionStore.clear();
+  },
+
   async getNotifications(page = 0, size = 30) {
     const items = await getPage<BackendNotification>(`/api/notifications?page=${page}&size=${size}`);
     return items.map(mapNotification);

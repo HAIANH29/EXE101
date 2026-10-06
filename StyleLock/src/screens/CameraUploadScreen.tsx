@@ -17,6 +17,7 @@ import { Hairstyle } from '../types';
 import { AppIcon } from '../components/AppIcon';
 import { BottomNavBar } from '../components/BottomNavBar';
 import { NotificationBellButton } from '../components/NotificationBellButton';
+import { resolveHairOverlaySource } from '../services/hairAssetMap';
 
 interface CameraUploadScreenProps {
   navigation: any;
@@ -26,10 +27,11 @@ interface CameraUploadScreenProps {
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const FILTER_STYLES = [
-  { id: 'bob', label: 'Bob', recommended: true },
-  { id: 'waves', label: 'Waves', recommended: false },
-  { id: 'sleek', label: 'Sleek', recommended: true },
-  { id: 'shag', label: 'Shag', recommended: false },
+  { id: 'twoblock', label: 'Two Block', recommended: true, hairIndex: 1 },
+  { id: 'undercut', label: 'Undercut', recommended: true, hairIndex: 2 },
+  { id: 'sidepart', label: 'Side Part', recommended: false, hairIndex: 3 },
+  { id: 'bob', label: 'Bob Nữ', recommended: false, hairIndex: 7 },
+  { id: 'curly', label: 'Curly Xoăn', recommended: true, hairIndex: 5 },
 ];
 
 export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigation, route }) => {
@@ -45,10 +47,19 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
   const [isCapturing, setIsCapturing] = useState<boolean>(false);
 
   // Map filter styles to actual hairstyles from mock data
-  const filterHairstyles = FILTER_STYLES.map((f, idx) => ({
+  const filterHairstyles = FILTER_STYLES.map((f) => ({
     ...f,
-    hairstyle: MOCK_HAIRSTYLES[idx % MOCK_HAIRSTYLES.length]
+    hairstyle: MOCK_HAIRSTYLES[f.hairIndex] || MOCK_HAIRSTYLES[0]
   }));
+
+  const handleOpenTryOn = (hair?: Hairstyle) => {
+    if (!selectedPhoto) return;
+    const targetHair = hair || preselectedHair || filterHairstyles[activeFilterIdx]?.hairstyle || MOCK_HAIRSTYLES[1];
+    navigation.navigate('TryOnEditor', {
+      userPhotoUri: selectedPhoto,
+      hairstyle: targetHair
+    });
+  };
 
   const handlePickFromGallery = async () => {
     try {
@@ -96,11 +107,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
   const handleCapture = async () => {
     if (selectedPhoto) {
       // Already have a photo, proceed to try-on
-      const hairToUse = filterHairstyles[activeFilterIdx].hairstyle;
-      navigation.navigate('TryOnEditor', {
-        userPhotoUri: selectedPhoto,
-        hairstyle: preselectedHair || hairToUse
-      });
+      handleOpenTryOn();
     } else {
       try {
         if (!cameraPermission?.granted) {
@@ -143,11 +150,25 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
   const renderCameraSurface = () => {
     if (selectedPhoto) {
       return (
-        <ImageBackground
-          source={{ uri: selectedPhoto }}
+        <TouchableOpacity
+          activeOpacity={0.92}
           style={styles.cameraFeed}
-          resizeMode="cover"
-        />
+          onPress={() => handleOpenTryOn()}
+        >
+          <ImageBackground
+            source={{ uri: selectedPhoto }}
+            style={styles.cameraFeed}
+            resizeMode="cover"
+          >
+            <View style={styles.tapToTryContainer}>
+              <View style={styles.tapToTryPill}>
+                <AppIcon name="sparkle" size={16} color="#FFFFFF" />
+                <Text style={styles.tapToTryText}>Chạm vào ảnh để thử mẫu tóc</Text>
+                <AppIcon name="arrowRight" size={14} color="#FFFFFF" />
+              </View>
+            </View>
+          </ImageBackground>
+        </TouchableOpacity>
       );
     }
 
@@ -285,16 +306,26 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
             >
               {filterHairstyles.map((item, idx) => {
                 const isActive = activeFilterIdx === idx;
+                const hairOverlay = resolveHairOverlaySource(item.hairstyle);
                 return (
                   <TouchableOpacity
                     key={item.id}
                     style={[styles.filterThumb, isActive && styles.filterThumbActive]}
-                    onPress={() => setActiveFilterIdx(idx)}
+                    onPress={() => {
+                      setActiveFilterIdx(idx);
+                      if (selectedPhoto) {
+                        handleOpenTryOn(item.hairstyle);
+                      }
+                    }}
+                    activeOpacity={0.8}
                   >
-                    <Image
-                      source={{ uri: item.hairstyle.imageUrl }}
-                      style={[styles.filterThumbImg, !isActive && styles.filterThumbImgInactive]}
-                    />
+                    <View style={styles.filterThumbHairBg}>
+                      <Image
+                        source={hairOverlay}
+                        style={[styles.filterThumbImg, !isActive && styles.filterThumbImgInactive]}
+                        resizeMode="contain"
+                      />
+                    </View>
 
                     {/* Active Overlay */}
                     {isActive && <View style={styles.filterActiveOverlay} />}
@@ -318,23 +349,46 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
               })}
             </ScrollView>
 
-            {/* Capture Button Area */}
-            <View style={styles.captureArea}>
-              <View style={styles.captureLine} />
-              <TouchableOpacity
-                style={[styles.captureBtn, isCapturing && styles.captureBtnDisabled]}
-                onPress={handleCapture}
-                activeOpacity={0.85}
-                disabled={isCapturing}
-              >
-                <View style={styles.captureRing}>
-                  <View style={styles.captureInner}>
-                    <AppIcon name={selectedPhoto ? "check" : "camera"} size={28} color="#FFFFFF" />
+            {/* Action / Capture Controls */}
+            {selectedPhoto ? (
+              <View style={styles.postCaptureActionsRow}>
+                <TouchableOpacity
+                  style={styles.retakeBtn}
+                  onPress={handleTakePhoto}
+                  activeOpacity={0.8}
+                >
+                  <AppIcon name="refresh" size={16} color="#FFFFFF" />
+                  <Text style={styles.retakeBtnText}>Chụp lại</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.primaryTryOnBtn}
+                  onPress={() => handleOpenTryOn()}
+                  activeOpacity={0.85}
+                >
+                  <AppIcon name="sparkle" size={18} color="#FFFFFF" />
+                  <Text style={styles.primaryTryOnText}>Thử mẫu tóc này ngay</Text>
+                  <AppIcon name="arrowRight" size={16} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.captureArea}>
+                <View style={styles.captureLine} />
+                <TouchableOpacity
+                  style={[styles.captureBtn, isCapturing && styles.captureBtnDisabled]}
+                  onPress={handleCapture}
+                  activeOpacity={0.85}
+                  disabled={isCapturing}
+                >
+                  <View style={styles.captureRing}>
+                    <View style={styles.captureInner}>
+                      <AppIcon name="camera" size={28} color="#FFFFFF" />
+                    </View>
                   </View>
-                </View>
-              </TouchableOpacity>
-              <View style={styles.captureLine} />
-            </View>
+                </TouchableOpacity>
+                <View style={styles.captureLine} />
+              </View>
+            )}
 
             {/* Book This Hairstyle CTA */}
             <View style={styles.ctaContainer}>
@@ -343,7 +397,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
                 activeOpacity={0.85}
                 onPress={handleBookThisHairstyle}
               >
-                <Text style={styles.bookCtaText}>Book This Hairstyle</Text>
+                <Text style={styles.bookCtaText}>Đặt lịch làm kiểu tóc này</Text>
                 <AppIcon name="arrowRight" size={18} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
@@ -410,6 +464,36 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%'
+  },
+  tapToTryContainer: {
+    position: 'absolute',
+    bottom: 24,
+    left: 20,
+    right: 20,
+    alignItems: 'center',
+    zIndex: 10
+  },
+  tapToTryPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(0, 92, 85, 0.88)',
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6
+  },
+  tapToTryText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.2
   },
   permissionSurface: {
     flex: 1,
@@ -627,6 +711,13 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'relative'
   },
+  filterThumbHairBg: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#0F1A19',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
   filterThumbActive: {
     borderWidth: 2,
     borderColor: '#005C55'
@@ -696,6 +787,52 @@ const styles = StyleSheet.create({
   },
   starBadgeText: {
     fontSize: 8
+  },
+  postCaptureActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingHorizontal: 20,
+    marginTop: 12
+  },
+  retakeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.28)'
+  },
+  retakeBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600'
+  },
+  primaryTryOnBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: '#005C55',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    elevation: 4,
+    shadowColor: '#005C55',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8
+  },
+  primaryTryOnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700'
   },
   captureArea: {
     flexDirection: 'row',
