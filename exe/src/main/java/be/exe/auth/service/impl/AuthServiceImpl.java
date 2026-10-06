@@ -1,26 +1,31 @@
 package be.exe.auth.service.impl;
 
-import be.exe.auth.domain.PasswordResetToken;
 import be.exe.auth.domain.RefreshToken;
 import be.exe.auth.domain.Role;
 import be.exe.auth.domain.RoleName;
 import be.exe.auth.domain.User;
 import be.exe.auth.domain.UserStatus;
 import be.exe.auth.dto.request.ChangePasswordRequest;
-import be.exe.auth.dto.request.ForgotPasswordRequest;
 import be.exe.auth.dto.request.LoginRequest;
 import be.exe.auth.dto.request.RefreshTokenRequest;
 import be.exe.auth.dto.request.RegisterRequest;
-import be.exe.auth.dto.request.ResetPasswordRequest;
-import be.exe.auth.dto.request.UpdateProfileRequest;
 import be.exe.auth.dto.response.LoginResponse;
 import be.exe.auth.dto.response.TokenResponse;
 import be.exe.auth.dto.response.UserResponse;
 import be.exe.auth.mapper.UserMapper;
-import be.exe.auth.repository.PasswordResetTokenRepository;
 import be.exe.auth.repository.RefreshTokenRepository;
 import be.exe.auth.repository.RoleRepository;
 import be.exe.auth.repository.UserRepository;
+import be.exe.auth.repository.VerificationTokenRepository;
+import be.exe.auth.domain.VerificationToken;
+import be.exe.auth.domain.VerificationTokenType;
+import be.exe.auth.dto.request.SendOtpRequest;
+import be.exe.auth.dto.request.VerifyOtpRequest;
+import be.exe.auth.dto.request.ForgotPasswordRequest;
+import be.exe.auth.dto.request.ResetPasswordRequest;
+import be.exe.notification.service.EmailService;
+import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Value;
 import be.exe.auth.service.AuthService;
 import be.exe.common.exception.BusinessException;
 import be.exe.common.exception.ErrorCode;
@@ -28,14 +33,8 @@ import be.exe.common.exception.ResourceNotFoundException;
 import be.exe.common.security.JwtService;
 import be.exe.common.util.HashUtils;
 import io.jsonwebtoken.Claims;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.mail.MailException;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
@@ -44,87 +43,94 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.security.SecureRandom;
-import java.time.Duration;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-import java.util.UUID;
 
 @Service
 @Transactional
 public class AuthServiceImpl implements AuthService {
 
-    private static final Logger log = LoggerFactory.getLogger(AuthServiceImpl.class);
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
-    private static final Set<String> ALLOWED_AVATAR_TYPES = Set.of(
-            "image/jpeg",
-            "image/png",
-            "image/webp"
-    );
-
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final RefreshTokenRepository refreshTokenRepository;
-    private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
-    private final JavaMailSender mailSender;
+    private final VerificationTokenRepository verificationTokenRepository;
+    private final EmailService emailService;
 
-    @Value("${app.password-reset.expiration-minutes:30}")
-    private long passwordResetExpirationMinutes;
-
-    @Value("${app.password-reset.mail-enabled:false}")
-    private boolean passwordResetMailEnabled;
-
-    @Value("${app.password-reset.frontend-reset-url:http://localhost:8082/reset-password}")
-    private String defaultPasswordResetUrl;
-
-    @Value("${app.password-reset.mail-from:}")
-    private String passwordResetMailFrom;
-
-    @Value("${app.upload.root-dir:uploads}")
-    private String uploadRootDir;
-
-    @Value("${app.upload.public-base-url:http://localhost:8080}")
-    private String uploadPublicBaseUrl;
-
-    @Value("${app.upload.avatar-max-size-bytes:5242880}")
-    private long avatarMaxSizeBytes;
+    @Value("${app.frontend.url:http://localhost:3000}")
+    private String frontendUrl;
 
     public AuthServiceImpl(UserRepository userRepository,
                            RoleRepository roleRepository,
                            RefreshTokenRepository refreshTokenRepository,
-                           PasswordResetTokenRepository passwordResetTokenRepository,
                            PasswordEncoder passwordEncoder,
                            JwtService jwtService,
                            AuthenticationManager authenticationManager,
-                           JavaMailSender mailSender) {
+                           VerificationTokenRepository verificationTokenRepository,
+                           EmailService emailService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.refreshTokenRepository = refreshTokenRepository;
-        this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
-        this.mailSender = mailSender;
+        this.verificationTokenRepository = verificationTokenRepository;
+        this.emailService = emailService;
+    }
+
+    @Override
+    public void sendRegisterOtp(SendOtpRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new BusinessException(ErrorCode.EMAIL_ALREADY_EXISTS);
+        }
+        
+        String otp = String.format("%06d", new java.util.Random().nextInt(999999));
+        
+        VerificationToken token = new VerificationToken();
+        token.setEmail(request.getEmail());
+        token.setToken(otp);
+        token.setType(VerificationTokenType.REGISTER_OTP);
+        token.setExpiresAt(Instant.now().plusSeconds(5 * 60)); // 5 mins expiration
+        
+        verificationTokenRepository.save(token);
+        
+        emailService.sendEmail(request.getEmail(), "Mã OTP đăng ký tài khoản", 
+            "Mã OTP của bạn là: " + otp + ". Mã có hiệu lực trong vòng 5 phút.");
+    }
+
+    @Override
+    public void verifyRegisterOtp(VerifyOtpRequest request) {
+        VerificationToken token = verificationTokenRepository
+            .findTopByEmailAndTypeOrderByCreatedAtDesc(request.getEmail(), VerificationTokenType.REGISTER_OTP)
+            .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_FAILED, "Không tìm thấy yêu cầu OTP cho email này"));
+            
+        if (token.getExpiresAt().isBefore(Instant.now())) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Mã OTP đã hết hạn");
+        }
+        
+        if (!token.getToken().equals(request.getOtp())) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Mã OTP không chính xác");
+        }
+        
+        token.setVerified(true);
+        verificationTokenRepository.save(token);
     }
 
     @Override
     public LoginResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new BusinessException(ErrorCode.EMAIL_ALREADY_EXISTS);
+        }
+        
+        VerificationToken token = verificationTokenRepository
+            .findTopByEmailAndTypeOrderByCreatedAtDesc(request.getEmail(), VerificationTokenType.REGISTER_OTP)
+            .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_FAILED, "Email chưa được xác thực OTP"));
+            
+        if (!token.isVerified() || token.isUsed()) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "OTP chưa được xác thực hoặc đã được sử dụng");
         }
 
         Role customerRole = roleRepository.findByName(RoleName.CUSTOMER)
@@ -141,6 +147,9 @@ public class AuthServiceImpl implements AuthService {
         user.addRole(customerRole);
 
         userRepository.save(user);
+
+        token.setUsed(true);
+        verificationTokenRepository.save(token);
 
         // Tự động đăng nhập luôn sau khi đăng ký thành công
         return buildLoginResponse(user);
@@ -241,58 +250,6 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public UserResponse updateCurrentUser(Long userId, UpdateProfileRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("User", userId));
-
-        user.updateProfile(
-                request.getFullName().trim(),
-                normalizeOptionalText(request.getPhone())
-        );
-
-        return UserMapper.toResponse(user);
-    }
-
-    @Override
-    public UserResponse uploadAvatar(Long userId, MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Vui lòng chọn ảnh đại diện");
-        }
-
-        if (file.getSize() > avatarMaxSizeBytes) {
-            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Ảnh đại diện không được vượt quá 5MB");
-        }
-
-        String contentType = file.getContentType() != null
-                ? file.getContentType().toLowerCase(Locale.ROOT)
-                : "";
-        if (!ALLOWED_AVATAR_TYPES.contains(contentType)) {
-            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Chỉ hỗ trợ ảnh JPG, PNG hoặc WEBP");
-        }
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("User", userId));
-
-        String extension = extensionFromContentType(contentType);
-        String filename = "user-" + userId + "-" + UUID.randomUUID() + extension;
-        Path avatarDir = Path.of(uploadRootDir, "avatars").toAbsolutePath().normalize();
-        Path target = avatarDir.resolve(filename).normalize();
-
-        try {
-            Files.createDirectories(avatarDir);
-            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException ex) {
-            log.error("Could not store avatar for user {}", userId, ex);
-            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "Không lưu được ảnh đại diện");
-        }
-
-        user.setAvatarUrl(buildPublicUploadUrl("/uploads/avatars/" + filename));
-        return UserMapper.toResponse(user);
-    }
-
-    @Override
     public void changePassword(
             Long userId,
             ChangePasswordRequest request) {
@@ -319,53 +276,6 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void requestPasswordReset(ForgotPasswordRequest request) {
-        String email = request.getEmail().trim();
-
-        userRepository.findByEmail(email)
-                .filter(User::isEnabled)
-                .ifPresent(user -> {
-                    passwordResetTokenRepository.markAllUnusedByUserId(user.getId());
-
-                    String rawToken = generateSecureToken();
-                    Instant expiresAt = Instant.now().plus(
-                            Duration.ofMinutes(Math.max(1, passwordResetExpirationMinutes)));
-
-                    PasswordResetToken token = new PasswordResetToken(
-                            user,
-                            HashUtils.sha256(rawToken),
-                            expiresAt
-                    );
-                    passwordResetTokenRepository.save(token);
-
-                    String resetUrl = buildResetUrl(
-                            resolveResetBaseUrl(request.getRedirectUrl()),
-                            rawToken,
-                            user.getEmail());
-
-                    sendPasswordResetEmail(user, resetUrl);
-                });
-    }
-
-    @Override
-    public void resetPassword(ResetPasswordRequest request) {
-        PasswordResetToken resetToken = passwordResetTokenRepository
-                .findByTokenHash(HashUtils.sha256(request.getToken().trim()))
-                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_PASSWORD_RESET_TOKEN));
-
-        if (!resetToken.isUsable()) {
-            throw new BusinessException(ErrorCode.INVALID_PASSWORD_RESET_TOKEN);
-        }
-
-        User user = resetToken.getUser();
-        user.changePassword(passwordEncoder.encode(request.getNewPassword()));
-        resetToken.markUsed();
-
-        passwordResetTokenRepository.markAllUnusedByUserId(user.getId());
-        refreshTokenRepository.revokeAllByUserId(user.getId());
-    }
-
-    @Override
     public void deleteAccount(Long userId) {
         User user = userRepository.findById(userId)
                 .filter(u -> !u.isDeleted())
@@ -373,6 +283,52 @@ public class AuthServiceImpl implements AuthService {
 
         refreshTokenRepository.revokeAllByUserId(userId);
         user.markDeleted(passwordEncoder.encode(java.util.UUID.randomUUID().toString()));
+    }
+
+    @Override
+    public void forgotPassword(ForgotPasswordRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+            .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_FAILED, "Email không tồn tại trong hệ thống"));
+            
+        String resetToken = java.util.UUID.randomUUID().toString();
+        
+        VerificationToken token = new VerificationToken();
+        token.setEmail(user.getEmail());
+        token.setToken(resetToken);
+        token.setType(VerificationTokenType.RESET_PASSWORD);
+        token.setExpiresAt(Instant.now().plusSeconds(15 * 60)); // 15 mins expiration
+        
+        verificationTokenRepository.save(token);
+        
+        String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
+        
+        emailService.sendEmail(user.getEmail(), "Yêu cầu khôi phục mật khẩu", 
+            "Vui lòng truy cập đường dẫn sau để đặt lại mật khẩu: " + resetLink + 
+            "\n\nĐường dẫn có hiệu lực trong vòng 15 phút.");
+    }
+
+    @Override
+    public void resetPassword(ResetPasswordRequest request) {
+        VerificationToken token = verificationTokenRepository
+            .findByTokenAndType(request.getToken(), VerificationTokenType.RESET_PASSWORD)
+            .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_FAILED, "Token không hợp lệ hoặc không tồn tại"));
+            
+        if (token.getExpiresAt().isBefore(Instant.now())) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Token đã hết hạn");
+        }
+        
+        if (token.isUsed()) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Token đã được sử dụng");
+        }
+        
+        User user = userRepository.findByEmail(token.getEmail())
+            .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_FAILED, "Người dùng không tồn tại"));
+            
+        user.changePassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+        
+        token.setUsed(true);
+        verificationTokenRepository.save(token);
     }
 
     @Override
@@ -567,99 +523,5 @@ public class AuthServiceImpl implements AuthService {
         refreshTokenRepository.save(entity);
 
         return refreshTokenJwt;
-    }
-
-    private String generateSecureToken() {
-        byte[] bytes = new byte[32];
-        SECURE_RANDOM.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    }
-
-    private String resolveResetBaseUrl(String redirectUrl) {
-        if (redirectUrl == null || redirectUrl.isBlank()) {
-            return defaultPasswordResetUrl;
-        }
-
-        String value = redirectUrl.trim();
-        if (value.startsWith("http://localhost:")
-                || value.startsWith("https://")
-                || value.startsWith("stylelock://")) {
-            return value;
-        }
-
-        log.warn("Ignoring unsupported password reset redirect URL: {}", value);
-        return defaultPasswordResetUrl;
-    }
-
-    private String buildResetUrl(String baseUrl, String rawToken, String email) {
-        String separator = baseUrl.contains("?") ? "&" : "?";
-        return baseUrl
-                + separator
-                + "token="
-                + urlEncode(rawToken)
-                + "&email="
-                + urlEncode(email);
-    }
-
-    private String urlEncode(String value) {
-        return URLEncoder.encode(value, StandardCharsets.UTF_8);
-    }
-
-    private String normalizeOptionalText(String value) {
-        if (value == null) {
-            return null;
-        }
-
-        String trimmed = value.trim();
-        return trimmed.isBlank() ? null : trimmed;
-    }
-
-    private String extensionFromContentType(String contentType) {
-        return switch (contentType) {
-            case "image/png" -> ".png";
-            case "image/webp" -> ".webp";
-            default -> ".jpg";
-        };
-    }
-
-    private String buildPublicUploadUrl(String path) {
-        String baseUrl = uploadPublicBaseUrl == null ? "" : uploadPublicBaseUrl.trim();
-        if (baseUrl.endsWith("/")) {
-            baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
-        }
-        return baseUrl + path;
-    }
-
-    private void sendPasswordResetEmail(User user, String resetUrl) {
-        if (!passwordResetMailEnabled) {
-            log.info("Password reset mail disabled. Reset link for {}: {}", user.getEmail(), resetUrl);
-            return;
-        }
-
-        SimpleMailMessage message = new SimpleMailMessage();
-        if (passwordResetMailFrom != null && !passwordResetMailFrom.isBlank()) {
-            message.setFrom(passwordResetMailFrom);
-        }
-        message.setTo(user.getEmail());
-        message.setSubject("StyleLock password reset");
-        message.setText("""
-                Hello %s,
-
-                We received a request to reset your StyleLock password.
-                Open this verification link to set a new password:
-
-                %s
-
-                This link expires in %d minutes. If you did not request this, you can ignore this email.
-                """.formatted(user.getFullName(), resetUrl, Math.max(1, passwordResetExpirationMinutes)));
-
-        try {
-            mailSender.send(message);
-        } catch (MailException ex) {
-            log.error("Could not send password reset email to {}", user.getEmail(), ex);
-            throw new BusinessException(
-                    ErrorCode.INTERNAL_ERROR,
-                    "Không gửi được email khôi phục mật khẩu. Vui lòng kiểm tra cấu hình Gmail SMTP");
-        }
     }
 }

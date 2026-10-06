@@ -84,11 +84,15 @@ Ngoài các mã trên, `BusinessException` có thể ghi đè message bằng th�
 
 Các trường không đánh dấu bắt buộc là tùy chọn theo DTO/validation hiện tại.
 
-- `RegisterRequest`: `email` string, bắt buộc, email hợp lệ; `password` string, bắt buộc, dài 6-100; `fullName` string, bắt buộc, tối đa 150; `phone` string tùy chọn.
+- `SendOtpRequest`: `email` string bắt buộc, email hợp lệ.
+- `VerifyOtpRequest`: `email` string bắt buộc; `otp` string bắt buộc (6 ký tự).
+- `RegisterRequest`: `email` string, bắt buộc, email hợp lệ; `password` string, bắt buộc, dài 6-100; `fullName` string, bắt buộc, tối đa 150; `phone` string tùy chọn. (Lưu ý: Email phải được xác thực OTP trước).
 - `LoginRequest`: `email` string bắt buộc; `password` string bắt buộc.
 - `GoogleLoginRequest`: `idToken` string bắt buộc.
 - `RefreshTokenRequest`: `refreshToken` string bắt buộc.
 - `ChangePasswordRequest`: `oldPassword` string bắt buộc; `newPassword` string bắt buộc, dài 6-100.
+- `ForgotPasswordRequest`: `email` string bắt buộc, email hợp lệ.
+- `ResetPasswordRequest`: `token` string bắt buộc; `newPassword` string bắt buộc, dài 6-100.
 - `CreateBookingRequest`: `salonId`, `stylistId`, `serviceId` long bắt buộc; `hairstyleId` long tùy chọn; `startAt` `Instant` bắt buộc; `note` string tùy chọn.
 - `CancelBookingRequest`: `reason` string tùy chọn.
 - `SalonRequest`: `name` string bắt buộc, tối đa 200; `phone`, `address`, `description`, `imageUrl` string tùy chọn.
@@ -109,13 +113,29 @@ Các response được trả trong `data` gồm các trường tương ứng DTO
 
 ### 3.1 Auth
 
+**API-01a - POST `/api/auth/register/send-otp`**
+
+- Mục đích: Gửi mã OTP xác thực đăng ký đến email.
+- Input: JSON `SendOtpRequest`.
+- Xác thực: public.
+- Thành công: HTTP 200, thông báo thành công.
+- Lỗi: 400 validation; 409 email đã tồn tại (`AUTH_001`).
+
+**API-01b - POST `/api/auth/register/verify-otp`**
+
+- Mục đích: Xác thực mã OTP người dùng nhập.
+- Input: JSON `VerifyOtpRequest`.
+- Xác thực: public.
+- Thành công: HTTP 200, thông báo thành công.
+- Lỗi: 400 validation, sai mã OTP, hoặc hết hạn OTP.
+
 **API-01 - POST `/api/auth/register`**
 
-- Mục đích: tạo tài khoản local và trả phiên đăng nhập.
+- Mục đích: Tạo tài khoản (yêu cầu đã xác thực OTP thành công) và trả phiên đăng nhập.
 - Input: JSON `RegisterRequest`; `email`, `password`, `fullName` bắt buộc; `phone` tùy chọn.
 - Xác thực: public.
 - Thành công: HTTP 200, `data` là login response gồm user, access token và refresh token.
-- Lỗi: 400 nếu field không hợp lệ (`COMMON_002` và `fieldErrors`); 409 nếu email đã tồn tại (`AUTH_001`); lỗi khác 500.
+- Lỗi: 400 nếu field không hợp lệ (`COMMON_002` và `fieldErrors`); 409 nếu email đã tồn tại (`AUTH_001`); lỗi nếu email chưa được xác thực OTP hoặc OTP đã bị dùng; lỗi khác 500.
 
 **API-02 - POST `/api/auth/login`**
 
@@ -172,6 +192,22 @@ Các response được trả trong `data` gồm các trường tương ứng DTO
 - Xác thực: JWT bắt buộc.
 - Thành công: HTTP 200, success message.
 - Lỗi: 400 validation hoặc mật khẩu cũ không đúng theo exception service; 401 thiếu/sai JWT; 403 nếu tài khoản bị khóa; lỗi khác 500.
+
+**API-08a - POST `/api/auth/forgot-password`**
+
+- Mục đích: Yêu cầu đặt lại mật khẩu, hệ thống gửi email kèm link chứa token khôi phục.
+- Input: JSON `ForgotPasswordRequest`.
+- Xác thực: public.
+- Thành công: HTTP 200, thông báo thành công.
+- Lỗi: 400 validation.
+
+**API-08b - POST `/api/auth/reset-password`**
+
+- Mục đích: Đặt lại mật khẩu mới dựa trên token khôi phục từ email.
+- Input: JSON `ResetPasswordRequest`.
+- Xác thực: public.
+- Thành công: HTTP 200, thông báo thành công.
+- Lỗi: 400 validation, token không đúng hoặc đã hết hạn.
 
 ### 3.2 Booking
 

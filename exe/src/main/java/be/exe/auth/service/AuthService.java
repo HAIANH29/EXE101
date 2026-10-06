@@ -1,22 +1,22 @@
 package be.exe.auth.service;
 
 import be.exe.auth.dto.request.ChangePasswordRequest;
-import be.exe.auth.dto.request.ForgotPasswordRequest;
 import be.exe.auth.dto.request.LoginRequest;
 import be.exe.auth.dto.request.RefreshTokenRequest;
 import be.exe.auth.dto.request.RegisterRequest;
-import be.exe.auth.dto.request.ResetPasswordRequest;
-import be.exe.auth.dto.request.UpdateProfileRequest;
 import be.exe.auth.dto.response.LoginResponse;
 import be.exe.auth.dto.response.TokenResponse;
 import be.exe.auth.dto.response.UserResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
 
 public interface AuthService {
+
+    void sendRegisterOtp(be.exe.auth.dto.request.SendOtpRequest request);
+
+    void verifyRegisterOtp(be.exe.auth.dto.request.VerifyOtpRequest request);
 
     LoginResponse register(RegisterRequest request);
 
@@ -30,15 +30,11 @@ public interface AuthService {
 
     UserResponse getCurrentUser(Long userId);
 
-    UserResponse updateCurrentUser(Long userId, UpdateProfileRequest request);
-
-    UserResponse uploadAvatar(Long userId, MultipartFile file);
-
     void changePassword(Long userId, ChangePasswordRequest request);
 
-    void requestPasswordReset(ForgotPasswordRequest request);
+    void forgotPassword(be.exe.auth.dto.request.ForgotPasswordRequest request);
 
-    void resetPassword(ResetPasswordRequest request);
+    void resetPassword(be.exe.auth.dto.request.ResetPasswordRequest request);
 
     void deleteAccount(Long userId);
 

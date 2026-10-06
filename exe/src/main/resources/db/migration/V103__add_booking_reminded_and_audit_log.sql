@@ -1,6 +1,6 @@
-ALTER TABLE bookings ADD COLUMN reminded BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS reminded BOOLEAN NOT NULL DEFAULT FALSE;
 
-CREATE TABLE audit_logs (
+CREATE TABLE IF NOT EXISTS audit_logs (
     id BIGSERIAL PRIMARY KEY,
     actor_user_id BIGINT,
     method VARCHAR(10) NOT NULL,
@@ -10,4 +10,4 @@ CREATE TABLE audit_logs (
     created_at TIMESTAMPTZ NOT NULL
 );
 
-CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
