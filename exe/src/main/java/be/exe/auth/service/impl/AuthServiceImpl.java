@@ -60,8 +60,11 @@ public class AuthServiceImpl implements AuthService {
     private final VerificationTokenRepository verificationTokenRepository;
     private final EmailService emailService;
 
-    @Value("${app.frontend.url:http://localhost:3000}")
-    private String frontendUrl;
+    @Value("${app.password-reset.frontend-reset-url:http://localhost:8082/reset-password}")
+    private String frontendResetUrl;
+
+    @Value("${app.password-reset.expiration-minutes:15}")
+    private long resetExpirationMinutes;
 
     public AuthServiceImpl(UserRepository userRepository,
                            RoleRepository roleRepository,
@@ -296,15 +299,15 @@ public class AuthServiceImpl implements AuthService {
         token.setEmail(user.getEmail());
         token.setToken(resetToken);
         token.setType(VerificationTokenType.RESET_PASSWORD);
-        token.setExpiresAt(Instant.now().plusSeconds(15 * 60)); // 15 mins expiration
+        token.setExpiresAt(Instant.now().plusSeconds(resetExpirationMinutes * 60));
         
         verificationTokenRepository.save(token);
         
-        String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
+        String resetLink = frontendResetUrl + "?token=" + resetToken;
         
         emailService.sendEmail(user.getEmail(), "Yêu cầu khôi phục mật khẩu", 
             "Vui lòng truy cập đường dẫn sau để đặt lại mật khẩu: " + resetLink + 
-            "\n\nĐường dẫn có hiệu lực trong vòng 15 phút.");
+            "\n\nĐường dẫn có hiệu lực trong vòng " + resetExpirationMinutes + " phút.");
     }
 
     @Override
