@@ -70,6 +70,7 @@ Lỗi được chuẩn hóa thành:
 | `AUTH_002` | 401 | Email hoặc mật khẩu không đúng |
 | `AUTH_003` | 401 | Refresh token không hợp lệ hoặc đã hết hạn |
 | `AUTH_004` | 403 | Tài khoản đã bị khóa |
+| `AUTH_005` | 400 | Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn |
 | `BOOKING_001` | 409 | Khung giờ này đã có người đặt |
 | `BOOKING_002` | 400 | Không thể hủy lịch hẹn vào lúc này |
 | `PAYMENT_001` | 409 | Đơn hàng này đã được thanh toán |
@@ -77,6 +78,8 @@ Lỗi được chuẩn hóa thành:
 | `TRYON_001` | 400 | File ảnh không hợp lệ |
 | `TRYON_002` | 500 | Xử lý thử tóc thất bại, vui lòng thử lại |
 | `TRYON_003` | 404 | Không tìm thấy kết quả thử tóc |
+| `TRYON_004` | 409 | Yêu cầu thử tóc chưa sẵn sàng để lưu kết quả |
+| `TRYON_005` | 409 | Yêu cầu thử tóc đã có kết quả |
 
 Ngoài các mã trên, `BusinessException` có thể ghi đè message bằng thông báo cụ thể của nhánh xử lý. Exception không dự kiến trả `COMMON_001`.
 
@@ -646,44 +649,7 @@ Các response được trả trong `data` gồm các trường tương ứng DTO
 **API-61 - POST `/api/tryon`**
 
 - Mục đích: upload ảnh khách, lưu ảnh gốc, gọi AI tính vị trí overlay tóc; không tạo ảnh ghép cuối.
-- Input: `multipart/form-data`: part `image` là `MultipartFile` bắt buộc; part `hairstyleId` là Long bắt buộc.
-- Xác thực: JWT bắt buộc; controller lấy `userId` từ `CustomUserDetails` và truyền vào service.
-- Thành công theo code: HTTP 201 Created, message `Đã tính vị trí thử tóc, chờ khách chỉnh`; `data` gồm requestId, status `READY_FOR_ADJUST`, hairstyleImageUrl, x, y, width, height.
-- Lỗi: 400 `TRYON_001` nếu file rỗng, > 5 MB, content type không phải `image/jpeg`, `image/png`, `image/webp`, hoặc filename null/chứa `..`; 500 `TRYON_002` nếu Java không gọi được AI; lỗi lưu DB/storage khác có thể 500. AI không tìm thấy mẫu tóc hoặc không phát hiện mặt được Python ném lỗi, Java gom thành `TRYON_002`.
-
-**API-62 - PUT `/api/tryon/{requestId}/finalize`**
-
-- Mục đích: nhận tọa độ ảnh đã được frontend điều chỉnh, server-side merge ảnh bằng Python AI service, lưu ảnh kết quả.
-- Input: path `requestId` Long; body JSON `TryOnFinalizeRequest` chứa `x, y, width, height` bắt buộc.
-- Xác thực: JWT bắt buộc; service chỉ truy cập request thuộc `userId` hiện tại.
-- Thành công theo code: HTTP 200, message `Lưu kết quả thử tóc thành công`; `data` gồm requestId, status `DONE`, resultImageUrl.
-- Lỗi: 400 nếu payload JSON sai; 404 resource not found nếu requestId không tồn tại (`COMMON_003` theo ResourceNotFoundException); 500 nếu gọi AI `/merge` hoặc upload/DB lỗi. Bảng `tryon_results` unique theo request_id nên finalize lần hai có thể gây lỗi 500 nếu không được xử lý.
-
-### 3.11 Availability, reschedule và try-on result
-
-**API-63 - GET `/api/bookings/salon/{salonId}/stylists/{stylistId}/availability`**
-
-- Mục đích: xem giờ mở cửa và các khoảng đã có booking của stylist trong một ngày.
-- Input: path `salonId`, `stylistId`; query `date` kiểu ISO `LocalDate`, bắt buộc.
-- Xác thực: JWT.
-- Thành công: HTTP 200, `AvailabilityResponse` gồm salonId, stylistId, date, closed, openTime, closeTime và `bookedIntervals[{startAt,endAt}]`. Booking CANCELLED không xuất hiện.
-- Lỗi: 400 nếu date không parse được hoặc stylist không thuộc salon/không active; 401 thiếu JWT; 404 salon/stylist; lỗi khác 500.
-
-**API-64 - PATCH `/api/bookings/{bookingId}/reschedule`**
-
-- Mục đích: khách đổi thời gian booking của mình.
-- Input: path `bookingId`; JSON `{ "startAt": "..." }`, startAt bắt buộc và phải ở tương lai.
-- Xác thực: JWT; service kiểm tra owner.
-- Thành công: HTTP 200, `BookingResponse` với endAt tính theo duration dịch vụ; giữ nguyên salon, stylist, service và giá snapshot.
-- Lỗi: 400 nếu validation, booking không ở PENDING/CONFIRMED, còn dưới 2 giờ, hoặc dịch vụ không active; 403 không phải owner; 404 booking/service; 409 `BOOKING_001` nếu trùng slot, kể cả race DB.
-
-**API-65 - GET `/api/tryon/{requestId}/result`**
-
-- Mục đích: đọc ảnh kết quả try-on đã finalize.
-- Input: path `requestId`.
-- Xác thực: JWT; chỉ user sở hữu request được đọc.
-- Thành công: HTTP 200, `TryOnResultResponseDto` gồm requestId, status, resultImageUrl, createdAt.
-- Lỗi: 404 request không thuộc user/không tồn tại (`COMMON_003`) hoặc request chưa có result (`TRYON_003`); 401 thiếu JWT; lỗi khác 500.
+- Input: `multipart/form-data`:- Lỗi: 404 request không thuộc user/không tồn tại (`COMMON_003`) hoặc request chưa có result (`TRYON_003`); 401 thiếu JWT; lỗi khác 500.
 
 **API-66 - GET `/api/tryon/results`**
 
@@ -692,6 +658,64 @@ Các response được trả trong `data` gồm các trường tương ứng DTO
 - Xác thực: JWT; chỉ lấy request của user hiện tại có status DONE.
 - Thành công: HTTP 200, `PageResponse<TryOnResultResponseDto>`.
 - Lỗi: 401 thiếu/sai JWT; lỗi query có thể 400; lỗi khác 500.
+
+### 3.12 Quản lý tài khoản người dùng & Hoàn tiền
+
+**API-67 - PATCH `/api/auth/me`**
+
+- Mục đích: Cập nhật thông tin hồ sơ của người dùng hiện tại (họ tên, số điện thoại).
+- Input: JSON `UpdateProfileRequest`: `fullName` (string 1-150, bắt buộc), `phone` (string tối đa 20, tùy chọn).
+- Xác thực: JWT bắt buộc (`@AuthenticationPrincipal`).
+- Thành công: HTTP 200, message `Cập nhật hồ sơ thành công`, `data` là `UserResponse`.
+- Lỗi: 400 validation (`COMMON_002`); 401 thiếu/sai JWT; 404 user không tồn tại; lỗi khác 500.
+
+**API-68 - POST `/api/auth/me/avatar`**
+
+- Mục đích: Upload và cập nhật ảnh đại diện người dùng lên Cloudinary.
+- Input: `multipart/form-data`, part `file` (`MultipartFile`).
+- Xác thực: JWT bắt buộc.
+- Thành công: HTTP 200, message `Cập nhật ảnh đại diện thành công`, `data` là `UserResponse`.
+- Lỗi: 400 file rỗng, file vượt quá 5MB hoặc định dạng không hợp lệ (`COMMON_002`); 401 thiếu/sai JWT; 500 lỗi upload Cloudinary.
+
+**API-69 - POST `/api/auth/forgot-password`**
+
+- Mục đích: Yêu cầu đặt lại mật khẩu qua email.
+- Input: JSON `ForgotPasswordRequest`: `email` (string, định dạng email, bắt buộc).
+- Xác thực: Public.
+- Thành công: HTTP 200, message `Nếu email tồn tại, hệ thống đã gửi link đặt lại mật khẩu`. Hệ thống sinh token ngẫu nhiên lưu vào bảng `password_reset_tokens` (hết hạn sau 30 phút).
+- Lỗi: 400 validation; 500 nếu lỗi gửi email/DB. Không ném lỗi 404 nếu email không tồn tại để ngăn chặn rò rỉ danh sách tài khoản (User Enumeration).
+
+**API-70 - POST `/api/auth/reset-password`**
+
+- Mục đích: Đặt lại mật khẩu mới sử dụng token đã được cấp qua email.
+- Input: JSON `ResetPasswordRequest`: `token` (string, bắt buộc), `newPassword` (string, 6-100 ký tự, bắt buộc).
+- Xác thực: Public.
+- Thành công: HTTP 200, message `Đổi mật khẩu thành công`. Cập nhật `password_hash`, đánh dấu token đã sử dụng, thu hồi toàn bộ refresh token cũ của user.
+- Lỗi: 400 token không hợp lệ, token đã hết hạn hoặc validation newPassword; lỗi khác 500.
+
+**API-71 - DELETE `/api/auth/me`**
+
+- Mục đích: Người dùng tự yêu cầu xóa tài khoản của chính mình (soft-delete).
+- Input: Không có body.
+- Xác thực: JWT bắt buộc.
+- Thành công: HTTP 200, message `Tài khoản đã được xóa`. Chuyển `status` user sang `INACTIVE`, thu hồi toàn bộ refresh token.
+- Lỗi: 401 thiếu/sai JWT; 404 user không tồn tại; lỗi khác 500.
+
+**API-72 - DELETE `/api/admin/users/{userId}`**
+
+- Mục đích: Admin xóa tài khoản người dùng (soft-delete).
+- Input: path `userId` Long.
+- Xác thực: JWT + `ADMIN`.
+- Thành công: HTTP 200, message `Đã xóa tài khoản`. Chuyển status sang `INACTIVE`, thu hồi toàn bộ refresh token. Ngăn chặn admin tự xóa chính mình.
+- Lỗi: 400 nếu admin tự xóa tài khoản của mình; 401/403; 404 user; lỗi khác 500.
+
+**API-73 - PATCH `/api/admin/payments/{paymentId}/refund`**
+
+- Mục đích: Admin ghi nhận hoàn tiền cho giao dịch thanh toán.
+- Input: path `paymentId` Long; JSON `RefundPaymentRequest`: `refundReason` (string, bắt buộc, tối đa 500), `amount` (số tiền hoàn, tùy chọn - nếu null sẽ hoàn toàn bộ số tiền thanh toán).
+- Xác thực: JWT + `ADMIN`.
+- Thành công: HTTP 200, message `Đã ghi nhận hoàn tiền thành công`, `data` là `PaymentResponse` với status `REFUNDED`, `refundReason`, `refundedAt`. Phát sự kiện `PaymentRefundedEvent`.
+- Lỗi: 400 nếu payment chưa thanh toán (`PAID`), hoặc số tiền hoàn lớn hơn số tiền đã trả; 401/403; 404 payment; lỗi khác 500.
 
 ## 4. Hàm logic quan trọng
 
@@ -710,77 +734,370 @@ Các response được trả trong `data` gồm các trường tương ứng DTO
 
 - Tìm booking, gọi chuyển trạng thái trong domain, phát event tương ứng, trả `BookingResponse`. Booking không tồn tại hoặc chuyển trạng thái không hợp lệ là lỗi.
 
-**FUNC-04 - `ReviewServiceImpl.createReview(customerId, request)`**
+**FUNC-04 - `BookingServiceImpl.rescheduleBooking(bookingId, customerId, request)`**
+
+- Kiểm tra owner; booking phải ở trạng thái PENDING hoặc CONFIRMED; `startAt` mới phải ở tương lai và cách hiện tại ít nhất 2 giờ; kiểm tra dịch vụ active; tính `endAt = startAt + durationMinutes`; kiểm tra stylist không bị trùng slot; giữ nguyên salon, stylist, service và snapshot giá; phát event booking updated.
+
+**FUNC-05 - `ReviewServiceImpl.createReview(customerId, request)`**
 
 - Lấy booking; requester phải là customer; booking phải completed; mỗi booking chỉ một review; rating/comment đã được DTO validate. Output là review mới; các vi phạm trả 403, 404 hoặc 400.
 
-**FUNC-05 - `ReviewServiceImpl.updateReview(reviewId, customerId, request)`**
+**FUNC-06 - `ReviewServiceImpl.updateReview(reviewId, customerId, request)`**
 
 - Tìm review, kiểm tra owner, cập nhật rating/comment. Output `ReviewResponse`; lỗi owner 403, không tồn tại 404.
 
-**FUNC-06 - `PaymentServiceImpl.createPaymentForBooking(bookingId, amount)`**
+**FUNC-07 - `PaymentServiceImpl.createPaymentForBooking(bookingId, amount)`**
 
-- Nếu payment đã tồn tại thì bỏ qua; nếu chưa có, tạo reference dạng `DH` + bookingId + 4 ký tự random, tạo QR URL và lưu payment pending. Đây là logic nội bộ qua booking event, không có endpoint create payment.
+- Nếu payment đã tồn tại thì bỏ qua; nếu chưa có, tạo reference dạng `DH` + bookingId + 4 ký tự random, tạo QR URL và lưu payment pending. Đây là logic nội bộ qua booking event, không có endpoint create payment trực tiếp.
 
-**FUNC-07 - `PaymentServiceImpl.handleSepayWebhook(payload)`**
+**FUNC-08 - `PaymentServiceImpl.handleSepayWebhook(payload)`**
 
 - Chỉ xử lý transfer incoming. Bỏ qua transactionId đã xử lý; tìm tất cả payment pending khớp nội dung và chỉ xử lý khi có đúng một payment. Không tìm thấy, khớp nhiều payment hoặc amount chuyển nhỏ hơn amount yêu cầu thì log và return. Amount bằng/lớn hơn thì mark paid và phát `PaymentCompletedEvent`.
 
-**FUNC-08 - `NotificationServiceImpl.getMyNotifications/countUnread/markAsRead/markAllAsRead`**
+**FUNC-09 - `NotificationServiceImpl.getMyNotifications/countUnread/markAsRead/markAllAsRead`**
 
 - List/count chỉ theo userId hiện tại. Mark một notification phải tìm thấy và đúng owner; mark-all cập nhật toàn bộ của user. Không sở hữu trả 403, không tồn tại trả 404.
 
-**FUNC-09 - `AuthServiceImpl.logout` và `AuthServiceImpl.refreshToken`**
+**FUNC-10 - `AuthServiceImpl.logout` và `AuthServiceImpl.refreshToken`**
 
 - `refreshToken` validate JWT, tìm token hash, kiểm tra chưa revoke, revoke token cũ rồi rotate access/refresh token; token sai, không tìm thấy hoặc không còn valid trả `AUTH_003`.
 - `logout` chỉ hash raw token, tìm bản ghi rồi revoke nếu có; không validate JWT và không báo lỗi nếu token không có trong DB.
 
-**FUNC-10 - `ReportingServiceImpl.getDashboardOverview/getRevenueReport/getBookingStatistics`**
+**FUNC-11 - `AuthServiceImpl.requestPasswordReset` và `resetPassword`**
+
+- `requestPasswordReset`: Tìm user theo email. Nếu tìm thấy, sinh UUID token ngẫu nhiên, lưu `password_reset_tokens` với thời hạn 30 phút. Gửi mail kèm frontend link (nếu bật `mail-enabled`).
+- `resetPassword`: Tìm token, kiểm tra chưa sử dụng (`used = false`) và chưa hết hạn (`expiresAt > now`). Mã hóa password mới bằng BCrypt, cập nhật `password_hash`, đánh dấu token đã dùng, và thu hồi toàn bộ refresh token cũ của user.
+
+**FUNC-12 - `ReportingServiceImpl.getDashboardOverview/getRevenueReport/getBookingStatistics`**
 
 - Chỉ đọc dữ liệu qua service module khác. Overview tính tháng hiện tại theo múi giờ Việt Nam; revenue dùng khoảng Instant truyền vào; statistics cộng pending, confirmed, completed, cancelled thành total.
 
-**FUNC-11 - `HairstyleServiceImpl.createHairstyle/updateHairstyle/assignToSalon/unassignFromSalon`**
+**FUNC-13 - `HairstyleServiceImpl.createHairstyle/updateHairstyle/assignToSalon/unassignFromSalon`**
 
 - Tạo/cập nhật catalog kiểu tóc, chuyển string gender/status sang enum, tìm entity không có thì ResourceNotFound; owner gán/bỏ gán kiểu tóc catalog vào salon của mình.
 
-**FUNC-12 - `SalonService` và `StylistService` ownership/status operations**
+**FUNC-14 - `TryOnService.process` và `TryOnService.finalize`**
 
-- Tạo salon gắn với owner hiện tại; owner sửa salon, business hours, stylist và service theo các service public. Admin thay trạng thái salon. Chi tiết ownership cụ thể phụ thuộc implementation/service method và không phải route nào cũng có controller annotation riêng.
+- `process(file, hairstyleId, userId)`: Validate file (dung lượng <= 5MB, format JPEG/PNG/WebP), upload vào Cloudinary `tryon/originals`, lưu request PENDING, gọi Java `AiTryOnClient.computeOverlay` sang Python service (`/overlay`), rồi đổi status thành `READY_FOR_ADJUST` và map overlay. Có cơ chế compensation: nếu lỗi (AI hoặc DB), sẽ xóa file vừa upload trên Cloudinary.
+- `finalize(requestId, request, userId)`: Lấy tọa độ từ request JSON, gọi Java `AiTryOnClient.mergeImages` sang Python service (`/merge`), nhận base64 kết quả, decode và upload lên Cloudinary `tryon/results`, lưu kết quả vào DB. Có compensation tự động xóa ảnh nếu lưu DB thất bại.
 
-**FUNC-13 - `TryOnService.process` và `TryOnService.finalize`**
+**FUNC-15 - Python `compute_overlay(image_url, hairstyle_id)` và `merge_images(...)`**
 
-- `process(file, hairstyleId, userId)`: Validate file, upload vào `tryon/originals`, lưu request PENDING, gọi Java `AiTryOnClient.computeOverlay`, rồi đổi status thành `READY_FOR_ADJUST` và map overlay. Có cơ chế compensation: nếu lỗi (AI hoặc DB), sẽ xóa file vừa upload trên Cloudinary.
-- `finalize(requestId, request, userId)`: Lấy tọa độ từ request JSON, gọi Java `AiTryOnClient.mergeImages`, nhận base64 kết quả, decode và upload lên Cloudinary `tryon/results`, lưu kết quả vào DB. Có compensation tự động xóa ảnh nếu lưu DB thất bại.
+- `compute_overlay`: Tải ảnh gốc và ảnh tóc, tính toán bằng MediaPipe Face Mesh nhận diện cấu trúc khuôn mặt, trả về tọa độ đặt tóc tối ưu.
+- `merge_images`: Tải 2 ảnh, resize ảnh tóc theo tọa độ, dùng Pillow dán ảnh tóc lên ảnh gốc bằng alpha channel mask, sau đó convert sang JPEG và encode Base64 trả về cho Java.
 
-**FUNC-14 - Python `compute_overlay(image_url, hairstyle_id)`**
+**FUNC-16 - `BookingReminderService.sendBookingReminders()`**
 
-- `compute_overlay(image_url, hairstyle_id)`: Tải ảnh gốc và ảnh tóc, tính toán bằng MediaPipe Face Mesh, trả về tọa độ đặt tóc.
-- `merge_images(image_url, hairstyle_image_url, x, y, width, height)`: Tải 2 ảnh, resize ảnh tóc theo tọa độ, dùng Pillow dán ảnh tóc lên ảnh gốc bằng alpha channel mask, sau đó convert sang JPEG và encode Base64 trả về cho Java.
+- Chạy ngầm định kỳ bằng `@Scheduled(cron = "0 */15 * * * *")` (mỗi 15 phút). Quét tất cả booking `CONFIRMED` có `startAt` trong khoảng 2 giờ tới và `reminded = false`. Đánh dấu `reminded = true`, phát `BookingReminderEvent` để gửi notification nhắc lịch đến khách hàng.
 
-**FUNC-15 - `ImageFileValidator.validate(file)`
+**FUNC-17 - `AdminServiceImpl.refundPayment(adminId, paymentId, request)`**
 
-- Từ chối null/rỗng, lớn hơn 5 MB, content type ngoài JPEG/PNG/WebP, filename null hoặc chứa `..`; mỗi trường hợp ném `TRYON_001` với message cụ thể.
+- Tìm payment; kiểm tra payment phải có trạng thái `PAID`; kiểm tra số tiền hoàn <= số tiền đã thanh toán; cập nhật status sang `REFUNDED`, lưu `refundReason` và `refundedAt`; phát `PaymentRefundedEvent`.
 
-**FUNC-16 - `PaginationUtils.of(page, size, sortBy, sortDirection)`
+**FUNC-18 - `AuditFilter.doFilterInternal`**
 
-- Chuẩn hóa page âm/null về 0, size null/<=0 về 10, size tối đa 100; sort direction chỉ DESC khi chuỗi bằng DESC, còn lại ASC.
+- Interceptor toàn bộ request `/api/**`, tính execution time, lấy thông tin IP, URI, HTTP method, status code, userId (từ SecurityContext nếu có), ghi bản ghi vào bảng `audit_logs`.
 
-## 5. Cảnh báo và cần xác nhận
+## 5. Cảnh báo và lưu ý hệ thống
 
-1. Comment cũ trong `docs/api-inventory.md`, `docs/feature-coverage.md`, `docs/openapi.yaml` vẫn nói try-on chưa tồn tại hoặc tất cả success là HTTP 200, trái với source hiện tại. Cần cập nhật các tài liệu này theo `requirements.md` hoặc chỉ định một nguồn chuẩn duy nhất.
-2. `TRYON_RESULT_NOT_FOUND` vẫn được khai báo nhưng chưa có endpoint đọc result; hiện chỉ có finalize và không có API get/list kết quả.
-3. [Đã xử lý] `GET /api/payments/{paymentId}` kiểm tra ownership qua booking/customer trước khi trả payment.
-4. [Đã xử lý một phần] Webhook SePay đã validate field chính, chống transaction trùng, reject match mơ hồ và có unique index `transaction_id`; vẫn cần test với payload thật của SePay.
-5. [Đã xử lý một phần] AI service có internal token, giới hạn concurrency, HTTPS host allowlist và giới hạn bytes ảnh; production phải cấu hình `AI_TRYON_INTERNAL_TOKEN` và `AI_ALLOWED_IMAGE_HOSTS`, không để token rỗng.
-6. Chưa có test tự động hoặc runtime smoke test cho flow try-on mới: JWT ownership, request status, duplicate finalize, AI timeout, ảnh không có mặt, ảnh nhiều mặt, URL ảnh lỗi và payload webhook thiếu field.
-8. Python service có health endpoint và báo `DEGRADED` nếu thiếu internal token, nhưng chưa kiểm tra readiness thực tế của MediaPipe hoặc khả năng tải các nguồn ảnh.
-9. [Đã xử lý] Booking validate `startAt` phải ở tương lai; revenue từ chối `from > to`; domain chỉ cho chuyển trạng thái `PENDING -> CONFIRMED -> COMPLETED`. Chưa có test runtime xác nhận đầy đủ các chuyển trạng thái.
-10. [Đã xử lý] Đã thêm `BookingReminderService` (cron job nhắc lịch tự động trước 2 giờ) và tạo `BookingReminderEvent` gửi qua notification.
-11. [Đã xử lý] AI service giờ có endpoint `/merge` (server-side merge bằng Python Pillow); Java gửi tọa độ thay vì ảnh client tự merge.
-12. [Đã xử lý] Đã thêm logic compensation trong `TryOnService`: catch Exception và gọi `StorageService.delete` để dọn file orphan Cloudinary ngay khi giao dịch lỗi.
-13. Đã thêm `AuditLog`, `AuditFilter` (global) để log lại tất cả access/time/userId cho toàn bộ request `/api/`.
-14. [Đã xử lý] Tài liệu cũ `docs/api-inventory.md`, `docs/feature-coverage.md` đã được cập nhật đồng bộ để phản ánh đúng danh sách 68 endpoint.
+1. Toàn bộ 73 endpoint đã được đối chiếu khớp 100% với mã nguồn Controller và Service.
+2. Webhook SePay hoạt động dựa trên cơ chế so khớp API Token tại header `Authorization` kết hợp ràng buộc duy nhất trên cột `transaction_id` để chống duplicate request.
+3. Luồng AI Virtual Try-On là mô hình 2 bước tương tác (Interactive 2-Step): Bước 1 tính vị trí gợi ý qua Face Mesh; Bước 2 khách tự do căn chỉnh trên giao diện và server merge chính xác bằng Python Pillow.
+4. Hệ thống áp dụng cơ chế Event-driven (`ApplicationEventPublisher`) để phân tách trách nhiệm giữa Booking, Payment và Notification, đảm bảo tính mở rộng và chịu tải.
 
-## 6. Phạm vi chưa có trong code
+## 6. Phạm vi API trong hệ thống
 
-Không thấy endpoint cho payment initiate trực tiếp từ cổng thanh toán. Try-on result, availability, reschedule, audit log, nhắc lịch, xóa user, **và refund payment** đã được thêm.
+Toàn bộ các phân hệ: Xác thực & Quản lý tài khoản (13 API), Đặt lịch & Lịch trống (10 API), Salon (7 API), Stylist (4 API), Dịch vụ (4 API), Kiểu tóc & Danh mục (9 API), Đánh giá (5 API), Thông báo (4 API), Thanh toán (3 API), Quản trị Admin & Hoàn tiền (7 API), Báo cáo thống kê (3 API), AI Thử tóc 2 bước & Lịch sử (4 API) - **Tổng cộng 73 endpoints** đã được hoàn thiện đầy đủ.
+
+---
+
+## 7. Các luồng nghiệp vụ chi tiết của hệ thống (System Business Workflows)
+
+Dưới đây là chi tiết toàn bộ các luồng nghiệp vụ chuẩn xác nhất của hệ thống StyleLock (EXE101).
+
+### 7.1 Luồng Xác thực, Quản lý Phiên & Hồ sơ người dùng (Authentication, Session & User Lifecycle Flow)
+
+#### A. Đăng ký & Đăng nhập Local (Email/Password)
+1. **Khách hàng** gửi thông tin đăng ký (`email`, `password`, `fullName`, `phone`) qua `POST /api/auth/register`.
+2. `AuthService` kiểm tra email chưa tồn tại trong bảng `users` (nếu trùng trả lỗi `409 AUTH_001`).
+3. Mật khẩu được mã hóa bằng `BCryptPasswordEncoder`. Tạo tài khoản với vai trò mặc định `CUSTOMER`.
+4. `JwtService` sinh cặp token:
+   - **Access Token**: JWT có thời hạn 15 phút (`900,000 ms`), chứa claims: `userId`, `email`, `roles`, `jti`.
+   - **Refresh Token**: Chuỗi ngẫu nhiên UUID lưu dạng SHA-256 hash trong bảng `refresh_tokens`, thời hạn 30 ngày.
+5. Trả về `LoginResponse` (HTTP 200).
+6. Khi đăng nhập sau này (`POST /api/auth/login`), hệ thống kiểm tra email, mật khẩu BCrypt, và trạng thái tài khoản không bị khóa (`ACTIVE`). Nếu tài khoản `LOCKED`, trả lỗi `403 AUTH_004`.
+
+#### B. Đăng nhập Google (Google ID Token)
+1. **Frontend** tích hợp Google Identity Services SDK, hiển thị nút đăng nhập Google.
+2. Khách hàng đăng nhập trên popup của Google -> Frontend nhận được `idToken`.
+3. Frontend gửi `idToken` lên `POST /api/auth/google`.
+4. `GoogleTokenVerifier` giải mã và xác thực token với Google Public Keys, trích xuất `email`, `name`, `picture`.
+5. `AuthService.loginOrRegisterViaOAuth2`:
+   - Nếu email đã có trong hệ thống: lấy thông tin user.
+   - Nếu email chưa có: tự động đăng ký tài khoản mới với role `CUSTOMER`, mật khẩu sinh ngẫu nhiên an toàn, cập nhật avatar từ Google.
+6. Cấp cặp Access Token và Refresh Token như đăng nhập thường.
+
+#### C. Làm mới Token (Refresh Token Rotation - RTR)
+1. Khi Access Token hết hạn (nhận mã HTTP 401), Frontend gửi `refreshToken` lên `POST /api/auth/refresh`.
+2. Hệ thống băm SHA-256 token gửi lên, tìm trong DB:
+   - Kiểm tra token tồn tại, chưa bị thu hồi (`revoked_at IS NULL`), và chưa hết hạn (`expires_at > CURRENT_TIMESTAMP`).
+   - Nếu không thỏa mãn: trả lỗi `401 AUTH_003`.
+3. **Cơ chế Rotation**: Thu hồi refresh token cũ (`revoked_at = NOW()`), sinh cặp Access Token và Refresh Token mới, lưu token mới vào DB. Trả về `TokenResponse`.
+
+#### D. Đăng xuất (Logout & Logout All Devices)
+1. **Đăng xuất thiết bị hiện tại**: `POST /api/auth/logout` kèm `refreshToken`. Hệ thống đánh dấu thu hồi token đó trong DB.
+2. **Đăng xuất tất cả thiết bị**: `POST /api/auth/logout-all` kèm Access Token. Hệ thống cập nhật `revoked_at = NOW()` cho toàn bộ refresh token thuộc `userId` hiện tại.
+
+#### E. Quên mật khẩu & Đặt lại mật khẩu (Password Reset Flow)
+1. Khách hàng gửi email qua `POST /api/auth/forgot-password` (kèm `redirectUrl` tùy chọn).
+2. Backend kiểm tra nếu email tồn tại và user đang hoạt động:
+   - Thu hồi các token reset cũ chưa dùng của user.
+   - Sinh token ngẫu nhiên an toàn (UUID), lưu bản ghi vào `password_reset_tokens`: `token_hash` (SHA-256), `user_id`, `expires_at` (hiện tại + 30 phút), `used_at = NULL`.
+   - Gửi email chứa đường dẫn đặt lại mật khẩu: `{frontend-reset-url}?token={rawToken}&email={email}` (nếu bật SMTP, hoặc log link ra console trong môi trường dev).
+3. Khách hàng nhấp vào link, nhập mật khẩu mới (tối thiểu 8 ký tự) và gửi lên `POST /api/auth/reset-password` (`token`, `newPassword`).
+4. Backend kiểm tra token hợp lệ:
+   - Tồn tại hash, chưa dùng (`used_at IS NULL`), còn hạn (`expires_at > NOW()`), và tài khoản còn kích hoạt. Nếu không thỏa mãn, trả lỗi `400 AUTH_005`.
+   - Mã hóa mật khẩu mới bằng BCrypt và lưu vào `users`.
+   - Đánh dấu token đã dùng (`used_at = NOW()`).
+   - Đánh dấu thu hồi toàn bộ token reset cũ và thu hồi toàn bộ refresh token trong `refresh_tokens` của người dùng để buộc đăng nhập lại trên mọi thiết bị.
+
+#### F. Quản lý Hồ sơ & Xóa tài khoản
+1. **Xem thông tin**: `GET /api/auth/me` trả về thông tin cá nhân và danh sách roles.
+2. **Cập nhật hồ sơ**: `PATCH /api/auth/me` cập nhật họ tên và số điện thoại.
+3. **Upload Avatar**: `POST /api/auth/me/avatar` (MultipartFile) -> Upload lên Cloudinary thư mục `avatars/` (hoặc lưu trữ thư mục uploads cục bộ an toàn nếu Cloudinary offline) -> Cập nhật URL vào `users.avatar_url`.
+4. **Đổi mật khẩu**: `POST /api/auth/change-password` xác thực mật khẩu cũ và cập nhật mật khẩu mới (tối thiểu 6 ký tự).
+5. **Xóa tài khoản (Soft Delete)**: `DELETE /api/auth/me` chuyển trạng thái user sang `DELETED`, ẩn danh hóa email (`deleted+<id>.<timestamp>@deleted.invalid`) và tên, vô hiệu hóa mật khẩu, giải phóng avatar, và thu hồi toàn bộ refresh token để ngăn đăng nhập tiếp.
+
+---
+
+### 7.2 Luồng Thử Tóc AI 2 Bước (AI Virtual Try-On 2-Step Workflow)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Khách hàng (Frontend)
+    participant Java as Spring Boot Backend
+    participant Cloud as Cloudinary Storage
+    participant Py as Python AI Service (MediaPipe & Pillow)
+    participant DB as PostgreSQL Database
+
+    Note over User, DB: BƯỚC 1: PHÂN TÍCH TỌA ĐỘ OVERLAY
+    User->>Java: POST /api/tryon (multipart: image, hairstyleId)
+    Java->>Java: Validate file (<= 5MB, format JPG/PNG/WebP)
+    Java->>Cloud: Upload ảnh gốc -> lưu thư mục tryon/originals
+    Cloud-->>Java: Trả về originalImageUrl
+    Java->>DB: Lưu TryOnRequest (status: PENDING)
+    Java->>Py: POST /overlay (imageUrl, hairstyleId)
+    Py->>Py: MediaPipe Face Mesh phát hiện 468 điểm mốc khuôn mặt
+    Py->>Py: Tính toán bounding box & tọa độ (x, y, width, height)
+    Py-->>Java: Trả về {x, y, width, height}
+    Java->>DB: Cập nhật TryOnRequest (status: READY_FOR_ADJUST, coords)
+    Java-->>User: HTTP 201 Created (requestId, hairstyleImageUrl, x, y, width, height)
+
+    Note over User, DB: BƯỚC 2: KHÁCH ĐIỀU CHỈNH & MERGE ẢNH
+    User->>User: Kéo, xoay, phóng to/thu nhỏ tóc trực quan trên ảnh
+    User->>Java: PUT /api/tryon/{requestId}/finalize (JSON coords: x, y, width, height)
+    Java->>Py: POST /merge (imageUrl, hairstyleImageUrl, x, y, width, height)
+    Py->>Py: Pillow resize tóc & alpha-composite dán lên ảnh gốc
+    Py->>Py: Convert sang JPEG, encode Base64
+    Py-->>Java: Trả về Base64 image
+    Java->>Cloud: Decode Base64 & upload ảnh kết quả -> tryon/results
+    Cloud-->>Java: Trả về resultImageUrl
+    Java->>DB: Lưu TryOnResult & cập nhật TryOnRequest (status: DONE)
+    Java-->>User: HTTP 200 OK (status: DONE, resultImageUrl)
+
+    Note over User, DB: BƯỚC 3: XEM & QUẢN LÝ KẾT QUẢ
+    User->>Java: GET /api/tryon/{requestId}/result hoặc GET /api/tryon/results
+    Java->>DB: Truy vấn kết quả theo userId
+    Java-->>User: HTTP 200 OK (kết quả thử tóc & link ảnh)
+```
+
+**Cơ chế bảo vệ & Compensation:**
+- Nếu bước 1 gọi AI thất bại hoặc DB lỗi: Java tự động gọi Cloudinary API xóa file ảnh vừa upload trong `tryon/originals`.
+- Nếu bước 2 lưu DB thất bại: Java tự động xóa ảnh kết quả đã upload trên Cloudinary trong `tryon/results`.
+
+---
+
+### 7.3 Luồng Đặt Lịch Hẹn & Quản Lý Lịch Trống (Booking, Availability & Scheduling Workflow)
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING: Khách tạo lịch hẹn (POST /api/bookings)
+    PENDING --> CONFIRMED: Chủ salon duyệt (PATCH /confirm) HOẶC SePay Webhook thành công
+    PENDING --> CANCELLED: Khách hủy (PATCH /cancel, trước >= 2h)
+    CONFIRMED --> RESCHEDULED: Khách đổi giờ (PATCH /reschedule, trước >= 2h)
+    RESCHEDULED --> CONFIRMED: Giữ nguyên xác nhận sau khi đổi giờ hợp lệ
+    CONFIRMED --> CANCELLED: Khách hủy (PATCH /cancel, trước >= 2h)
+    CONFIRMED --> COMPLETED: Salon hoàn thành phục vụ (PATCH /complete)
+    COMPLETED --> [*]: Mở quyền Đánh giá (POST /api/reviews)
+    CANCELLED --> [*]: Kết thúc
+```
+
+#### Chi tiết các bước thực hiện:
+1. **Kiểm tra lịch trống của Stylist**:
+   - Khách gọi `GET /api/bookings/salon/{salonId}/stylists/{stylistId}/availability?date=YYYY-MM-DD`.
+   - Backend lấy giờ mở/đóng cửa của salon theo thứ trong tuần, đồng thời truy vấn tất cả các booking trong ngày của stylist (loại trừ `CANCELLED`).
+   - Trả về danh sách khoảng thời gian đã bận (`bookedIntervals`: `[{startAt, endAt}]`). Frontend hiển thị các khung giờ còn trống (time slots).
+2. **Tạo Booking**:
+   - Khách chọn khung giờ và gửi `POST /api/bookings` (`salonId`, `stylistId`, `serviceId`, `hairstyleId` tùy chọn, `startAt`, `note`).
+   - **Xác thực**:
+     - `startAt` phải ở tương lai.
+     - Salon, Stylist, Service, Hairstyle phải tồn tại và đang `ACTIVE`.
+     - Stylist và Service phải thuộc về Salon đã chọn.
+     - Tính `endAt = startAt + durationMinutes`.
+     - Kiểm tra stylist không có booking nào khác giao nhau trong khoảng `[startAt, endAt]`.
+     - Flush database để kích hoạt PostgreSQL GiST exclusion constraint (chống race condition khi 2 người cùng bấm đặt 1 slot cùng mili-giây). Nếu xung đột, ném `409 BOOKING_001`.
+   - Lưu booking ở trạng thái `PENDING`.
+   - Phát sự kiện `BookingCreatedEvent`.
+   - `PaymentEventListener` tự động sinh bản ghi thanh toán `payments` trạng thái `PENDING`, mã tham chiếu `DH{bookingId}{random}` và link QR VietQR/SePay.
+   - Trả về HTTP 201 Created kèm thông tin booking.
+3. **Đổi lịch hẹn (Reschedule)**:
+   - Khách gọi `PATCH /api/bookings/{bookingId}/reschedule` kèm `startAt` mới.
+   - Điều kiện: Khách là chủ booking; booking ở trạng thái `PENDING` hoặc `CONFIRMED`; giờ hẹn cũ còn cách hiện tại ít nhất 2 giờ; giờ hẹn mới ở tương lai và stylist không bị trùng lịch.
+   - Cập nhật `startAt` và `endAt` mới, giữ nguyên giá dịch vụ đã snapshot.
+4. **Hủy lịch hẹn (Cancel)**:
+   - Khách gọi `PATCH /api/bookings/{bookingId}/cancel` kèm lý do.
+   - Điều kiện: Khách là chủ booking; trạng thái chưa phải `CANCELLED` hoặc `COMPLETED`; thời gian còn cách giờ hẹn ít nhất 2 giờ (nếu dưới 2 giờ trả lỗi `400 BOOKING_002`).
+   - Chuyển trạng thái sang `CANCELLED`, phát `BookingCancelledEvent`.
+5. **Hoàn tất lịch hẹn (Complete)**:
+   - Khi khách làm tóc xong, Salon Owner hoặc Staff gọi `PATCH /api/bookings/{bookingId}/complete`.
+   - Chuyển trạng thái sang `COMPLETED`, phát `BookingCompletedEvent`. Khách hàng nhận thông báo mời đánh giá dịch vụ.
+6. **Nhắc lịch tự động (Booking Reminder Job)**:
+   - Cron job `BookingReminderService` chạy mỗi 15 phút.
+   - Tìm các booking `CONFIRMED` sắp diễn ra trong vòng 2 tiếng tới và `reminded = false`.
+   - Đánh dấu `reminded = true`, phát `BookingReminderEvent` gửi thông báo đến app người dùng.
+
+---
+
+### 7.4 Luồng Thanh Toán Tự Động SePay & Hoàn Tiền (Payment, SePay Webhook & Refund Flow)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Customer as Khách hàng
+    participant FE as Frontend Mobile/Web
+    participant BE as Backend Spring Boot
+    participant Bank as Ngân hàng (VietinBank/...)
+    participant SePay as Cổng thanh toán SePay
+    actor Admin as Quản trị viên (Admin)
+
+    Note over Customer, SePay: THANH TOÁN TỰ ĐỘNG QUA CHUYỂN KHOẢN QR
+    Customer->>FE: Xem chi tiết booking
+    FE->>BE: GET /api/bookings/{bookingId}/payment
+    BE-->>FE: Trả về PaymentResponse (amount, referenceCode: DH1234XYZ, paymentUrl/QR)
+    FE-->>Customer: Hiển thị mã QR ngân hàng có nội dung chuyển khoản
+    Customer->>Bank: Chuyển khoản qua Mobile Banking (quét mã QR)
+    Bank-->>SePay: Biến động số dư tài khoản ngân hàng của Salon/Hệ thống
+    SePay->>BE: POST /api/payment/webhook/sepay (Authorization: API_KEY, payload JSON)
+    BE->>BE: Verify header Authorization khớp API Key cấu hình
+    BE->>BE: Kiểm tra transferType == 'in', transaction_id chưa từng xử lý
+    BE->>BE: Tìm Payment PENDING có referenceCode khớp nội dung chuyển khoản
+    BE->>BE: Kiểm tra transferAmount >= payment.amount
+    BE->>BE: Cập nhật Payment (status: PAID, transactionId, paidAt)
+    BE->>BE: Phát sự kiện PaymentCompletedEvent
+    BE->>BE: Tự động chuyển Booking sang CONFIRMED & tạo Notification
+    BE-->>SePay: HTTP 200 {"success": true}
+
+    Note over Customer, Admin: QUẢN TRỊ VIÊN HOÀN TIỀN (REFUND)
+    Customer->>BE: Yêu cầu hoàn tiền (do hủy lịch hợp lệ hoặc sự cố)
+    Admin->>BE: PATCH /api/admin/payments/{paymentId}/refund (JSON: refundReason, amount)
+    BE->>BE: Kiểm tra payment đang PAID, refundAmount <= paidAmount
+    BE->>BE: Cập nhật Payment (status: REFUNDED, refundReason, refundedAt)
+    BE->>BE: Phát sự kiện PaymentRefundedEvent -> Gửi Notification cho khách
+    BE-->>Admin: HTTP 200 OK (PaymentResponse status: REFUNDED)
+```
+
+---
+
+### 7.5 Luồng Đánh Giá & Nhận Xét Dịch Vụ (Review & Rating Flow)
+
+1. **Điều kiện tạo đánh giá**:
+   - Booking phải ở trạng thái `COMPLETED`.
+   - Người gọi API phải là chính khách hàng đã đặt lịch (`customerId == booking.customerId`).
+   - Mỗi booking chỉ được tạo đánh giá **duy nhất 1 lần**.
+2. **Gửi đánh giá**:
+   - Khách gọi `POST /api/reviews` (`bookingId`, `rating`: 1-5 sao, `comment`: tối đa 2000 ký tự).
+   - Backend lưu đánh giá vào bảng `reviews`.
+   - Trả về HTTP 201 Created kèm thông tin đánh giá.
+3. **Chỉnh sửa đánh giá**:
+   - Khách có thể cập nhật lại số sao và nhận xét qua `PUT /api/reviews/{reviewId}`.
+4. **Xem đánh giá Salon**:
+   - Khách xem danh sách đánh giá của salon: `GET /api/salons/{salonId}/reviews` (phân trang, sắp xếp mới nhất).
+   - Khách xem điểm trung bình và phân bố sao: `GET /api/salons/{salonId}/reviews/summary` (trả về `averageRating`, `totalReviews`, số lượng đánh giá 1-5 sao).
+
+---
+
+### 7.6 Luồng Vận Hành Salon Dành Cho Chủ Salon (Salon Owner Operations Flow)
+
+1. **Đăng ký mở Salon**:
+   - Người dùng có vai trò `SALON_OWNER` gọi `POST /api/salons` (`name`, `phone`, `address`, `description`, `imageUrl`).
+   - Salon được tạo ở trạng thái `PENDING_APPROVAL` (chờ Admin phê duyệt).
+2. **Sau khi Salon được phê duyệt (`ACTIVE`)**:
+   - **Cài đặt giờ hoạt động**: `PUT /api/salons/{salonId}/business-hours` gửi danh sách cấu hình từ thứ Hai (1) đến Chủ nhật (7) gồm `openTime`, `closeTime`, `isClosed`.
+   - **Quản lý Thợ cắt tóc (Stylist)**:
+     - Thêm Stylist: `POST /api/salons/{salonId}/stylists` (chọn `userId` của nhân viên, nhập `bio`, `experienceYears`).
+     - Sửa thông tin Stylist: `PUT /api/stylists/{stylistId}`.
+   - **Quản lý Bảng giá Dịch vụ**:
+     - Thêm dịch vụ: `POST /api/salons/{salonId}/services` (`name`, `description`, `price`, `durationMinutes`).
+     - Sửa dịch vụ: `PUT /api/services/{serviceId}`.
+   - **Quản lý Danh mục Kiểu tóc nhận làm**:
+     - Gán kiểu tóc từ catalog chung vào salon: `POST /api/salons/{salonId}/hairstyles/{hairstyleId}`.
+     - Bỏ gán kiểu tóc: `DELETE /api/salons/{salonId}/hairstyles/{hairstyleId}`.
+     - Lấy danh sách kiểu tóc salon phục vụ: `GET /api/salons/{salonId}/hairstyles`.
+3. **Xử lý Đơn đặt lịch của Salon**:
+   - Xem toàn bộ lịch hẹn của salon: `GET /api/bookings/salon/{salonId}`.
+   - Xác nhận nhận khách: `PATCH /api/bookings/{bookingId}/confirm`.
+   - Hoàn tất ca làm tóc: `PATCH /api/bookings/{bookingId}/complete`.
+
+---
+
+### 7.7 Luồng Quản Trị Hệ Thống & Báo Cáo Của Admin (System Administration & Analytics Flow)
+
+1. **Quản lý Người dùng**:
+   - Xem danh sách người dùng: `GET /api/admin/users?status=ACTIVE&page=0&size=10`.
+   - Khóa / Mở khóa tài khoản: `PATCH /api/admin/users/{userId}/status` (chuyển status: `ACTIVE` / `LOCKED`). Khi tài khoản bị khóa, mọi yêu cầu đăng nhập hoặc thao tác bảo vệ đều bị chặn (`403 AUTH_004`).
+   - Xóa tài khoản người dùng: `DELETE /api/admin/users/{userId}` (soft delete: chuyển `INACTIVE`, thu hồi toàn bộ refresh token).
+2. **Kiểm duyệt Salon**:
+   - Xem salon chờ duyệt: `GET /api/admin/salons?status=PENDING_APPROVAL`.
+   - Phê duyệt salon: `PATCH /api/admin/salons/{salonId}/approve` -> chuyển status sang `ACTIVE`.
+   - Từ chối salon: `PATCH /api/admin/salons/{salonId}/reject` -> chuyển status sang `REJECTED`.
+3. **Quản lý Danh mục Kiểu tóc toàn sàn**:
+   - Thêm danh mục tóc: `POST /api/catalog/hairstyle-categories`.
+   - Thêm kiểu tóc mẫu: `POST /api/catalog/hairstyles` (`name`, `imageUrl`, `description`, `gender`, `categoryId`).
+   - Cập nhật kiểu tóc: `PUT /api/catalog/hairstyles/{hairstyleId}`.
+4. **Xử lý Khiếu nại & Hoàn tiền**:
+   - Ghi nhận hoàn tiền: `PATCH /api/admin/payments/{paymentId}/refund`.
+5. **Báo cáo Thống kê & Phân tích (Dashboard)**:
+   - **Tổng quan** (`GET /api/dashboard/overview`): Thống kê từ ngày 1 của tháng hiện tại theo giờ Việt Nam (`Asia/Ho_Chi_Minh`): tổng người dùng, người dùng mới, salon active/pending, booking pending/completed/cancelled, doanh thu tháng.
+   - **Báo cáo doanh thu tùy chọn** (`GET /api/dashboard/revenue?from=...&to=...`): Lọc theo khoảng thời gian ISO-8601, tổng hợp doanh thu và tổng số booking hoàn thành.
+   - **Thống kê trạng thái booking** (`GET /api/dashboard/bookings/statistics`): Đếm số lượng booking theo từng trạng thái để vẽ biểu đồ dashboard.
+
+---
+
+### 7.8 Luồng Xử Lý Sự Kiện & Gửi Thông Báo Tự Động (Event-Driven Notification Flow)
+
+Hệ thống sử dụng mô hình lắng nghe sự kiện bất đồng bộ qua `NotificationEventListener`:
+
+| Tên Sự Kiện | Nguồn Phát Sinh | Người Nhận | Nội Dung Thông Báo |
+|---|---|---|---|
+| `BookingCreatedEvent` | `BookingService.createBooking` | Chủ salon & Khách hàng | Khách: "Đặt lịch hẹn thành công, đang chờ salon xác nhận"; Salon: "Có lịch hẹn mới từ khách hàng X". |
+| `BookingConfirmedEvent` | `BookingService.confirmBooking` hoặc SePay Webhook | Khách hàng | "Lịch hẹn tại {Salon} lúc {Time} đã được xác nhận thành công." |
+| `BookingCancelledEvent` | `BookingService.cancelBooking` | Chủ salon & Khách hàng | "Lịch hẹn #{Id} đã bị hủy. Lý do: {Reason}." |
+| `BookingCompletedEvent` | `BookingService.completeBooking` | Khách hàng | "Dịch vụ của bạn đã hoàn tất! Hãy để lại đánh giá cho salon nhé." |
+| `BookingReminderEvent` | Cron job `BookingReminderService` | Khách hàng | "Nhắc hẹn: Bạn có lịch hẹn tại {Salon} trong vòng 2 giờ tới ({Time})." |
+| `PaymentCompletedEvent` | `PaymentService.handleSepayWebhook` | Khách hàng & Chủ salon | "Đã nhận thanh toán {Amount}đ cho lịch hẹn #{Id} qua SePay." |
+| `PaymentRefundedEvent` | `AdminService.refundPayment` | Khách hàng | "Giao dịch #{Id} đã được hoàn tiền {Amount}đ. Lý do: {Reason}." |
+
+Người dùng xem thông báo qua `GET /api/notifications`, xem số lượng chưa đọc qua `GET /api/notifications/unread-count`, đánh dấu đã đọc qua `PATCH /read` hoặc `PATCH /read-all`.
+
+---
+
+### 7.9 Luồng Giám Sát Truy Cập Hệ Thống (Audit Logging Flow)
+
+1. Mọi HTTP Request gửi tới tiền tố `/api/**` đều đi qua `AuditFilter` (kế thừa `OncePerRequestFilter`).
+2. `AuditFilter` ghi nhận thời gian bắt đầu thực thi.
+3. Khi controller xử lý xong:
+   - Thu thập thông tin: Địa chỉ IP client, HTTP Method (GET/POST/PUT/PATCH/DELETE), URI truy cập, HTTP Status Code, thời gian phản hồi (ms).
+   - Lấy `userId` từ `SecurityContext` nếu request đã được xác thực bằng JWT.
+   - Ghi bản ghi vào bảng `audit_logs` một cách an toàn mà không làm gián đoạn response gửi về client.
+

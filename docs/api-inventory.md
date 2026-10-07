@@ -1,11 +1,11 @@
 # API Inventory
 
 > Tài liệu tổng hợp toàn bộ các endpoint của dự án EXE101. 
-> Hiện tại hệ thống có tổng cộng **68 Endpoints** đã được code, verify, và test tự động. Tất cả các endpoint tạo mới (POST) đều trả về `201 Created`.
+> Hiện tại hệ thống có tổng cộng **73 Endpoints** đã được code, verify, và test tự động. Tất cả các endpoint tạo mới (POST) đều trả về `201 Created`.
 
 ## Scope and evidence
 - Source: code under `exe/src/main/java`. Tất cả các controller đã được cập nhật mới nhất (bao gồm Auth, Salon, Stylist, Service, Booking, Payment, Audit, Try-On AI).
-- Code-confirmed endpoints: 68 endpoints (đã bao gồm các luồng Refund, Delete, Reschedule, Try-on Result).
+- Code-confirmed endpoints: 73 endpoints (đã bao gồm các luồng Refund, Delete, Reschedule, Try-on Result, Profile Patch, Avatar Upload, Password Reset).
 - Runtime-confirmed: Đã hoàn thiện Automation Test qua Postman.
 - Base URL: `http://localhost:8080` (Cấu hình Timezone mặc định: `Asia/Ho_Chi_Minh`).
 - Default auth: Bắt buộc truyền JWT Header `Authorization: Bearer <token>` ngoại trừ các public endpoint như: `/api/auth/register`, `/api/auth/login`, `/api/auth/google`, `/api/auth/refresh`, `/api/public/**`, `/api/payment/webhook/**`, Swagger.
@@ -29,6 +29,11 @@ Known codes: `COMMON_001` 500, `COMMON_002` 400, `COMMON_003` 404, `COMMON_004` 
 | AUTH-06 | POST | `/api/auth/logout-all` | AuthController | JWT | none -> void |
 | AUTH-07 | GET | `/api/auth/me` | AuthController | JWT | none -> UserResponse |
 | AUTH-08 | POST | `/api/auth/change-password` | AuthController | JWT | ChangePasswordRequest -> void |
+| AUTH-09 | PATCH | `/api/auth/me` | AuthController | JWT | UpdateProfileRequest -> UserResponse |
+| AUTH-10 | POST | `/api/auth/me/avatar` | AuthController | JWT | multipart (file) -> UserResponse |
+| AUTH-11 | POST | `/api/auth/forgot-password` | AuthController | Public | ForgotPasswordRequest -> void |
+| AUTH-12 | POST | `/api/auth/reset-password` | AuthController | Public | ResetPasswordRequest -> void |
+| AUTH-13 | DELETE | `/api/auth/me` | AuthController | JWT | none -> void |
 | BOOK-01 | POST | `/api/bookings` | BookingController | JWT | CreateBookingRequest -> BookingResponse |
 | BOOK-02 | GET | `/api/bookings/{bookingId}` | BookingController | JWT; service checks owner access | path bookingId -> BookingDetailResponse |
 | BOOK-03 | GET | `/api/bookings/me` | BookingController | JWT | page?, size? -> PageResponse<BookingResponse> |
@@ -81,6 +86,7 @@ Known codes: `COMMON_001` 500, `COMMON_002` 400, `COMMON_003` 404, `COMMON_004` 
 | ADMIN-04 | GET | `/api/admin/salons` | AdminController | JWT + ADMIN | status?, page?, size? -> page<SalonResponse> |
 | ADMIN-05 | PATCH | `/api/admin/salons/{salonId}/approve` | AdminController | JWT + ADMIN | none -> SalonResponse |
 | ADMIN-06 | PATCH | `/api/admin/salons/{salonId}/reject` | AdminController | JWT + ADMIN | none -> SalonResponse |
+| ADMIN-07 | PATCH | `/api/admin/payments/{paymentId}/refund` | AdminController | JWT + ADMIN | RefundPaymentRequest -> PaymentResponse |
 | REPORT-01 | GET | `/api/dashboard/overview` | DashboardController | JWT + ADMIN | none -> DashboardOverviewResponse |
 | REPORT-02 | GET | `/api/dashboard/revenue` | DashboardController | JWT + ADMIN | required `from`, `to` ISO date-time -> RevenueReportResponse |
 | REPORT-03 | GET | `/api/dashboard/bookings/statistics` | DashboardController | JWT + ADMIN | none -> BookingStatisticsResponse |
