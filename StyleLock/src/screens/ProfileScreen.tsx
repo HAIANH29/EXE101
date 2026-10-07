@@ -486,7 +486,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
             }
           }}
         >
-          <AppIcon name="menu" size={22} color="#005C55" />
+          <AppIcon name="menu" size={22} color="#B8895A" />
         </TouchableOpacity>
 
         <Text style={styles.brandTitle}>StyleLock</Text>
@@ -494,7 +494,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
         <View style={styles.headerRightActions}>
           <NotificationBellButton navigation={navigation} style={styles.headerIconBtn} />
           <View style={[styles.headerIconBtn, styles.headerIconBtnActive]}>
-            <AppIcon name="user" size={20} color="#005C55" />
+            <AppIcon name="user" size={20} color="#B8895A" />
           </View>
         </View>
       </View>
@@ -551,7 +551,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
 
           {isLoadingProfile && (
             <View style={styles.profileStatusRow}>
-              <ActivityIndicator size="small" color="#005C55" />
+              <ActivityIndicator size="small" color="#B8895A" />
               <Text style={styles.profileStatusText}>{t.loadingProfile}</Text>
             </View>
           )}
@@ -598,11 +598,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           >
             <View style={styles.menuLeft}>
               <View style={styles.menuIconBg}>
-                <AppIcon name="heart" size={19} color="#005C55" />
+                <AppIcon name="heart" size={19} color="#B8895A" />
               </View>
               <Text style={styles.menuTitle}>{t.favoriteHairstyles}</Text>
             </View>
-            <AppIcon name="arrowRight" size={18} color="#687572" />
+            <AppIcon name="arrowRight" size={18} color="#6F6255" />
           </TouchableOpacity>
 
           {/* Saved Salons */}
@@ -612,11 +612,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           >
             <View style={styles.menuLeft}>
               <View style={styles.menuIconBg}>
-                <AppIcon name="salon" size={19} color="#005C55" />
+                <AppIcon name="salon" size={19} color="#B8895A" />
               </View>
               <Text style={styles.menuTitle}>{t.savedSalons}</Text>
             </View>
-            <AppIcon name="arrowRight" size={18} color="#687572" />
+            <AppIcon name="arrowRight" size={18} color="#6F6255" />
           </TouchableOpacity>
 
           {/* Notifications */}
@@ -626,11 +626,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           >
             <View style={styles.menuLeft}>
               <View style={styles.menuIconBg}>
-                <AppIcon name="bell" size={19} color="#005C55" />
+                <AppIcon name="bell" size={19} color="#B8895A" />
               </View>
               <Text style={styles.menuTitle}>{t.notifications}</Text>
             </View>
-            <AppIcon name="arrowRight" size={18} color="#687572" />
+            <AppIcon name="arrowRight" size={18} color="#6F6255" />
           </TouchableOpacity>
         </View>
 
@@ -647,11 +647,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           >
             <View style={styles.menuLeft}>
               <View style={styles.menuIconBg}>
-                <AppIcon name="shield" size={19} color="#005C55" />
+                <AppIcon name="shield" size={19} color="#B8895A" />
               </View>
               <Text style={styles.menuTitle}>{t.changePassword}</Text>
             </View>
-            <AppIcon name="arrowRight" size={18} color="#687572" />
+            <AppIcon name="arrowRight" size={18} color="#6F6255" />
           </TouchableOpacity>
 
           {/* Logout */}
@@ -673,14 +673,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           {/* Delete Account */}
           {isAuthenticated && (
             <TouchableOpacity
-              style={[styles.menuItem, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#E2E8F0' }]}
+              style={[styles.menuItem, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#E5D9CA' }]}
               onPress={handleDeleteAccount}
             >
               <View style={styles.menuLeft}>
-                <View style={[styles.menuIconBg, { backgroundColor: '#FDE8E8' }]}>
-                  <AppIcon name="trash" size={19} color="#E02424" />
+                <View style={[styles.menuIconBg, { backgroundColor: '#FBE7E1' }]}>
+                  <AppIcon name="trash" size={19} color="#B65A4B" />
                 </View>
-                <Text style={[styles.logoutTitle, { color: '#E02424' }]}>
+                <Text style={[styles.logoutTitle, { color: '#B65A4B' }]}>
                   {t.deleteAccountTitle}
                 </Text>
               </View>
@@ -708,7 +708,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
             <TextInput
               style={styles.passwordInput}
               placeholder="Nguyen Van A"
-              placeholderTextColor="#8A9894"
+              placeholderTextColor="#9B8B7A"
               value={profileFullName}
               onChangeText={setProfileFullName}
               autoCapitalize="words"
@@ -718,7 +718,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
             <TextInput
               style={styles.passwordInput}
               placeholder="0988123456"
-              placeholderTextColor="#8A9894"
+              placeholderTextColor="#9B8B7A"
               value={profilePhone}
               onChangeText={setProfilePhone}
               keyboardType="phone-pad"
@@ -766,7 +766,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
             <TextInput
               style={styles.passwordInput}
               placeholder={t.currentPasswordPlaceholder}
-              placeholderTextColor="#8A9894"
+              placeholderTextColor="#9B8B7A"
               value={oldPassword}
               onChangeText={setOldPassword}
               secureTextEntry
@@ -774,7 +774,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
             <TextInput
               style={styles.passwordInput}
               placeholder={t.newPasswordPlaceholder}
-              placeholderTextColor="#8A9894"
+              placeholderTextColor="#9B8B7A"
               value={newPassword}
               onChangeText={setNewPassword}
               secureTextEntry
@@ -782,7 +782,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
             <TextInput
               style={styles.passwordInput}
               placeholder={t.confirmPasswordPlaceholder}
-              placeholderTextColor="#8A9894"
+              placeholderTextColor="#9B8B7A"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry
@@ -822,7 +822,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F9F4'
+    backgroundColor: '#EFE6D8'
   },
   topAppBar: {
     height: 60,
@@ -830,9 +830,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: 'rgba(255, 253, 249, 0.96)',
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E6E1',
+    borderBottomColor: '#E5D9CA',
     zIndex: 10
   },
   iconBtn: {
@@ -853,15 +853,15 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F0F5F3'
+    backgroundColor: '#F7EFE4'
   },
   headerIconBtnActive: {
-    backgroundColor: '#E3EFEB'
+    backgroundColor: '#F3E7D8'
   },
   brandTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#005C55',
+    color: '#B8895A',
     letterSpacing: -0.5
   },
   bellBadgeWrap: {
@@ -894,15 +894,15 @@ const styles = StyleSheet.create({
     borderRadius: 64,
     borderWidth: 3,
     borderColor: '#FFFFFF',
-    backgroundColor: '#E3EFEB'
+    backgroundColor: '#F3E7D8'
   },
   avatarFallback: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#E3EFEB'
+    backgroundColor: '#F3E7D8'
   },
   avatarInitials: {
-    color: '#005C55',
+    color: '#B8895A',
     fontSize: 34,
     fontWeight: '800'
   },
@@ -913,7 +913,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#005C55',
+    backgroundColor: '#B8895A',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
@@ -926,12 +926,12 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#182C2A',
+    color: '#241F1A',
     marginBottom: 4
   },
   userEmail: {
     fontSize: 14,
-    color: '#687572',
+    color: '#6F6255',
     marginBottom: 16
   },
   languageSwitch: {
@@ -940,7 +940,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#D0D8D4',
+    borderColor: '#DDCBB5',
     padding: 3,
     marginBottom: 16
   },
@@ -952,10 +952,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   languageOptionActive: {
-    backgroundColor: '#005C55'
+    backgroundColor: '#B8895A'
   },
   languageText: {
-    color: '#687572',
+    color: '#6F6255',
     fontSize: 12,
     fontWeight: '800'
   },
@@ -970,7 +970,7 @@ const styles = StyleSheet.create({
   },
   profileStatusText: {
     fontSize: 13,
-    color: '#687572',
+    color: '#6F6255',
     fontWeight: '600'
   },
   profileErrorPill: {
@@ -978,13 +978,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
-    backgroundColor: '#EFF6F1',
+    backgroundColor: '#F7EFE4',
     borderWidth: 1,
-    borderColor: '#DDEBE3',
+    borderColor: '#F3E7D8',
     marginBottom: 12
   },
   profileErrorText: {
-    color: '#005C55',
+    color: '#B8895A',
     fontSize: 12,
     fontWeight: '700',
     textAlign: 'center'
@@ -1006,21 +1006,21 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E2E6E1'
+    borderColor: '#E5D9CA'
   },
   infoLabel: {
     fontSize: 11,
-    color: '#687572',
+    color: '#6F6255',
     fontWeight: '800',
     marginBottom: 4
   },
   infoValue: {
     fontSize: 14,
-    color: '#182C2A',
+    color: '#241F1A',
     fontWeight: '700'
   },
   editProfileBtn: {
-    backgroundColor: '#005C55',
+    backgroundColor: '#B8895A',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 24
@@ -1034,7 +1034,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: 'rgba(189, 201, 198, 0.3)',
+    borderColor: 'rgba(221, 203, 181, 0.45)',
     marginBottom: 16,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -1052,7 +1052,7 @@ const styles = StyleSheet.create({
   },
   menuItemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(208, 216, 212, 0.5)'
+    borderBottomColor: 'rgba(221, 203, 181, 0.55)'
   },
   menuLeft: {
     flexDirection: 'row',
@@ -1063,7 +1063,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(208, 216, 212, 0.5)',
+    backgroundColor: 'rgba(221, 203, 181, 0.55)',
     justifyContent: 'center',
     alignItems: 'center'
   },
@@ -1079,7 +1079,7 @@ const styles = StyleSheet.create({
   menuTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#182C2A'
+    color: '#241F1A'
   },
   logoutTitle: {
     fontSize: 16,
@@ -1088,18 +1088,18 @@ const styles = StyleSheet.create({
   },
   chevronIcon: {
     fontSize: 20,
-    color: '#687572',
+    color: '#6F6255',
     fontWeight: '300'
   },
   versionText: {
     textAlign: 'center',
     fontSize: 12,
-    color: '#8A9894',
+    color: '#9B8B7A',
     marginTop: 12
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(18, 28, 42, 0.36)',
+    backgroundColor: 'rgba(36, 31, 26, 0.38)',
     justifyContent: 'center',
     paddingHorizontal: 22
   },
@@ -1108,7 +1108,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 22,
     borderWidth: 1,
-    borderColor: '#E3EFEB',
+    borderColor: '#F3E7D8',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.12,
@@ -1118,18 +1118,18 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#182C2A',
+    color: '#241F1A',
     marginBottom: 6
   },
   modalSub: {
     fontSize: 13,
-    color: '#8A9894',
+    color: '#9B8B7A',
     lineHeight: 19,
     marginBottom: 16
   },
   inputLabel: {
     fontSize: 12,
-    color: '#687572',
+    color: '#6F6255',
     fontWeight: '800',
     marginBottom: 6
   },
@@ -1137,11 +1137,11 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#D0D8D4',
-    backgroundColor: '#FBFFFE',
+    borderColor: '#DDCBB5',
+    backgroundColor: '#FFFDF9',
     paddingHorizontal: 14,
     fontSize: 14,
-    color: '#182C2A',
+    color: '#241F1A',
     marginBottom: 10
   },
   modalActions: {
@@ -1156,11 +1156,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#D0D8D4',
+    borderColor: '#DDCBB5',
     backgroundColor: '#FFFFFF'
   },
   modalSecondaryText: {
-    color: '#687572',
+    color: '#6F6255',
     fontSize: 14,
     fontWeight: '700'
   },
@@ -1170,7 +1170,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#005C55'
+    backgroundColor: '#B8895A'
   },
   modalPrimaryBtnDisabled: {
     opacity: 0.7
@@ -1186,14 +1186,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 75,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: 'rgba(255, 253, 249, 0.96)',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: '#D0D8D4',
+    borderTopColor: '#DDCBB5',
     elevation: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
@@ -1208,7 +1208,7 @@ const styles = StyleSheet.create({
     borderRadius: 20
   },
   navItemActive: {
-    backgroundColor: 'rgba(0, 92, 85, 0.16)'
+    backgroundColor: 'rgba(169, 120, 69, 0.16)'
   },
   navIcon: {
     fontSize: 18,
@@ -1220,10 +1220,11 @@ const styles = StyleSheet.create({
   navLabel: {
     fontSize: 11,
     fontWeight: '500',
-    color: '#687572'
+    color: '#6F6255'
   },
   navLabelActive: {
-    color: '#005C55',
+    color: '#B8895A',
     fontWeight: '700'
   }
 });
+

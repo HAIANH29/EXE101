@@ -1,5 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { useI18n } from '../../i18n';
+import styleLockLogo from '../../assets/stylelock-logo-transparent.png';
 
 type LoginScreenProps = {
   error?: string;
@@ -27,7 +28,7 @@ export function LoginScreen({ error, onLogin }: LoginScreenProps) {
       <section className="login-hero">
         <div className="hero-shade" />
         <div className="login-brand">
-          <div className="brand-mark large">SL</div>
+          <img className="brand-logo large" src={styleLockLogo} alt="StyleLock" />
           <span>{t('loginBrand')}</span>
         </div>
         <div className="login-hero-copy">

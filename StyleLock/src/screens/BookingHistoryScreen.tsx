@@ -69,17 +69,17 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
     const getStatusBadge = (status: BookingStatus) => {
         switch (status) {
             case 'CONFIRMED':
-                return { label: 'CONFIRMED', color: '#074D44', bg: '#DDEBE3' };
+                return { label: 'CONFIRMED', color: '#6B4227', bg: '#F3E7D8' };
             case 'PENDING':
-                return { label: 'PENDING', color: '#687572', bg: '#DDEBE3' };
+                return { label: 'PENDING', color: '#6F6255', bg: '#F3E7D8' };
             case 'IN_SERVICE':
-                return { label: 'IN SERVICE', color: '#005C55', bg: '#DDEBE3' };
+                return { label: 'IN SERVICE', color: '#B8895A', bg: '#F3E7D8' };
             case 'COMPLETED':
-                return { label: 'COMPLETED', color: '#7C8A55', bg: 'rgba(124, 138, 85, 0.16)' };
+                return { label: 'COMPLETED', color: '#8A7748', bg: 'rgba(124, 138, 85, 0.16)' };
             case 'CANCELLED':
                 return { label: 'CANCELLED', color: '#B65A4B', bg: '#FBE7E1' };
             default:
-                return { label: status, color: '#687572', bg: '#E3EFEB' };
+                return { label: status, color: '#6F6255', bg: '#F3E7D8' };
         }
     };
 
@@ -148,7 +148,7 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
                         }
                     }}
                 >
-                    <AppIcon name="menu" size={22} color="#005C55" />
+                    <AppIcon name="menu" size={22} color="#B8895A" />
                 </TouchableOpacity>
 
                 <Text style={styles.brandTitle}>StyleLock</Text>
@@ -160,7 +160,7 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
                         onPress={() => navigation.navigate('Profile')}
                         activeOpacity={0.8}
                     >
-                        <AppIcon name="user" size={20} color="#005C55" />
+                        <AppIcon name="user" size={20} color="#B8895A" />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -235,12 +235,12 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
                                             </Text>
 
                                             <View style={styles.metaRow}>
-                                                <AppIcon name="calendar" size={13} color="#8A9894" />
+                                                <AppIcon name="calendar" size={13} color="#9B8B7A" />
                                                 <Text style={styles.metaText}>{b.date}</Text>
                                             </View>
 
                                             <View style={styles.metaRow}>
-                                                <AppIcon name="clock" size={13} color="#8A9894" />
+                                                <AppIcon name="clock" size={13} color="#9B8B7A" />
                                                 <Text style={styles.metaText}>{b.timeSlot}</Text>
                                             </View>
                                         </View>
@@ -289,7 +289,7 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F7F9F4'
+        backgroundColor: '#EFE6D8'
     },
     topAppBar: {
         height: 60,
@@ -297,9 +297,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 20,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        backgroundColor: 'rgba(255, 253, 249, 0.96)',
         borderBottomWidth: 1,
-        borderBottomColor: '#E2E6E1',
+        borderBottomColor: '#E5D9CA',
         zIndex: 10
     },
     iconBtn: {
@@ -320,12 +320,12 @@ const styles = StyleSheet.create({
         borderRadius: 19,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#F0F5F3'
+        backgroundColor: '#F7EFE4'
     },
     brandTitle: {
         fontSize: 22,
         fontWeight: '800',
-        color: '#005C55',
+        color: '#B8895A',
         letterSpacing: -0.5
     },
     scrollContent: {
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
     pageTitle: {
         fontSize: 26,
         fontWeight: '700',
-        color: '#182C2A',
+        color: '#241F1A',
         marginBottom: 16
     },
     tabsRow: {
@@ -348,17 +348,17 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: '#D0D8D4',
+        borderColor: '#DDCBB5',
         backgroundColor: '#FFFFFF'
     },
     tabChipActive: {
-        backgroundColor: '#005C55',
-        borderColor: '#005C55'
+        backgroundColor: '#B8895A',
+        borderColor: '#B8895A'
     },
     tabChipText: {
         fontSize: 13,
         fontWeight: '500',
-        color: '#687572'
+        color: '#6F6255'
     },
     tabChipTextActive: {
         color: '#FFFFFF',
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
         borderRadius: 24,
         borderWidth: 1,
-        borderColor: '#E2E6E1',
+        borderColor: '#E5D9CA',
         overflow: 'hidden',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
         width: 80,
         height: 80,
         borderRadius: 14,
-        backgroundColor: '#E3EFEB'
+        backgroundColor: '#F3E7D8'
     },
     cardDetails: {
         flex: 1
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
     salonName: {
         fontSize: 16,
         fontWeight: '700',
-        color: '#182C2A',
+        color: '#241F1A',
         flex: 1,
         marginRight: 6
     },
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
     },
     serviceDesc: {
         fontSize: 13,
-        color: '#687572',
+        color: '#6F6255',
         marginBottom: 8
     },
     metaRow: {
@@ -432,12 +432,12 @@ const styles = StyleSheet.create({
     },
     metaText: {
         fontSize: 12,
-        color: '#687572'
+        color: '#6F6255'
     },
     cardActions: {
         flexDirection: 'row',
         borderTopWidth: 1,
-        borderTopColor: '#E2E6E1',
+        borderTopColor: '#E5D9CA',
         padding: 12,
         gap: 10
     },
@@ -446,10 +446,10 @@ const styles = StyleSheet.create({
         height: 52,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#F3D2CC',
+        borderColor: '#D9A195',
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#FDF3F1'
+        backgroundColor: '#FBE7E1'
     },
     cancelBtnIcon: {
         fontSize: 16,
@@ -461,13 +461,13 @@ const styles = StyleSheet.create({
         height: 52,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#005C55',
+        borderColor: '#B8895A',
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#FFFFFF'
     },
     rescheduleText: {
-        color: '#005C55',
+        color: '#B8895A',
         fontSize: 14,
         fontWeight: '600'
     },
@@ -475,7 +475,7 @@ const styles = StyleSheet.create({
         flex: 1,
         height: 52,
         borderRadius: 12,
-        backgroundColor: '#005C55',
+        backgroundColor: '#B8895A',
         justifyContent: 'center',
         alignItems: 'center'
     },
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
         padding: 32,
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#E2E6E1',
+        borderColor: '#E5D9CA',
         marginTop: 20
     },
     emptyIcon: {
@@ -506,18 +506,18 @@ const styles = StyleSheet.create({
     emptyTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: '#182C2A',
+        color: '#241F1A',
         marginBottom: 6
     },
     emptySub: {
         fontSize: 13,
-        color: '#687572',
+        color: '#6F6255',
         textAlign: 'center',
         lineHeight: 18,
         marginBottom: 16
     },
     exploreBtn: {
-        backgroundColor: '#005C55',
+        backgroundColor: '#B8895A',
         paddingHorizontal: 20,
         paddingVertical: 12,
         borderRadius: 12
@@ -533,14 +533,14 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         height: 75,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        backgroundColor: 'rgba(255, 253, 249, 0.96)',
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
         flexDirection: 'row',
         justifyContent: 'space-around',
         alignItems: 'center',
         borderTopWidth: 1,
-        borderTopColor: '#D0D8D4',
+        borderTopColor: '#DDCBB5',
         elevation: 10,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: -4 },
@@ -555,7 +555,7 @@ const styles = StyleSheet.create({
         borderRadius: 20
     },
     navItemActive: {
-        backgroundColor: 'rgba(0, 92, 85, 0.16)'
+        backgroundColor: 'rgba(169, 120, 69, 0.16)'
     },
     navIcon: {
         fontSize: 18,
@@ -567,10 +567,11 @@ const styles = StyleSheet.create({
     navLabel: {
         fontSize: 11,
         fontWeight: '500',
-        color: '#687572'
+        color: '#6F6255'
     },
     navLabelActive: {
-        color: '#005C55',
+        color: '#B8895A',
         fontWeight: '700'
     }
 });
+

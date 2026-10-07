@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useI18n } from '../../i18n';
 import { NavigationTab, Salon, UserAccount } from '../../types/salon';
+import styleLockLogo from '../../assets/stylelock-logo-transparent.png';
 
 type ShellProps = {
   currentTab: NavigationTab;
@@ -44,7 +45,7 @@ export function Shell({
       <aside className="sidebar">
         <div>
           <div className="brand-block">
-            <div className="brand-mark">SL</div>
+            <img className="brand-logo" src={styleLockLogo} alt="StyleLock" />
             <div>
               <h1>StyleLock</h1>
               <span>{t('salonManagement')}</span>

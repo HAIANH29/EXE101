@@ -4,6 +4,7 @@ import be.exe.common.exception.BusinessException;
 import be.exe.common.exception.ErrorCode;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -20,6 +21,8 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
     private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
+    private static final String STYLELOCK_LOGO_CID = "stylelock-logo";
+    private static final String STYLELOCK_LOGO_RESOURCE = "static/email/stylelock-logo-transparent.png";
 
     @Value("${app.password-reset.mail-enabled:false}")
     private boolean mailEnabled;
@@ -67,6 +70,7 @@ public class EmailService {
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(textFallback, htmlBody);
+            addInlineLogoIfNeeded(helper, htmlBody);
             mailSender.send(message);
             logger.info("Sent HTML email to {}", to);
         } catch (MessagingException e) {
@@ -95,5 +99,16 @@ public class EmailService {
 
     private String resolveFromEmail() {
         return StringUtils.hasText(fromEmail) ? fromEmail : mailUsername;
+    }
+
+    private void addInlineLogoIfNeeded(MimeMessageHelper helper, String htmlBody) throws MessagingException {
+        if (htmlBody == null || !htmlBody.contains("cid:" + STYLELOCK_LOGO_CID)) {
+            return;
+        }
+
+        ClassPathResource logoResource = new ClassPathResource(STYLELOCK_LOGO_RESOURCE);
+        if (logoResource.exists()) {
+            helper.addInline(STYLELOCK_LOGO_CID, logoResource, "image/png");
+        }
     }
 }

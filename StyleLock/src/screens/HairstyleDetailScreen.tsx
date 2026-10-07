@@ -66,7 +66,7 @@ export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ na
       {/* App Header */}
       <View style={styles.appHeader}>
         <TouchableOpacity style={styles.headerIconBtn} onPress={() => navigation.goBack()}>
-          <AppIcon name="arrowLeft" size={20} color="#005C55" />
+          <AppIcon name="arrowLeft" size={20} color="#B8895A" />
         </TouchableOpacity>
 
         <Text style={styles.headerTitle}>Hairstyle Detail</Text>
@@ -75,7 +75,7 @@ export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ na
           style={styles.headerIconBtn}
           onPress={() => Alert.alert('Share', `Sharing ${hair.name}...`)}
         >
-          <AppIcon name="share" size={20} color="#005C55" />
+          <AppIcon name="share" size={20} color="#B8895A" />
         </TouchableOpacity>
       </View>
 
@@ -97,7 +97,7 @@ export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ na
             <AppIcon
               name={isFavorite ? "heartFilled" : "heart"}
               size={22}
-              color={isFavorite ? "#E63946" : "#005C55"}
+              color={isFavorite ? "#B65A4B" : "#B8895A"}
             />
           </TouchableOpacity>
 
@@ -230,7 +230,7 @@ export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ na
             activeOpacity={0.85}
             onPress={handleTryOn}
           >
-            <AppIcon name="sparkle" size={18} color="#005C55" />
+            <AppIcon name="sparkle" size={18} color="#B8895A" />
             <Text style={styles.tryOnActionText}>Try On</Text>
           </TouchableOpacity>
 
@@ -250,7 +250,7 @@ export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ na
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F9F4'
+    backgroundColor: '#EFE6D8'
   },
   appHeader: {
     height: 56,
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    backgroundColor: '#F7F9F4'
+    backgroundColor: '#EFE6D8'
   },
   headerIconBtn: {
     width: 40,
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? 'Inter' : 'sans-serif',
     fontSize: 17,
     fontWeight: '600',
-    color: '#005C55'
+    color: '#B8895A'
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: '#F7F9F4',
+    backgroundColor: '#EFE6D8',
     marginBottom: 20
   },
   heroImage: {
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   galleryThumbActive: {
-    backgroundColor: '#005C55'
+    backgroundColor: '#B8895A'
   },
   galleryThumbInactive: {
     backgroundColor: '#FFFFFF'
@@ -348,14 +348,14 @@ const styles = StyleSheet.create({
     gap: 6
   },
   statusBadge: {
-    backgroundColor: '#E3EFEB',
+    backgroundColor: '#F3E7D8',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
     alignSelf: 'flex-start'
   },
   statusBadgeText: {
-    color: '#005C55',
+    color: '#B8895A',
     fontSize: 10,
     fontWeight: '600',
     letterSpacing: 0.5
@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
   styleNameText: {
     fontSize: 27,
     fontWeight: '600',
-    color: '#182C2A',
+    color: '#241F1A',
     lineHeight: 34
   },
   priceCol: {
@@ -372,17 +372,17 @@ const styles = StyleSheet.create({
   priceValueText: {
     fontSize: 23,
     fontWeight: '600',
-    color: '#005C55'
+    color: '#B8895A'
   },
   priceLabelText: {
     fontSize: 10,
-    color: '#687572',
+    color: '#6F6255',
     letterSpacing: 0.5,
     marginTop: 2
   },
   descriptionText: {
     fontSize: 14,
-    color: '#687572',
+    color: '#6F6255',
     lineHeight: 20
   },
   attributesContainer: {
@@ -395,9 +395,9 @@ const styles = StyleSheet.create({
   attrCard: {
     flex: 1,
     height: 63,
-    backgroundColor: '#E3EFEB',
+    backgroundColor: '#F3E7D8',
     borderWidth: 1,
-    borderColor: '#E2E6E1',
+    borderColor: '#E5D9CA',
     borderRadius: 18,
     padding: 12,
     justifyContent: 'center',
@@ -405,12 +405,12 @@ const styles = StyleSheet.create({
   },
   attrLabel: {
     fontSize: 11,
-    color: '#687572'
+    color: '#6F6255'
   },
   attrValue: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#182C2A'
+    color: '#241F1A'
   },
   stylistAdviceSection: {
     gap: 12
@@ -418,19 +418,19 @@ const styles = StyleSheet.create({
   sectionHeadingTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#182C2A'
+    color: '#241F1A'
   },
   stylistCard: {
-    backgroundColor: '#E3EFEB',
+    backgroundColor: '#F3E7D8',
     borderWidth: 1,
-    borderColor: '#E2E6E1',
+    borderColor: '#E5D9CA',
     borderRadius: 18,
     padding: 16,
     gap: 12
   },
   stylistQuoteBody: {
     fontSize: 14,
-    color: '#687572',
+    color: '#6F6255',
     lineHeight: 20
   },
   stylistAttributionRow: {
@@ -450,11 +450,11 @@ const styles = StyleSheet.create({
   stylistNameText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#182C2A'
+    color: '#241F1A'
   },
   stylistRoleText: {
     fontSize: 10,
-    color: '#687572'
+    color: '#6F6255'
   },
   productsSection: {
     gap: 12
@@ -471,16 +471,16 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 110,
     borderRadius: 18,
-    backgroundColor: '#E3EFEB'
+    backgroundColor: '#F3E7D8'
   },
   productTitleText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#182C2A'
+    color: '#241F1A'
   },
   productPriceText: {
     fontSize: 13,
-    color: '#005C55'
+    color: '#B8895A'
   },
   bottomActionsBar: {
     position: 'absolute',
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
     height: 80,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#E2E6E1',
+    borderTopColor: '#E5D9CA',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
@@ -509,7 +509,7 @@ const styles = StyleSheet.create({
   tryOnActionBtn: {
     width: 116,
     height: 48,
-    backgroundColor: '#E8EFEA',
+    backgroundColor: '#F3E7D8',
     borderRadius: 12,
     flexDirection: 'row',
     justifyContent: 'center',
@@ -519,12 +519,12 @@ const styles = StyleSheet.create({
   tryOnActionText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#005C55'
+    color: '#B8895A'
   },
   bookStyleActionBtn: {
     flex: 1,
     height: 48,
-    backgroundColor: '#005C55',
+    backgroundColor: '#B8895A',
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center'
@@ -535,4 +535,5 @@ const styles = StyleSheet.create({
     color: '#FFFFFF'
   }
 });
+
 

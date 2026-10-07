@@ -201,7 +201,7 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
       {/* Top App Bar */}
       <View style={styles.topAppBar}>
         <TouchableOpacity style={styles.headerIconBtn} onPress={() => navigation.goBack()}>
-          <AppIcon name="arrowLeft" size={20} color="#005C55" />
+          <AppIcon name="arrowLeft" size={20} color="#B8895A" />
         </TouchableOpacity>
 
         <Text style={styles.headerBrandTitle}>StyleLock</Text>
@@ -211,7 +211,7 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
             <AppIcon
               name={isFavorite ? 'heartFilled' : 'heart'}
               size={20}
-              color={isFavorite ? '#E63946' : '#005C55'}
+              color={isFavorite ? '#B65A4B' : '#B8895A'}
             />
           </TouchableOpacity>
 
@@ -219,7 +219,7 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
             style={styles.headerIconBtn}
             onPress={() => Alert.alert('Share', `Sharing ${salon.name}...`)}
           >
-            <AppIcon name="share" size={20} color="#005C55" />
+            <AppIcon name="share" size={20} color="#B8895A" />
           </TouchableOpacity>
         </View>
       </View>
@@ -240,7 +240,7 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
 
           {/* Address row */}
           <View style={styles.addressRow}>
-            <AppIcon name="pin" size={15} color="#687572" style={styles.pinIcon} />
+            <AppIcon name="pin" size={15} color="#6F6255" style={styles.pinIcon} />
             <Text style={styles.addressText} numberOfLines={1}>{salon.address}</Text>
           </View>
 
@@ -332,7 +332,7 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
                         Full dimensional service with custom conditioning & signature styling.
                       </Text>
                       <View style={styles.durationRow}>
-                        <AppIcon name="clock" size={12} color="#687572" style={styles.durIcon} />
+                        <AppIcon name="clock" size={12} color="#6F6255" style={styles.durIcon} />
                         <Text style={styles.durationText}>
                           {srv.durationMinutes} mins
                         </Text>
@@ -412,7 +412,7 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
             {/* 3D Pin Marker Overlay */}
             <View style={styles.mapPinCenterOverlay}>
               <View style={styles.pinCircleHolder}>
-                <AppIcon name="pin" size={26} color="#E63946" />
+                <AppIcon name="pin" size={26} color="#B65A4B" />
               </View>
             </View>
           </View>
@@ -436,7 +436,7 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
             Alert.alert('Nhắn tin Salon', `Đang mở trò chuyện trực tiếp với ${salon.name}...`)
           }
         >
-          <AppIcon name="message" size={18} color="#005C55" />
+          <AppIcon name="message" size={18} color="#B8895A" />
           <Text style={styles.msgBtnText}>Message</Text>
         </TouchableOpacity>
 
@@ -455,7 +455,7 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F9F4'
+    backgroundColor: '#EFE6D8'
   },
   topAppBar: {
     height: 52,
@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    backgroundColor: '#F7F9F4'
+    backgroundColor: '#EFE6D8'
   },
   headerIconBtn: {
     width: 38,
@@ -475,7 +475,7 @@ const styles = StyleSheet.create({
   headerBrandTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#005C55',
+    color: '#B8895A',
     letterSpacing: -0.3
   },
   headerActionsRight: {
@@ -492,7 +492,7 @@ const styles = StyleSheet.create({
     height: 240,
     borderRadius: 24,
     overflow: 'hidden',
-    backgroundColor: '#E3EFEB'
+    backgroundColor: '#F3E7D8'
   },
   heroImage: {
     width: '100%',
@@ -506,7 +506,7 @@ const styles = StyleSheet.create({
   salonTitleText: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#182C2A',
+    color: '#241F1A',
     marginBottom: 6,
     letterSpacing: -0.5
   },
@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
   },
   addressText: {
     fontSize: 14,
-    color: '#687572'
+    color: '#6F6255'
   },
   ratingRow: {
     flexDirection: 'row',
@@ -531,12 +531,12 @@ const styles = StyleSheet.create({
   },
   starText: {
     fontSize: 15,
-    color: '#7C8A55'
+    color: '#8A7748'
   },
   ratingText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#5F744F'
+    color: '#8A7748'
   },
   tabsRow: {
     flexDirection: 'row',
@@ -550,20 +550,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E2E6E1',
+    borderColor: '#E5D9CA',
     paddingHorizontal: 18,
     paddingVertical: 9,
     justifyContent: 'center',
     alignItems: 'center'
   },
   tabPillActive: {
-    backgroundColor: '#005C55',
-    borderColor: '#005C55'
+    backgroundColor: '#B8895A',
+    borderColor: '#B8895A'
   },
   tabPillText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#687572'
+    color: '#6F6255'
   },
   tabPillTextActive: {
     color: '#FFFFFF',
@@ -572,13 +572,13 @@ const styles = StyleSheet.create({
   attachedTryOnCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E3EFEB',
+    backgroundColor: '#F3E7D8',
     marginHorizontal: 16,
     marginTop: 16,
     padding: 12,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E2E6E1'
+    borderColor: '#E5D9CA'
   },
   attachedImg: {
     width: 46,
@@ -591,19 +591,19 @@ const styles = StyleSheet.create({
     flex: 1
   },
   attachedLabel: {
-    color: '#005C55',
+    color: '#B8895A',
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0.5
   },
   attachedTitle: {
-    color: '#182C2A',
+    color: '#241F1A',
     fontSize: 14,
     fontWeight: '700',
     marginVertical: 2
   },
   attachedSub: {
-    color: '#687572',
+    color: '#6F6255',
     fontSize: 11
   },
   sectionContainer: {
@@ -613,7 +613,7 @@ const styles = StyleSheet.create({
   sectionHeading: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#182C2A',
+    color: '#241F1A',
     marginBottom: 12
   },
   stylistsGrid: {
@@ -628,7 +628,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E2E6E1',
+    borderColor: '#E5D9CA',
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6 },
       android: { elevation: 2 },
@@ -636,15 +636,15 @@ const styles = StyleSheet.create({
     })
   },
   stylistCardSelected: {
-    borderColor: '#005C55',
-    backgroundColor: '#E3EFEB'
+    borderColor: '#B8895A',
+    backgroundColor: '#F3E7D8'
   },
   stylistAvatarImg: {
     width: 46,
     height: 46,
     borderRadius: 23,
     marginRight: 10,
-    backgroundColor: '#E3EFEB'
+    backgroundColor: '#F3E7D8'
   },
   stylistInfoCol: {
     flex: 1
@@ -652,12 +652,12 @@ const styles = StyleSheet.create({
   stylistNameText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#182C2A',
+    color: '#241F1A',
     marginBottom: 2
   },
   stylistRoleText: {
     fontSize: 12,
-    color: '#687572'
+    color: '#6F6255'
   },
   servicesList: {
     gap: 12
@@ -667,10 +667,10 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E6E1'
+    borderColor: '#E5D9CA'
   },
   emptyServiceText: {
-    color: '#687572',
+    color: '#6F6255',
     fontSize: 13
   },
   serviceCard: {
@@ -681,7 +681,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E6E1',
+    borderColor: '#E5D9CA',
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6 },
       android: { elevation: 2 },
@@ -689,8 +689,8 @@ const styles = StyleSheet.create({
     })
   },
   serviceCardSelected: {
-    borderColor: '#005C55',
-    backgroundColor: '#E3EFEB'
+    borderColor: '#B8895A',
+    backgroundColor: '#F3E7D8'
   },
   serviceMainCol: {
     flex: 1,
@@ -699,12 +699,12 @@ const styles = StyleSheet.create({
   serviceNameText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#182C2A',
+    color: '#241F1A',
     marginBottom: 4
   },
   serviceDescText: {
     fontSize: 12,
-    color: '#687572',
+    color: '#6F6255',
     lineHeight: 16,
     marginBottom: 6
   },
@@ -717,7 +717,7 @@ const styles = StyleSheet.create({
   },
   durationText: {
     fontSize: 12,
-    color: '#687572'
+    color: '#6F6255'
   },
   servicePriceCol: {
     alignItems: 'flex-end',
@@ -726,24 +726,24 @@ const styles = StyleSheet.create({
   priceValueText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#005C55'
+    color: '#B8895A'
   },
   selectBadge: {
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 8,
-    backgroundColor: '#F7F9F4',
+    backgroundColor: '#EFE6D8',
     borderWidth: 1,
-    borderColor: '#E2E6E1'
+    borderColor: '#E5D9CA'
   },
   selectBadgeActive: {
-    backgroundColor: '#005C55',
-    borderColor: '#005C55'
+    backgroundColor: '#B8895A',
+    borderColor: '#B8895A'
   },
   selectBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#687572'
+    color: '#6F6255'
   },
   selectBadgeTextActive: {
     color: '#FFFFFF',
@@ -759,17 +759,17 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E6E1',
+    borderColor: '#E5D9CA',
     marginRight: 10
   },
   datePillActive: {
-    backgroundColor: '#005C55',
-    borderColor: '#005C55'
+    backgroundColor: '#B8895A',
+    borderColor: '#B8895A'
   },
   datePillText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#182C2A'
+    color: '#241F1A'
   },
   datePillTextActive: {
     color: '#FFFFFF',
@@ -787,16 +787,16 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E6E1'
+    borderColor: '#E5D9CA'
   },
   timeSlotPillActive: {
-    backgroundColor: '#005C55',
-    borderColor: '#005C55'
+    backgroundColor: '#B8895A',
+    borderColor: '#B8895A'
   },
   timeSlotText: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#182C2A'
+    color: '#241F1A'
   },
   timeSlotTextActive: {
     color: '#FFFFFF',
@@ -810,7 +810,7 @@ const styles = StyleSheet.create({
     height: 78,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#E2E6E1',
+    borderTopColor: '#E5D9CA',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
@@ -825,7 +825,7 @@ const styles = StyleSheet.create({
   msgBtn: {
     width: 110,
     height: 48,
-    backgroundColor: '#E8EFEA',
+    backgroundColor: '#F3E7D8',
     borderRadius: 12,
     flexDirection: 'row',
     justifyContent: 'center',
@@ -833,14 +833,14 @@ const styles = StyleSheet.create({
     gap: 6
   },
   msgBtnText: {
-    color: '#005C55',
+    color: '#B8895A',
     fontSize: 13,
     fontWeight: '700'
   },
   bookAppointmentBtn: {
     flex: 1,
     height: 48,
-    backgroundColor: '#005C55',
+    backgroundColor: '#B8895A',
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center'
@@ -856,9 +856,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: '#95C5B5',
+    backgroundColor: '#D8B98E',
     borderWidth: 1,
-    borderColor: '#E2E6E1',
+    borderColor: '#E5D9CA',
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6 },
       android: { elevation: 2 },
@@ -882,7 +882,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    backgroundColor: 'rgba(255, 253, 249, 0.94)',
     justifyContent: 'center',
     alignItems: 'center',
     ...Platform.select({
@@ -894,14 +894,15 @@ const styles = StyleSheet.create({
   locationFullAddress: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#182C2A',
+    color: '#241F1A',
     marginTop: 10,
     marginBottom: 4
   },
   locationDistanceText: {
     fontSize: 13,
-    color: '#687572'
+    color: '#6F6255'
   }
 });
+
 
 

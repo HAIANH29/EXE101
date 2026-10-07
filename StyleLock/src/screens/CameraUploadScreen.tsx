@@ -218,7 +218,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
             }
           }}
         >
-          <AppIcon name="menu" size={22} color="#005C55" />
+          <AppIcon name="menu" size={22} color="#B8895A" />
         </TouchableOpacity>
 
         <Text style={styles.brandTitle}>StyleLock</Text>
@@ -230,7 +230,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
             onPress={() => navigation.navigate('Profile')}
             activeOpacity={0.8}
           >
-            <AppIcon name="user" size={20} color="#005C55" />
+            <AppIcon name="user" size={20} color="#B8895A" />
           </TouchableOpacity>
         </View>
       </View>
@@ -276,7 +276,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
           <View style={styles.analysisOverlay}>
             <View style={styles.analysisCard}>
               <View style={styles.analysisLabelRow}>
-                <AppIcon name="user" size={14} color="#005C55" />
+                <AppIcon name="user" size={14} color="#B8895A" />
                 <Text style={styles.analysisLabelText}>DETECTED SHAPE</Text>
               </View>
               <Text style={styles.analysisValue}>Oval</Text>
@@ -284,7 +284,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
 
             <View style={styles.analysisCard}>
               <View style={styles.analysisLabelRow}>
-                <AppIcon name="barChart" size={14} color="#005C55" />
+                <AppIcon name="barChart" size={14} color="#B8895A" />
                 <Text style={styles.analysisLabelText}>CONFIDENCE</Text>
               </View>
               <View style={styles.confidenceRow}>
@@ -412,7 +412,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#182C2A'
+    backgroundColor: '#241F1A'
   },
   topAppBar: {
     position: 'absolute',
@@ -424,9 +424,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: 'rgba(255, 253, 249, 0.96)',
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E6E1',
+    borderBottomColor: '#E5D9CA',
     zIndex: 30
   },
   topBtn: {
@@ -447,18 +447,18 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F0F5F3'
+    backgroundColor: '#F7EFE4'
   },
   brandTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#005C55',
+    color: '#B8895A',
     letterSpacing: -0.5
   },
   cameraCanvas: {
     flex: 1,
     width: '100%',
-    backgroundColor: '#182C2A'
+    backgroundColor: '#241F1A'
   },
   cameraFeed: {
     flex: 1,
@@ -477,7 +477,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(0, 92, 85, 0.88)',
+    backgroundColor: 'rgba(107, 66, 39, 0.88)',
     paddingVertical: 10,
     paddingHorizontal: 18,
     borderRadius: 24,
@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 28,
-    backgroundColor: '#182C2A'
+    backgroundColor: '#241F1A'
   },
   permissionTitle: {
     color: '#FFFFFF',
@@ -519,7 +519,7 @@ const styles = StyleSheet.create({
     marginBottom: 16
   },
   permissionBtn: {
-    backgroundColor: '#005C55',
+    backgroundColor: '#B8895A',
     borderRadius: 14,
     paddingHorizontal: 20,
     paddingVertical: 12
@@ -589,7 +589,7 @@ const styles = StyleSheet.create({
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(243, 248, 244, 0.24)',
+    backgroundColor: 'rgba(255, 253, 249, 0.24)',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 20,
@@ -601,7 +601,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#B7D3C6'
+    backgroundColor: '#D8B98E'
   },
   statusText: {
     color: '#FFFFFF',
@@ -616,7 +616,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(243, 248, 244, 0.24)',
+    backgroundColor: 'rgba(255, 253, 249, 0.24)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
@@ -634,11 +634,11 @@ const styles = StyleSheet.create({
     gap: 8
   },
   analysisCard: {
-    backgroundColor: 'rgba(243, 248, 244, 0.9)',
+    backgroundColor: 'rgba(255, 253, 249, 0.92)',
     borderRadius: 10,
     padding: 10,
     borderWidth: 1,
-    borderColor: 'rgba(189, 201, 198, 0.3)',
+    borderColor: 'rgba(221, 203, 181, 0.45)',
     maxWidth: 180,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -654,18 +654,18 @@ const styles = StyleSheet.create({
   },
   analysisLabelIcon: {
     fontSize: 14,
-    color: '#005C55'
+    color: '#B8895A'
   },
   analysisLabelText: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#687572',
+    color: '#6F6255',
     letterSpacing: 0.8
   },
   analysisValue: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#182C2A'
+    color: '#241F1A'
   },
   confidenceRow: {
     flexDirection: 'row',
@@ -675,19 +675,19 @@ const styles = StyleSheet.create({
   confidenceValue: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#005C55'
+    color: '#B8895A'
   },
   confidenceBarBg: {
     width: 60,
     height: 8,
-    backgroundColor: '#DDEBE3',
+    backgroundColor: '#F3E7D8',
     borderRadius: 4,
     overflow: 'hidden'
   },
   confidenceBarFill: {
     width: '98%',
     height: '100%',
-    backgroundColor: '#005C55',
+    backgroundColor: '#B8895A',
     borderRadius: 4
   },
   bottomUIArea: {
@@ -714,13 +714,13 @@ const styles = StyleSheet.create({
   filterThumbHairBg: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#0F1A19',
+    backgroundColor: '#241F1A',
     justifyContent: 'center',
     alignItems: 'center'
   },
   filterThumbActive: {
     borderWidth: 2,
-    borderColor: '#005C55'
+    borderColor: '#B8895A'
   },
   filterThumbImg: {
     width: '100%',
@@ -736,7 +736,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 92, 85, 0.16)',
+    backgroundColor: 'rgba(169, 120, 69, 0.16)',
     zIndex: 1
   },
   filterInactiveOverlay: {
@@ -758,17 +758,17 @@ const styles = StyleSheet.create({
     zIndex: 2
   },
   filterLabelActive: {
-    backgroundColor: 'rgba(251, 255, 254, 0.9)'
+    backgroundColor: 'rgba(255, 253, 249, 0.94)'
   },
   filterLabelInactive: {
-    backgroundColor: 'rgba(251, 255, 254, 0.35)'
+    backgroundColor: 'rgba(255, 253, 249, 0.42)'
   },
   filterLabelText: {
     fontSize: 11,
     fontWeight: '700'
   },
   filterLabelTextActive: {
-    color: '#182C2A'
+    color: '#241F1A'
   },
   filterLabelTextInactive: {
     color: '#FFFFFF'
@@ -780,7 +780,7 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: '#005C55',
+    backgroundColor: '#B8895A',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 3
@@ -820,11 +820,11 @@ const styles = StyleSheet.create({
     gap: 8,
     height: 52,
     borderRadius: 14,
-    backgroundColor: '#005C55',
+    backgroundColor: '#B8895A',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.25)',
     elevation: 4,
-    shadowColor: '#005C55',
+    shadowColor: '#B8895A',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8
@@ -868,11 +868,11 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: '#005C55',
+    backgroundColor: '#B8895A',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
-    shadowColor: '#005C55',
+    shadowColor: '#B8895A',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8
@@ -888,14 +888,14 @@ const styles = StyleSheet.create({
   bookCtaBtn: {
     width: '100%',
     height: 52,
-    backgroundColor: '#005C55',
+    backgroundColor: '#B8895A',
     borderRadius: 14,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
     elevation: 6,
-    shadowColor: 'rgba(0, 92, 85, 0.30)',
+    shadowColor: 'rgba(107, 66, 39, 0.30)',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 1,
     shadowRadius: 12
@@ -916,14 +916,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 75,
-    backgroundColor: 'rgba(243, 248, 244, 0.9)',
+    backgroundColor: 'rgba(255, 253, 249, 0.92)',
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(208, 216, 212, 0.5)',
+    borderTopColor: 'rgba(221, 203, 181, 0.55)',
     elevation: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
@@ -939,7 +939,7 @@ const styles = StyleSheet.create({
     borderRadius: 20
   },
   navItemActive: {
-    backgroundColor: 'rgba(0, 92, 85, 0.16)'
+    backgroundColor: 'rgba(169, 120, 69, 0.16)'
   },
   navIcon: {
     fontSize: 20,
@@ -951,10 +951,11 @@ const styles = StyleSheet.create({
   navLabel: {
     fontSize: 10,
     fontWeight: '500',
-    color: '#687572'
+    color: '#6F6255'
   },
   navLabelActive: {
-    color: '#005C55',
+    color: '#B8895A',
     fontWeight: '700'
   }
 });
+

@@ -126,7 +126,7 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
             }
           }}
         >
-          <AppIcon name="menu" size={22} color="#005C55" />
+          <AppIcon name="menu" size={22} color="#B8895A" />
         </TouchableOpacity>
 
         <Text style={styles.brandTitle}>StyleLock</Text>
@@ -138,7 +138,7 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
             onPress={() => navigation.navigate('Profile')}
             activeOpacity={0.8}
           >
-            <AppIcon name="user" size={20} color="#005C55" />
+            <AppIcon name="user" size={20} color="#B8895A" />
           </TouchableOpacity>
         </View>
       </View>
@@ -146,11 +146,11 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
       {/* Sticky Search & Filter Header */}
       <View style={styles.stickyHeader}>
         <View style={styles.searchContainer}>
-          <AppIcon name="search" size={17} color="#687572" style={styles.searchIcon} />
+          <AppIcon name="search" size={17} color="#6F6255" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search hairstyles, colors, trends..."
-            placeholderTextColor="#8A9894"
+            placeholderTextColor="#9B8B7A"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -160,7 +160,7 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
           style={styles.filterBtn}
           onPress={() => setShowFilterModal(true)}
         >
-          <AppIcon name="settings" size={20} color="#005C55" />
+          <AppIcon name="settings" size={20} color="#B8895A" />
         </TouchableOpacity>
       </View>
 
@@ -196,7 +196,7 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
                     <AppIcon
                       name={isFav ? "heartFilled" : "heart"}
                       size={19}
-                      color={isFav ? "#E63946" : "#005C55"}
+                      color={isFav ? "#B65A4B" : "#B8895A"}
                     />
                   </TouchableOpacity>
                 </TouchableOpacity>
@@ -253,7 +253,7 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Filters</Text>
               <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-                <AppIcon name="close" size={22} color="#687572" />
+                <AppIcon name="close" size={22} color="#6F6255" />
               </TouchableOpacity>
             </View>
 
@@ -338,7 +338,7 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F9F4'
+    backgroundColor: '#EFE6D8'
   },
   topAppBar: {
     height: 60,
@@ -346,9 +346,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: 'rgba(255, 253, 249, 0.96)',
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E6E1',
+    borderBottomColor: '#E5D9CA',
     zIndex: 10
   },
   iconBtn: {
@@ -369,12 +369,12 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F0F5F3'
+    backgroundColor: '#F7EFE4'
   },
   brandTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#005C55',
+    color: '#B8895A',
     letterSpacing: -0.5
   },
   stickyHeader: {
@@ -382,9 +382,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: 'rgba(255, 253, 249, 0.96)',
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E6E1',
+    borderBottomColor: '#E5D9CA',
     gap: 12,
     zIndex: 9
   },
@@ -397,7 +397,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     height: 48,
     borderWidth: 1,
-    borderColor: '#D0D8D4'
+    borderColor: '#DDCBB5'
   },
   searchIcon: {
     fontSize: 16,
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: '#182C2A'
+    color: '#241F1A'
   },
   filterBtn: {
     width: 48,
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#D0D8D4',
+    borderColor: '#DDCBB5',
     justifyContent: 'center',
     alignItems: 'center'
   },
@@ -431,14 +431,14 @@ const styles = StyleSheet.create({
   mainTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#182C2A',
+    color: '#241F1A',
     letterSpacing: -0.5,
     marginBottom: 4
   },
   subTitle: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#182C2A'
+    color: '#241F1A'
   },
   grid: {
     flexDirection: 'row',
@@ -452,9 +452,9 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#DCE4DF',
+    borderColor: '#E5D9CA',
     elevation: 2,
-    shadowColor: '#182C2A',
+    shadowColor: '#241F1A',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -464,7 +464,7 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 1,
     position: 'relative',
-    backgroundColor: '#E3EFEB'
+    backgroundColor: '#F3E7D8'
   },
   hairImg: {
     width: '100%',
@@ -490,18 +490,18 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#182C2A',
+    color: '#241F1A',
     marginBottom: 2
   },
   cardDesc: {
     fontSize: 11,
-    color: '#687572',
+    color: '#6F6255',
     lineHeight: 14,
     marginBottom: 8
   },
   tryNowBtn: {
     height: 36,
-    backgroundColor: '#005C55',
+    backgroundColor: '#B8895A',
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center'
@@ -532,7 +532,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#D0D8D4'
+    backgroundColor: '#DDCBB5'
   },
   modalHeader: {
     flexDirection: 'row',
@@ -540,17 +540,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E6E1',
+    borderBottomColor: '#E5D9CA',
     marginBottom: 16
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#182C2A'
+    color: '#241F1A'
   },
   closeBtnText: {
     fontSize: 20,
-    color: '#687572',
+    color: '#6F6255',
     padding: 4
   },
   modalBody: {
@@ -559,7 +559,7 @@ const styles = StyleSheet.create({
   filterCategoryLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#687572',
+    color: '#6F6255',
     letterSpacing: 0.8,
     marginBottom: 8,
     marginTop: 8
@@ -575,20 +575,20 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#D0D8D4',
+    borderColor: '#DDCBB5',
     backgroundColor: '#FFFFFF'
   },
   activePill: {
-    backgroundColor: '#E3EFEB',
-    borderColor: '#005C55'
+    backgroundColor: '#F3E7D8',
+    borderColor: '#B8895A'
   },
   pillText: {
     fontSize: 13,
-    color: '#182C2A',
+    color: '#241F1A',
     fontWeight: '500'
   },
   activePillText: {
-    color: '#005C55',
+    color: '#B8895A',
     fontWeight: '700'
   },
   modalFooter: {
@@ -598,20 +598,20 @@ const styles = StyleSheet.create({
   clearBtn: {
     flex: 1,
     height: 52,
-    backgroundColor: '#F0F5F3',
+    backgroundColor: '#F7EFE4',
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center'
   },
   clearBtnText: {
-    color: '#687572',
+    color: '#6F6255',
     fontSize: 14,
     fontWeight: '600'
   },
   applyBtn: {
     flex: 1,
     height: 52,
-    backgroundColor: '#005C55',
+    backgroundColor: '#B8895A',
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center'
@@ -622,3 +622,4 @@ const styles = StyleSheet.create({
     fontWeight: '600'
   }
 });
+

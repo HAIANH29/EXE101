@@ -109,7 +109,7 @@ type AppIconProps = {
   style?: TextStyle;
 };
 
-export const AppIcon = ({ name, size = 20, color = '#005C55', style }: AppIconProps) => {
+export const AppIcon = ({ name, size = 20, color = '#B8895A', style }: AppIconProps) => {
   if (name === 'heartFilled') {
     return <Ionicons name="heart" size={size} color={color} style={style} />;
   }
@@ -128,9 +128,9 @@ type IconBadgeProps = AppIconProps & {
 export const IconBadge = ({
   name,
   size = 18,
-  color = '#005C55',
-  backgroundColor = '#DDEBE3',
-  borderColor = 'rgba(0, 92, 85, 0.16)',
+  color = '#B8895A',
+  backgroundColor = '#F3E7D8',
+  borderColor = 'rgba(169, 120, 69, 0.16)',
   containerStyle,
   style
 }: IconBadgeProps) => (
@@ -149,3 +149,4 @@ const styles = StyleSheet.create({
     borderWidth: 1
   }
 });
+

@@ -113,7 +113,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           style={styles.iconBtn}
           onPress={() => navigation.navigate('AdminDashboard')}
         >
-          <AppIcon name="menu" size={22} color="#005C55" />
+          <AppIcon name="menu" size={22} color="#B8895A" />
         </TouchableOpacity>
 
         <Text style={styles.brandTitle}>StyleLock</Text>
@@ -125,7 +125,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             onPress={() => navigation.navigate('Profile')}
             activeOpacity={0.8}
           >
-            <AppIcon name="user" size={20} color="#005C55" />
+            <AppIcon name="user" size={20} color="#B8895A" />
           </TouchableOpacity>
         </View>
       </View>
@@ -140,11 +140,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           <Text style={styles.greetingSub}>Find your next signature look.</Text>
 
           <View style={styles.searchBox}>
-            <AppIcon name="search" size={18} color="#8A9894" style={styles.searchIcon} />
+            <AppIcon name="search" size={18} color="#9B8B7A" style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search styles, salons, or stylists..."
-              placeholderTextColor="#8A9894"
+              placeholderTextColor="#9B8B7A"
               value={searchQuery}
               onChangeText={setSearchQuery}
               onSubmitEditing={() => navigation.navigate('HairstyleSelect')}
@@ -186,7 +186,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             onPress={() => navigation.navigate('CameraUpload')}
           >
             <View style={styles.quickIconCircle}>
-              <AppIcon name="sparkle" size={22} color="#005C55" />
+              <AppIcon name="sparkle" size={22} color="#B8895A" />
             </View>
             <Text style={styles.quickActionText}>Try Hairstyle</Text>
           </TouchableOpacity>
@@ -197,7 +197,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             onPress={() => navigation.navigate('SalonList')}
           >
             <View style={styles.quickIconCircle}>
-              <AppIcon name="salon" size={22} color="#005C55" />
+              <AppIcon name="salon" size={22} color="#B8895A" />
             </View>
             <Text style={styles.quickActionText}>Book Salon</Text>
           </TouchableOpacity>
@@ -208,7 +208,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             onPress={() => navigation.navigate('SalonDashboard')}
           >
             <View style={styles.quickIconCircle}>
-              <AppIcon name="bot" size={22} color="#005C55" />
+              <AppIcon name="bot" size={22} color="#B8895A" />
             </View>
             <Text style={styles.quickActionText}>AI Consult</Text>
           </TouchableOpacity>
@@ -281,7 +281,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                     <AppIcon
                       name={favoritesStore.isFavorite(hair.id) ? "heartFilled" : "heart"}
                       size={15}
-                      color={favoritesStore.isFavorite(hair.id) ? "#E63946" : "#005C55"}
+                      color={favoritesStore.isFavorite(hair.id) ? "#B65A4B" : "#B8895A"}
                     />
                   </TouchableOpacity>
                 </View>
@@ -305,7 +305,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FBFFFE'
+    backgroundColor: '#EFE6D8'
   },
   topAppBar: {
     height: 60,
@@ -313,9 +313,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    backgroundColor: 'rgba(251, 255, 254, 0.9)',
+    backgroundColor: 'rgba(255, 253, 249, 0.94)',
     borderBottomWidth: 1,
-    borderBottomColor: '#D0D8D4',
+    borderBottomColor: '#DDCBB5',
     zIndex: 10
   },
   iconBtn: {
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
   brandTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#005C55',
+    color: '#B8895A',
     letterSpacing: -0.3
   },
   scrollContent: {
@@ -353,13 +353,13 @@ const styles = StyleSheet.create({
   greetingTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#182C2A',
+    color: '#241F1A',
     letterSpacing: -0.5,
     marginBottom: 2
   },
   greetingSub: {
     fontSize: 15,
-    color: '#687572',
+    color: '#6F6255',
     marginBottom: 16
   },
   searchBox: {
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     height: 54,
     borderWidth: 1,
-    borderColor: '#6F8B7A',
+    borderColor: '#B98D5C',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: '#182C2A'
+    color: '#241F1A'
   },
   promoBannerCard: {
     width: '100%',
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   promoTag: {
-    color: '#DDEBE3',
+    color: '#F3E7D8',
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 1,
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
     lineHeight: 28
   },
   exploreBtn: {
-    backgroundColor: '#005C55',
+    backgroundColor: '#B8895A',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 25,
@@ -454,13 +454,13 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 2,
     borderWidth: 1,
-    borderColor: '#E6F0EA'
+    borderColor: '#F3E7D8'
   },
   quickIconCircle: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(0, 92, 85, 0.12)',
+    backgroundColor: 'rgba(169, 120, 69, 0.14)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
   quickActionText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#182C2A',
+    color: '#241F1A',
     textAlign: 'center'
   },
   sectionHeader: {
@@ -487,21 +487,21 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#182C2A'
+    color: '#241F1A'
   },
   seeAllText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#005C55'
+    color: '#B8895A'
   },
   appointmentCard: {
-    backgroundColor: '#005C55',
+    backgroundColor: '#B8895A',
     borderRadius: 20,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 24,
-    shadowColor: '#005C55',
+    shadowColor: '#B8895A',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,
     shadowRadius: 12,
@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 14,
     marginRight: 14,
-    backgroundColor: '#005C55'
+    backgroundColor: '#B8895A'
   },
   appointmentInfo: {
     flex: 1
@@ -560,7 +560,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: '#E3EFEB',
+    backgroundColor: '#F3E7D8',
     marginBottom: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -589,11 +589,11 @@ const styles = StyleSheet.create({
   recommendName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#182C2A'
+    color: '#241F1A'
   },
   recommendMatch: {
     fontSize: 12,
-    color: '#687572',
+    color: '#6F6255',
     marginTop: 2
   },
   bottomBar: {
@@ -602,14 +602,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 75,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: 'rgba(255, 253, 249, 0.96)',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: '#D0D8D4',
+    borderTopColor: '#DDCBB5',
     elevation: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
@@ -624,7 +624,7 @@ const styles = StyleSheet.create({
     borderRadius: 20
   },
   navItemActive: {
-    backgroundColor: 'rgba(0, 92, 85, 0.16)'
+    backgroundColor: 'rgba(169, 120, 69, 0.16)'
   },
   navIcon: {
     fontSize: 18,
@@ -636,10 +636,11 @@ const styles = StyleSheet.create({
   navLabel: {
     fontSize: 11,
     fontWeight: '500',
-    color: '#687572'
+    color: '#6F6255'
   },
   navLabelActive: {
-    color: '#005C55',
+    color: '#B8895A',
     fontWeight: '700'
   }
 });
+

@@ -13,6 +13,7 @@ import { SubscriptionView } from './components/screens/SubscriptionView';
 import { useI18n } from './i18n';
 import { salonApi } from './services/api';
 import { NavigationTab, Salon, UserAccount } from './types/salon';
+import styleLockLogo from './assets/stylelock-logo-transparent.png';
 
 function hasOwnerRole(user?: UserAccount) {
   return Boolean(user?.roles?.includes('SALON_OWNER') || user?.roles?.includes('ADMIN'));
@@ -155,7 +156,7 @@ export function App() {
   if (booting) {
     return (
       <div className="boot-screen">
-        <div className="brand-mark large">SL</div>
+        <img className="brand-logo large" src={styleLockLogo} alt="StyleLock" />
         <p>{t('booting')}</p>
       </div>
     );

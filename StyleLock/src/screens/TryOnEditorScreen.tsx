@@ -63,7 +63,7 @@ export const TryOnEditorScreen: React.FC<TryOnEditorScreenProps> = ({ navigation
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.8}>
             <View style={styles.backRow}>
-              <AppIcon name="arrowLeft" size={16} color="#005C55" />
+              <AppIcon name="arrowLeft" size={16} color="#B8895A" />
               <Text style={styles.backBtnText}>Đổi ảnh khác</Text>
             </View>
           </TouchableOpacity>
@@ -80,7 +80,7 @@ export const TryOnEditorScreen: React.FC<TryOnEditorScreenProps> = ({ navigation
           >
             <View style={styles.changeHairRow}>
               <Text style={styles.changeHairText}>Tất cả mẫu</Text>
-              <AppIcon name="scissors" size={14} color="#005C55" />
+              <AppIcon name="scissors" size={14} color="#B8895A" />
             </View>
           </TouchableOpacity>
         </View>
@@ -123,7 +123,7 @@ export const TryOnEditorScreen: React.FC<TryOnEditorScreenProps> = ({ navigation
         <View style={styles.quickSelectorSection}>
           <View style={styles.sectionHeaderRow}>
             <View style={styles.sectionTitleRow}>
-              <AppIcon name="sparkle" size={16} color="#005C55" />
+              <AppIcon name="sparkle" size={16} color="#B8895A" />
               <Text style={styles.sectionTitle}>Chọn mẫu tóc thử nhanh</Text>
             </View>
             <TouchableOpacity
@@ -170,7 +170,7 @@ export const TryOnEditorScreen: React.FC<TryOnEditorScreenProps> = ({ navigation
 
         {/* TRY-ON DISCLAIMER */}
         <View style={styles.disclaimerCard}>
-          <AppIcon name="warning" size={18} color="#005C55" style={styles.disclaimerIcon} />
+          <AppIcon name="warning" size={18} color="#B8895A" style={styles.disclaimerIcon} />
           <View style={styles.disclaimerContent}>
             <Text style={styles.disclaimerTitle}>LƯU Ý TRẢI NGHIỆM THỬ TÓC:</Text>
             <Text style={styles.disclaimerBody}>
@@ -201,7 +201,7 @@ export const TryOnEditorScreen: React.FC<TryOnEditorScreenProps> = ({ navigation
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7FAF8'
+    backgroundColor: '#EFE6D8'
   },
   scrollContent: {
     padding: 16
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 8,
     borderRadius: 10,
-    backgroundColor: '#EBF4F1'
+    backgroundColor: '#F7EFE4'
   },
   backRow: {
     flexDirection: 'row',
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
   backBtnText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#005C55'
+    color: '#B8895A'
   },
   headerTitleBox: {
     alignItems: 'center'
@@ -234,19 +234,19 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#005C55',
+    color: '#B8895A',
     letterSpacing: 0.2
   },
   headerSubtitle: {
     fontSize: 11,
-    color: '#687572',
+    color: '#6F6255',
     fontWeight: '500'
   },
   changeHairBtn: {
     paddingVertical: 6,
     paddingHorizontal: 8,
     borderRadius: 10,
-    backgroundColor: '#EBF4F1'
+    backgroundColor: '#F7EFE4'
   },
   changeHairRow: {
     flexDirection: 'row',
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   changeHairText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#005C55'
+    color: '#B8895A'
   },
   hairstyleInfoCard: {
     flexDirection: 'row',
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2EBE7',
+    borderColor: '#E5D9CA',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
     width: 54,
     height: 54,
     borderRadius: 12,
-    backgroundColor: '#EDF5F3'
+    backgroundColor: '#F7EFE4'
   },
   infoTextContainer: {
     flex: 1,
@@ -291,8 +291,8 @@ const styles = StyleSheet.create({
   categoryBadge: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#005C55',
-    backgroundColor: '#E0F2EE',
+    color: '#B8895A',
+    backgroundColor: '#F3E7D8',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: '#B65A4B',
-    backgroundColor: '#FDECE9',
+    backgroundColor: '#FBE7E1',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6
@@ -309,12 +309,12 @@ const styles = StyleSheet.create({
   hairName: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#162524',
+    color: '#241F1A',
     marginBottom: 2
   },
   hairCategory: {
     fontSize: 11,
-    color: '#687572'
+    color: '#6F6255'
   },
   quickSelectorSection: {
     marginTop: 18,
@@ -334,12 +334,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#162524'
+    color: '#241F1A'
   },
   seeAllText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#005C55'
+    color: '#B8895A'
   },
   quickHairScroll: {
     gap: 10,
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
     elevation: 2
   },
   quickThumbContainerActive: {
-    borderColor: '#005C55'
+    borderColor: '#B8895A'
   },
   quickThumbImg: {
     width: '100%',
@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: '#005C55',
+    backgroundColor: '#B8895A',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1.5,
@@ -390,23 +390,23 @@ const styles = StyleSheet.create({
   quickHairName: {
     marginTop: 5,
     fontSize: 11,
-    color: '#687572',
+    color: '#6F6255',
     textAlign: 'center',
     fontWeight: '500'
   },
   quickHairNameActive: {
-    color: '#005C55',
+    color: '#B8895A',
     fontWeight: '700'
   },
   disclaimerCard: {
     flexDirection: 'row',
-    backgroundColor: '#EBF4F1',
+    backgroundColor: '#F7EFE4',
     borderRadius: 14,
     padding: 12,
     marginTop: 8,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#D4E5E1',
+    borderColor: '#DDCBB5',
     alignItems: 'flex-start'
   },
   disclaimerIcon: {
@@ -419,21 +419,21 @@ const styles = StyleSheet.create({
   disclaimerTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#005C55',
+    color: '#B8895A',
     marginBottom: 2
   },
   disclaimerBody: {
     fontSize: 11,
     lineHeight: 16,
-    color: '#436159'
+    color: '#6F6255'
   },
   findSalonBtn: {
-    backgroundColor: '#005C55',
+    backgroundColor: '#B8895A',
     borderRadius: 16,
     paddingVertical: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#005C55',
+    shadowColor: '#B8895A',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,
     shadowRadius: 10,
@@ -451,3 +451,4 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5
   }
 });
+

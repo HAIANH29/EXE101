@@ -114,7 +114,7 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
               onPressIn={() => setIsComparingOriginal(true)}
               onPressOut={() => setIsComparingOriginal(false)}
             >
-              <AppIcon name="eye" size={13} color={isComparingOriginal ? '#005C55' : '#FFFFFF'} />
+              <AppIcon name="eye" size={13} color={isComparingOriginal ? '#B8895A' : '#FFFFFF'} />
               <Text style={[styles.floatingPillText, isComparingOriginal && styles.floatingPillTextActive]}>
                 {isComparingOriginal ? 'Ảnh gốc' : 'Giữ xem gốc'}
               </Text>
@@ -145,7 +145,7 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
 
           {/* Bottom Live Hint Badge */}
           <View style={styles.bottomGuideBadge}>
-            <AppIcon name="sparkle" size={12} color="#48D1B7" />
+            <AppIcon name="sparkle" size={12} color="#D8B98E" />
             <Text style={styles.bottomGuideText}>Mẫu tóc AI • Dùng công cụ bên dưới để căn chỉnh vừa vặn</Text>
           </View>
         </View>
@@ -159,7 +159,7 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
             style={[styles.tabItem, activeTab === 'align' && styles.tabItemActive]}
             onPress={() => setActiveTab('align')}
           >
-            <AppIcon name="tool" size={14} color={activeTab === 'align' ? '#005C55' : '#8A9894'} />
+            <AppIcon name="tool" size={14} color={activeTab === 'align' ? '#B8895A' : '#9B8B7A'} />
             <Text style={[styles.tabLabel, activeTab === 'align' && styles.tabLabelActive]}>Căn chỉnh</Text>
           </TouchableOpacity>
 
@@ -167,7 +167,7 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
             style={[styles.tabItem, activeTab === 'color' && styles.tabItemActive]}
             onPress={() => setActiveTab('color')}
           >
-            <AppIcon name="bottle" size={14} color={activeTab === 'color' ? '#005C55' : '#8A9894'} />
+            <AppIcon name="bottle" size={14} color={activeTab === 'color' ? '#B8895A' : '#9B8B7A'} />
             <Text style={[styles.tabLabel, activeTab === 'color' && styles.tabLabelActive]}>Màu tóc</Text>
           </TouchableOpacity>
 
@@ -175,7 +175,7 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
             style={[styles.tabItem, activeTab === 'blend' && styles.tabItemActive]}
             onPress={() => setActiveTab('blend')}
           >
-            <AppIcon name="sparkle" size={14} color={activeTab === 'blend' ? '#005C55' : '#8A9894'} />
+            <AppIcon name="sparkle" size={14} color={activeTab === 'blend' ? '#B8895A' : '#9B8B7A'} />
             <Text style={[styles.tabLabel, activeTab === 'blend' && styles.tabLabelActive]}>Hòa trộn</Text>
           </TouchableOpacity>
         </View>
@@ -189,7 +189,7 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
                 style={styles.actionBtn}
                 onPress={() => onScaleChange(Math.max(0.4, Number((scale - 0.08).toFixed(2))))}
               >
-                <AppIcon name="zoomOut" size={14} color="#005C55" />
+                <AppIcon name="zoomOut" size={14} color="#B8895A" />
                 <Text style={styles.actionBtnText}>Thu nhỏ</Text>
               </TouchableOpacity>
 
@@ -197,7 +197,7 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
                 style={styles.actionBtn}
                 onPress={() => onScaleChange(Math.min(2.5, Number((scale + 0.08).toFixed(2))))}
               >
-                <AppIcon name="zoomIn" size={14} color="#005C55" />
+                <AppIcon name="zoomIn" size={14} color="#B8895A" />
                 <Text style={styles.actionBtnText}>Phóng to</Text>
               </TouchableOpacity>
 
@@ -205,7 +205,7 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
                 style={styles.actionBtn}
                 onPress={() => onRotationChange(rotation - 4)}
               >
-                <AppIcon name="rotateLeft" size={14} color="#005C55" />
+                <AppIcon name="rotateLeft" size={14} color="#B8895A" />
                 <Text style={styles.actionBtnText}>Nghiêng trái</Text>
               </TouchableOpacity>
 
@@ -213,7 +213,7 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
                 style={styles.actionBtn}
                 onPress={() => onRotationChange(rotation + 4)}
               >
-                <AppIcon name="refresh" size={14} color="#005C55" />
+                <AppIcon name="refresh" size={14} color="#B8895A" />
                 <Text style={styles.actionBtnText}>Nghiêng phải</Text>
               </TouchableOpacity>
             </View>
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
   canvasContainer: {
     width: CANVAS_SIZE,
     alignItems: 'center',
-    shadowColor: '#005C55',
+    shadowColor: '#B8895A',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.18,
     shadowRadius: 18,
@@ -337,10 +337,10 @@ const styles = StyleSheet.create({
     height: CANVAS_SIZE * 1.25,
     borderRadius: 24,
     overflow: 'hidden',
-    backgroundColor: '#0F1A19',
+    backgroundColor: '#241F1A',
     position: 'relative',
     borderWidth: 2,
-    borderColor: '#4A8C82'
+    borderColor: '#B8895A'
   },
   userPhoto: {
     width: '100%',
@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
     fontWeight: '600'
   },
   floatingPillTextActive: {
-    color: '#005C55'
+    color: '#B8895A'
   },
   topRightTools: {
     flexDirection: 'row',
@@ -439,8 +439,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.2)'
   },
   miniCircleBtnActive: {
-    backgroundColor: '#005C55',
-    borderColor: '#48D1B7'
+    backgroundColor: '#B8895A',
+    borderColor: '#D8B98E'
   },
   bottomGuideBadge: {
     position: 'absolute',
@@ -459,7 +459,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(72, 209, 183, 0.2)'
   },
   bottomGuideText: {
-    color: '#D8E8E4',
+    color: '#DDCBB5',
     fontSize: 11,
     fontWeight: '500'
   },
@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E6ECE9',
+    borderColor: '#F3E7D8',
     overflow: 'hidden',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
@@ -479,9 +479,9 @@ const styles = StyleSheet.create({
   },
   tabHeaderRow: {
     flexDirection: 'row',
-    backgroundColor: '#F4F7F6',
+    backgroundColor: '#F7EFE4',
     borderBottomWidth: 1,
-    borderBottomColor: '#E6ECE9'
+    borderBottomColor: '#F3E7D8'
   },
   tabItem: {
     flex: 1,
@@ -494,15 +494,15 @@ const styles = StyleSheet.create({
   tabItemActive: {
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 2,
-    borderBottomColor: '#005C55'
+    borderBottomColor: '#B8895A'
   },
   tabLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#8A9894'
+    color: '#9B8B7A'
   },
   tabLabelActive: {
-    color: '#005C55'
+    color: '#B8895A'
   },
   tabContent: {
     padding: 12
@@ -518,14 +518,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
-    backgroundColor: '#EDF5F3',
+    backgroundColor: '#F7EFE4',
     paddingVertical: 8,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#D4E5E1'
+    borderColor: '#DDCBB5'
   },
   actionBtnText: {
-    color: '#005C55',
+    color: '#B8895A',
     fontSize: 11,
     fontWeight: '700'
   },
@@ -535,7 +535,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
-    backgroundColor: '#005C55',
+    backgroundColor: '#B8895A',
     paddingVertical: 9,
     borderRadius: 10
   },
@@ -575,16 +575,16 @@ const styles = StyleSheet.create({
   colorNameText: {
     fontSize: 10,
     fontWeight: '500',
-    color: '#687572',
+    color: '#6F6255',
     textAlign: 'center'
   },
   colorNameTextActive: {
-    color: '#005C55',
+    color: '#B8895A',
     fontWeight: '700'
   },
   blendSubText: {
     fontSize: 12,
-    color: '#687572',
+    color: '#6F6255',
     marginBottom: 10,
     textAlign: 'center'
   },
@@ -597,21 +597,22 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 8,
     borderRadius: 12,
-    backgroundColor: '#EDF5F3',
+    backgroundColor: '#F7EFE4',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#D4E5E1'
+    borderColor: '#DDCBB5'
   },
   blendPillActive: {
-    backgroundColor: '#005C55',
-    borderColor: '#005C55'
+    backgroundColor: '#B8895A',
+    borderColor: '#B8895A'
   },
   blendPillText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#005C55'
+    color: '#B8895A'
   },
   blendPillTextActive: {
     color: '#FFFFFF'
   }
 });
+

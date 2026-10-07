@@ -49,7 +49,7 @@ export const BottomNavBar = ({ active, navigation, labels }: BottomNavBarProps) 
             <AppIcon
               name={item.icon}
               size={20}
-              color={isActive ? '#005C55' : '#687572'}
+              color={isActive ? '#B8895A' : '#6F6255'}
             />
           </View>
           <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>{label}</Text>
@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: '#E2E6E1',
+    borderTopColor: '#E5D9CA',
     zIndex: 50,
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.05, shadowRadius: 6 },
@@ -94,16 +94,17 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   iconBadgeActive: {
-    backgroundColor: '#E3EFEB'
+    backgroundColor: '#F3E7D8'
   },
   navLabel: {
     fontSize: 11,
     fontWeight: '500',
-    color: '#687572'
+    color: '#6F6255'
   },
   navLabelActive: {
-    color: '#005C55',
+    color: '#B8895A',
     fontWeight: '700'
   }
 });
+
 

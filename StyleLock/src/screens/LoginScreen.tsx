@@ -13,6 +13,7 @@ import { LocalizedText as Text, LocalizedTextInput as TextInput, LocalizedAlert 
 import { backendApi } from '../services/backendApi';
 import { authSessionStore } from '../services/apiClient';
 import { AppIcon } from '../components/AppIcon';
+import { BrandLogo } from '../components/BrandLogo';
 
 interface LoginScreenProps {
   navigation: any;
@@ -35,7 +36,7 @@ const SOCIAL_LOGOS = {
 };
 
 const APPLE_LOGO_SVG =
-  '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 1000 1000" aria-hidden="true"><path fill="#1C1C18" d="M747.2 535.7c-.4-86.7 70.8-128.2 74-130.3-40.3-59-103.1-67.1-125.4-68-53.4-5.4-104.2 31.4-131.3 31.4-27 0-68.8-30.6-113.1-29.8-58.2.9-111.9 33.9-141.9 86.1-60.5 105-15.5 260.4 43.5 345.5 28.8 41.6 63.1 88.4 108.2 86.7 43.4-1.7 59.8-28.1 112.4-28.1s67.3 28.1 113.4 27.2c46.8-.9 76.5-42.4 105.1-84.2 33.1-48.4 46.7-95.2 47.5-97.6-1-.5-91.2-35-92.1-138.5zM660.8 281.1c23.9-29 40-69.2 35.6-109.1-34.5 1.4-76.2 23-100.9 52-22.1 25.6-41.5 66.6-36.2 105.9 38.5 3 77.6-19.5 101.5-48.8z"/></svg>';
+  '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 1000 1000" aria-hidden="true"><path fill="#241F1A" d="M747.2 535.7c-.4-86.7 70.8-128.2 74-130.3-40.3-59-103.1-67.1-125.4-68-53.4-5.4-104.2 31.4-131.3 31.4-27 0-68.8-30.6-113.1-29.8-58.2.9-111.9 33.9-141.9 86.1-60.5 105-15.5 260.4 43.5 345.5 28.8 41.6 63.1 88.4 108.2 86.7 43.4-1.7 59.8-28.1 112.4-28.1s67.3 28.1 113.4 27.2c46.8-.9 76.5-42.4 105.1-84.2 33.1-48.4 46.7-95.2 47.5-97.6-1-.5-91.2-35-92.1-138.5zM660.8 281.1c23.9-29 40-69.2 35.6-109.1-34.5 1.4-76.2 23-100.9 52-22.1 25.6-41.5 66.6-36.2 105.9 38.5 3 77.6-19.5 101.5-48.8z"/></svg>';
 
 const appleLogoWebStyle: React.CSSProperties = {
   width: 18,
@@ -254,126 +255,116 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         >
           {/* Hero Branding Section */}
           <View style={styles.brandingSection}>
-            {/* 3D Emerald Spiral Hair Lock Circle */}
-            <View style={styles.logoCircle}>
-              <Image
-                source={{
-                  uri: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=300'
-                }}
-                style={styles.logoImage}
-              />
-              <View style={styles.logoOverlay}>
-                <AppIcon name="scissors" size={34} color="#FFFFFF" />
-              </View>
-            </View>
+            <BrandLogo containerStyle={styles.logoCircle} imageStyle={styles.logoImage} />
 
-            <Text style={styles.brandTitle}>StyleLock</Text>
             <Text style={styles.brandSubtitle}>
               Your personal AI styling expert. Sign in to access your gallery.
             </Text>
           </View>
 
-          {/* Welcome Back Header */}
-          <Text style={styles.welcomeTitle}>Welcome back</Text>
+          <View style={styles.bodySection}>
+            {/* Welcome Back Header */}
+            <Text style={styles.welcomeTitle}>Welcome back</Text>
 
-          {/* Login Form Fields */}
-          <View style={styles.formContainer}>
-            {/* Email Field */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Email</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="hello@example.com"
-                placeholderTextColor="#8A9894"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
-
-            {/* Password Field */}
-            <View style={styles.fieldGroup}>
-              <View style={styles.passwordHeader}>
-                <Text style={styles.fieldLabel}>Password</Text>
-                <TouchableOpacity
-                  onPress={() => navigation.navigate('ForgotPassword', { email: email.trim() })}
-                >
-                  <Text style={styles.forgotLink}>Forgot?</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.passwordInputWrapper}>
+            {/* Login Form Fields */}
+            <View style={styles.formContainer}>
+              {/* Email Field */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>Email</Text>
                 <TextInput
-                  style={[styles.input, { flex: 1, marginBottom: 0 }]}
-                  placeholder="••••••••"
-                  placeholderTextColor="#8A9894"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
+                  style={styles.input}
+                  placeholder="hello@example.com"
+                  placeholderTextColor="#9B8B7A"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
                 />
-                <TouchableOpacity
-                  style={styles.eyeBtn}
-                  onPress={() => setShowPassword(!showPassword)}
-                >
-                  <AppIcon name={showPassword ? "eyeOff" : "eye"} size={18} color="#687572" />
-                </TouchableOpacity>
               </View>
-            </View>
 
-            {/* Sign In Button with Arrow Icon */}
-            <TouchableOpacity
-              style={[styles.signInBtn, isSubmitting && styles.signInBtnDisabled]}
-              activeOpacity={0.85}
-              onPress={handleSignIn}
-              disabled={isSubmitting}
-            >
-              <View style={styles.signInBtnContent}>
-                <AppIcon name="arrowRight" size={18} color="#FFFFFF" />
-                <Text style={styles.signInBtnText}>{isSubmitting ? 'Connecting...' : 'Sign In'}</Text>
+              {/* Password Field */}
+              <View style={styles.fieldGroup}>
+                <View style={styles.passwordHeader}>
+                  <Text style={styles.fieldLabel}>Password</Text>
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate('ForgotPassword', { email: email.trim() })}
+                  >
+                    <Text style={styles.forgotLink}>Forgot?</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.passwordInputWrapper}>
+                  <TextInput
+                    style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                    placeholder="••••••••"
+                    placeholderTextColor="#9B8B7A"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeBtn}
+                    onPress={() => setShowPassword(!showPassword)}
+                  >
+                    <AppIcon name={showPassword ? "eyeOff" : "eye"} size={18} color="#6F6255" />
+                  </TouchableOpacity>
+                </View>
               </View>
-            </TouchableOpacity>
 
-            {/* Divider */}
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>Or continue with</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {/* Side-by-side Social Login Buttons */}
-            <View style={styles.socialRow}>
+              {/* Sign In Button with Arrow Icon */}
               <TouchableOpacity
-                style={styles.socialBtn}
-                activeOpacity={0.8}
-                onPress={() => handleSocialLogin('Google')}
+                style={[styles.signInBtn, isSubmitting && styles.signInBtnDisabled]}
+                activeOpacity={0.85}
+                onPress={handleSignIn}
                 disabled={isSubmitting}
               >
-                <Image source={{ uri: SOCIAL_LOGOS.google }} style={styles.socialLogo} />
-                <Text style={styles.socialBtnText}>Google</Text>
+                <View style={styles.signInBtnContent}>
+                  <AppIcon name="arrowRight" size={18} color="#FFFFFF" />
+                  <Text style={styles.signInBtnText}>{isSubmitting ? 'Connecting...' : 'Sign In'}</Text>
+                </View>
               </TouchableOpacity>
 
-              {/* Apple Button */}
+              {/* Divider */}
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>Or continue with</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {/* Side-by-side Social Login Buttons */}
+              <View style={styles.socialRow}>
+                <TouchableOpacity
+                  style={styles.socialBtn}
+                  activeOpacity={0.8}
+                  onPress={() => handleSocialLogin('Google')}
+                  disabled={isSubmitting}
+                >
+                  <Image source={{ uri: SOCIAL_LOGOS.google }} style={styles.socialLogo} />
+                  <Text style={styles.socialBtnText}>Google</Text>
+                </TouchableOpacity>
+
+                {/* Apple Button */}
+                <TouchableOpacity
+                  style={styles.socialBtn}
+                  activeOpacity={0.8}
+                  onPress={() => handleSocialLogin('Apple')}
+                >
+                  <AppleLogo />
+                  <Text style={styles.socialBtnText}>Apple</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Bottom Footer Signup Link */}
+            <View style={styles.footerRow}>
+              <Text style={styles.footerText}>Don't have an account? </Text>
               <TouchableOpacity
-                style={styles.socialBtn}
-                activeOpacity={0.8}
-                onPress={() => handleSocialLogin('Apple')}
+                onPress={() => navigation.navigate('SignUp', { email: email.trim() })}
+                disabled={isSubmitting}
               >
-                <AppleLogo />
-                <Text style={styles.socialBtnText}>Apple</Text>
+                <Text style={styles.signUpLink}>Sign Up</Text>
               </TouchableOpacity>
             </View>
-          </View>
-
-          {/* Bottom Footer Signup Link */}
-          <View style={styles.footerRow}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('SignUp', { email: email.trim() })}
-              disabled={isSubmitting}
-            >
-              <Text style={styles.signUpLink}>Sign Up</Text>
-            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -384,54 +375,40 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F9F4'
+    backgroundColor: '#FFFFFF'
   },
   scrollContent: {
-    paddingHorizontal: 24,
-    paddingTop: 36,
-    paddingBottom: 40,
     minHeight: '100%',
-    justifyContent: 'center'
+    backgroundColor: '#FFFFFF'
   },
   brandingSection: {
     alignItems: 'center',
-    marginBottom: 20
+    backgroundColor: '#EFE6D8',
+    paddingHorizontal: 24,
+    paddingTop: 56,
+    paddingBottom: 28,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5D9CA'
+  },
+  bodySection: {
+    flexGrow: 1,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 24,
+    paddingTop: 26,
+    paddingBottom: 40
   },
   logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    overflow: 'hidden',
-    marginBottom: 14,
-    backgroundColor: '#074D44',
-    elevation: 4,
-    shadowColor: '#074D44',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    position: 'relative'
+    width: 166,
+    height: 104,
+    marginBottom: 10
   },
   logoImage: {
     width: '100%',
     height: '100%'
   },
-  logoOverlay: {
-    position: 'absolute',
-    inset: 0,
-    backgroundColor: 'rgba(7, 77, 68, 0.45)',
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  brandTitle: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: '#074D44',
-    letterSpacing: -0.5,
-    marginBottom: 8
-  },
   brandSubtitle: {
     fontSize: 14,
-    color: '#8A857D',
+    color: '#9B8B7A',
     textAlign: 'center',
     maxWidth: 290,
     lineHeight: 20
@@ -439,7 +416,7 @@ const styles = StyleSheet.create({
   welcomeTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#162524',
+    color: '#241F1A',
     marginBottom: 16,
     marginTop: 4
   },
@@ -452,7 +429,7 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#2D3834',
+    color: '#3A2D24',
     marginBottom: 6
   },
   passwordHeader: {
@@ -463,7 +440,7 @@ const styles = StyleSheet.create({
   },
   forgotLink: {
     fontSize: 13,
-    color: '#074D44',
+    color: '#6B4227',
     fontWeight: '700'
   },
   input: {
@@ -471,10 +448,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E6E1',
+    borderColor: '#E5D9CA',
     paddingHorizontal: 16,
     fontSize: 15,
-    color: '#162524'
+    color: '#241F1A'
   },
   passwordInputWrapper: {
     flexDirection: 'row',
@@ -488,13 +465,13 @@ const styles = StyleSheet.create({
   },
   signInBtn: {
     height: 52,
-    backgroundColor: '#074D44',
+    backgroundColor: '#6B4227',
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 8,
     marginBottom: 24,
-    shadowColor: '#074D44',
+    shadowColor: '#6B4227',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
@@ -523,11 +500,11 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E2DFD8'
+    backgroundColor: '#DDCBB5'
   },
   dividerText: {
     fontSize: 14,
-    color: '#687572',
+    color: '#6F6255',
     paddingHorizontal: 16,
     fontWeight: '400'
   },
@@ -542,7 +519,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E2DFD8',
+    borderColor: '#DDCBB5',
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
@@ -561,13 +538,13 @@ const styles = StyleSheet.create({
   appleLogoText: {
     width: 22,
     height: 22,
-    color: '#1A2423',
+    color: '#241F1A',
     fontSize: 20,
     lineHeight: 22,
     textAlign: 'center'
   },
   socialBtnText: {
-    color: '#1A2423',
+    color: '#241F1A',
     fontSize: 16,
     fontWeight: '600'
   },
@@ -579,12 +556,13 @@ const styles = StyleSheet.create({
     marginBottom: 16
   },
   footerText: {
-    color: '#687572',
+    color: '#6F6255',
     fontSize: 15
   },
   signUpLink: {
-    color: '#074D44',
+    color: '#6B4227',
     fontSize: 15,
     fontWeight: '700'
   }
 });
+

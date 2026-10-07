@@ -47,7 +47,7 @@ export const SalonDashboardScreen: React.FC<SalonDashboardScreenProps> = ({ navi
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <View style={styles.backRow}><AppIcon name="arrowLeft" size={15} color="#005C55" /><Text style={styles.backBtnText}>Về App Khách</Text></View>
+            <View style={styles.backRow}><AppIcon name="arrowLeft" size={15} color="#B8895A" /><Text style={styles.backBtnText}>Về App Khách</Text></View>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Salon Merchant Dashboard</Text>
           <View style={{ width: 60 }} />
@@ -73,7 +73,7 @@ export const SalonDashboardScreen: React.FC<SalonDashboardScreenProps> = ({ navi
         <View style={styles.protectionCard}>
           <View style={styles.protectionTitleRow}><IconBadge name="shield" size={17} containerStyle={styles.protectionIconBadge} /><Text style={styles.protectionTitle}>Cơ chế Double-Booking Protection:</Text></View>
           <Text style={styles.protectionText}>
-            Vui lòng kiểm tra thợ & ghế trống tại Salon trước khi bấm <Text style={{ fontWeight: '800', color: '#7C8A55' }}>[CONFIRM]</Text>. Khách hàng đang chờ phản hồi xác nhận.
+            Vui lòng kiểm tra thợ & ghế trống tại Salon trước khi bấm <Text style={{ fontWeight: '800', color: '#8A7748' }}>[CONFIRM]</Text>. Khách hàng đang chờ phản hồi xác nhận.
           </Text>
         </View>
 
@@ -211,7 +211,7 @@ export const SalonDashboardScreen: React.FC<SalonDashboardScreenProps> = ({ navi
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F9F4'
+    backgroundColor: '#EFE6D8'
   },
   scrollContent: {
     padding: 16
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4
   },
   backBtnText: {
-    color: '#005C55',
+    color: '#B8895A',
     fontSize: 13,
     fontWeight: '600'
   },
@@ -238,10 +238,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#182C2A'
+    color: '#241F1A'
   },
   sectionLabel: {
-    color: '#8A9894',
+    color: '#9B8B7A',
     fontSize: 12,
     marginBottom: 6
   },
@@ -255,14 +255,14 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: '#D0D8D4'
+    borderColor: '#DDCBB5'
   },
   activeSalonPill: {
-    backgroundColor: '#005C55',
-    borderColor: '#B7D3C6'
+    backgroundColor: '#B8895A',
+    borderColor: '#D8B98E'
   },
   salonPillText: {
-    color: '#8A9894',
+    color: '#9B8B7A',
     fontSize: 12,
     fontWeight: '600'
   },
@@ -271,12 +271,12 @@ const styles = StyleSheet.create({
     fontWeight: '800'
   },
   protectionCard: {
-    backgroundColor: '#EFF6F1',
+    backgroundColor: '#F7EFE4',
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#6F8B7A'
+    borderColor: '#B98D5C'
   },
   protectionTitleRow: {
     flexDirection: 'row',
@@ -290,13 +290,13 @@ const styles = StyleSheet.create({
     borderRadius: 17
   },
   protectionTitle: {
-    color: '#005C55',
+    color: '#B8895A',
     fontSize: 12,
     fontWeight: '800',
     marginBottom: 2
   },
   protectionText: {
-    color: '#074D44',
+    color: '#6B4227',
     fontSize: 11,
     lineHeight: 16
   },
@@ -312,22 +312,22 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#D0D8D4'
+    borderColor: '#DDCBB5'
   },
   activePendingTab: {
-    backgroundColor: '#005C55',
-    borderColor: '#B7D3C6'
+    backgroundColor: '#B8895A',
+    borderColor: '#D8B98E'
   },
   activeConfirmedTab: {
-    backgroundColor: '#005C55',
-    borderColor: '#CCD8B6'
+    backgroundColor: '#B8895A',
+    borderColor: '#D8C49D'
   },
   activeCompletedTab: {
-    backgroundColor: '#005C55',
-    borderColor: '#6F8B7A'
+    backgroundColor: '#B8895A',
+    borderColor: '#B98D5C'
   },
   filterTabText: {
-    color: '#8A9894',
+    color: '#9B8B7A',
     fontSize: 11,
     fontWeight: '700'
   },
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
     padding: 30,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#D0D8D4'
+    borderColor: '#DDCBB5'
   },
   emptyIcon: {
     fontSize: 36,
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
     marginBottom: 10
   },
   emptyText: {
-    color: '#8A9894',
+    color: '#9B8B7A',
     fontSize: 13
   },
   requestCard: {
@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#D0D8D4'
+    borderColor: '#DDCBB5'
   },
   cardHeader: {
     flexDirection: 'row',
@@ -372,18 +372,18 @@ const styles = StyleSheet.create({
     marginBottom: 10
   },
   badgePending: {
-    backgroundColor: '#DDEBE3',
+    backgroundColor: '#F3E7D8',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6
   },
   badgePendingText: {
-    color: '#005C55',
+    color: '#B8895A',
     fontSize: 11,
     fontWeight: '700'
   },
   cardTime: {
-    color: '#8A9894',
+    color: '#9B8B7A',
     fontSize: 11
   },
   cardMain: {
@@ -394,33 +394,33 @@ const styles = StyleSheet.create({
     flex: 1
   },
   custName: {
-    color: '#182C2A',
+    color: '#241F1A',
     fontSize: 14,
     fontWeight: '700',
     marginBottom: 2
   },
   custPhone: {
-    color: '#005C55',
+    color: '#B8895A',
     fontSize: 13,
     fontWeight: '700',
     marginBottom: 4
   },
   appointmentTime: {
-    color: '#687572',
+    color: '#6F6255',
     fontSize: 12,
     marginBottom: 2
   },
   timeHighlight: {
-    color: '#005C55',
+    color: '#B8895A',
     fontWeight: '800'
   },
   serviceText: {
-    color: '#8A9894',
+    color: '#9B8B7A',
     fontSize: 12,
     marginBottom: 2
   },
   priceText: {
-    color: '#7C8A55',
+    color: '#8A7748',
     fontSize: 13,
     fontWeight: '800',
     marginTop: 2
@@ -434,11 +434,11 @@ const styles = StyleSheet.create({
     width: 65,
     height: 65,
     borderRadius: 10,
-    backgroundColor: '#DDEBE3',
+    backgroundColor: '#F3E7D8',
     marginBottom: 4
   },
   tryOnTag: {
-    color: '#005C55',
+    color: '#B8895A',
     fontSize: 9,
     fontWeight: '700',
     textAlign: 'center'
@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     borderTopWidth: 1,
-    borderTopColor: '#687572',
+    borderTopColor: '#6F6255',
     paddingTop: 10
   },
   cancelBtn: {
@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
   },
   confirmBtn: {
     flex: 1.5,
-    backgroundColor: '#005C55',
+    backgroundColor: '#B8895A',
     borderRadius: 10,
     paddingVertical: 10,
     alignItems: 'center'
@@ -478,7 +478,7 @@ const styles = StyleSheet.create({
   },
   completeBtn: {
     flex: 1.5,
-    backgroundColor: '#005C55',
+    backgroundColor: '#B8895A',
     borderRadius: 10,
     paddingVertical: 10,
     alignItems: 'center'
@@ -490,13 +490,13 @@ const styles = StyleSheet.create({
   },
   completedBadge: {
     flex: 1,
-    backgroundColor: 'rgba(0, 92, 85, 0.14)',
+    backgroundColor: 'rgba(169, 120, 69, 0.14)',
     paddingVertical: 8,
     borderRadius: 8,
     alignItems: 'center'
   },
   completedBadgeText: {
-    color: '#005C55',
+    color: '#B8895A',
     fontSize: 12,
     fontWeight: '700'
   },
@@ -513,3 +513,4 @@ const styles = StyleSheet.create({
     fontWeight: '700'
   }
 });
+

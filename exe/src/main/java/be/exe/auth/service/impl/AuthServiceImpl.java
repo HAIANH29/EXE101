@@ -66,6 +66,9 @@ public class AuthServiceImpl implements AuthService {
     @Value("${app.password-reset.frontend-reset-url:http://localhost:8082/reset-password}")
     private String passwordResetUrl;
 
+    @Value("${app.password-reset.expiration-minutes:15}")
+    private long resetExpirationMinutes;
+
     public AuthServiceImpl(UserRepository userRepository,
                            RoleRepository roleRepository,
                            RefreshTokenRepository refreshTokenRepository,
@@ -303,7 +306,7 @@ public class AuthServiceImpl implements AuthService {
         token.setEmail(user.getEmail());
         token.setToken(resetToken);
         token.setType(VerificationTokenType.RESET_PASSWORD);
-        token.setExpiresAt(Instant.now().plusSeconds(15 * 60)); // 15 mins expiration
+        token.setExpiresAt(Instant.now().plusSeconds(resetExpirationMinutes * 60));
         
         verificationTokenRepository.save(token);
         
@@ -313,9 +316,9 @@ public class AuthServiceImpl implements AuthService {
                 user.getEmail(),
                 "Xác minh yêu cầu đặt lại mật khẩu StyleLock",
                 buildPasswordResetEmail(user.getFullName(), resetLink),
-                "Vui lòng mở link sau để đặt lại mật khẩu StyleLock: "
+                        "Vui lòng mở link sau để đặt lại mật khẩu StyleLock: "
                         + resetLink
-                        + "\n\nĐường dẫn có hiệu lực trong vòng 15 phút."
+                        + "\n\nĐường dẫn có hiệu lực trong vòng " + resetExpirationMinutes + " phút."
         );
     }
 
@@ -484,12 +487,12 @@ public class AuthServiceImpl implements AuthService {
         return buildAuthEmailTemplate(
                 "StyleLock Account Verification",
                 "Xác minh email của bạn",
-                "<p style=\"margin:0 0 18px;color:#5f6f6a;font-size:15px;line-height:24px;\">"
+                "<p style=\"margin:0 0 18px;color:#6f6255;font-size:15px;line-height:24px;\">"
                         + "Nhập mã OTP dưới đây trên màn hình đăng ký StyleLock để hoàn tất tạo tài khoản."
                         + "</p>"
-                        + "<div style=\"margin:24px 0;padding:18px 20px;border-radius:16px;background:#f3f7f1;border:1px solid #d9e5dc;text-align:center;\">"
-                        + "<div style=\"font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#6f7f79;font-weight:700;margin-bottom:8px;\">Verification Code</div>"
-                        + "<div style=\"font-size:34px;letter-spacing:8px;color:#074d44;font-weight:800;font-family:Arial,sans-serif;\">"
+                        + "<div style=\"margin:24px 0;padding:18px 20px;border-radius:16px;background:#f7efe4;border:1px solid #ddcbb5;text-align:center;\">"
+                        + "<div style=\"font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#9b8b7a;font-weight:700;margin-bottom:8px;\">Verification Code</div>"
+                        + "<div style=\"font-size:34px;letter-spacing:8px;color:#6B4227;font-weight:800;font-family:Arial,sans-serif;\">"
                         + safeOtp
                         + "</div>"
                         + "</div>"
@@ -507,25 +510,25 @@ public class AuthServiceImpl implements AuthService {
         return buildAuthEmailTemplate(
                 "StyleLock Password Reset",
                 "Xác minh yêu cầu đổi mật khẩu",
-                "<p style=\"margin:0 0 14px;color:#5f6f6a;font-size:15px;line-height:24px;\">"
+                "<p style=\"margin:0 0 14px;color:#6f6255;font-size:15px;line-height:24px;\">"
                         + "Xin chào " + safeName + ","
                         + "</p>"
-                        + "<p style=\"margin:0 0 24px;color:#5f6f6a;font-size:15px;line-height:24px;\">"
+                        + "<p style=\"margin:0 0 24px;color:#6f6255;font-size:15px;line-height:24px;\">"
                         + "StyleLock vừa nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn. "
                         + "Nhấn nút bên dưới để xác minh và tạo mật khẩu mới."
                         + "</p>"
                         + "<table role=\"presentation\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\" style=\"margin:28px auto;\">"
                         + "<tr>"
-                        + "<td style=\"border-radius:16px;background:#074d44;text-align:center;\">"
+                        + "<td style=\"border-radius:16px;background:#EFE6D8;text-align:center;border:1px solid #ddcbb5;\">"
                         + "<a href=\"" + safeResetLink + "\" target=\"_blank\" "
-                        + "style=\"display:inline-block;padding:15px 34px;border-radius:16px;color:#ffffff;text-decoration:none;font-size:15px;font-weight:800;font-family:Arial,sans-serif;\">"
+                        + "style=\"display:inline-block;padding:15px 34px;border-radius:16px;color:#1f1713;text-decoration:none;font-size:15px;font-weight:800;font-family:Segoe UI,Arial,sans-serif;\">"
                         + "Verify"
                         + "</a>"
                         + "</td>"
                         + "</tr>"
                         + "</table>"
                         + "<p style=\"margin:0;color:#8a857d;font-size:13px;line-height:21px;\">"
-                        + "Nút Verify có hiệu lực trong 15 phút. Nếu bạn không yêu cầu đổi mật khẩu, vui lòng bỏ qua email này."
+                        + "Nút Verify có hiệu lực trong " + resetExpirationMinutes + " phút. Nếu bạn không yêu cầu đổi mật khẩu, vui lòng bỏ qua email này."
                         + "</p>"
         );
     }
@@ -533,17 +536,18 @@ public class AuthServiceImpl implements AuthService {
     private String buildAuthEmailTemplate(String eyebrow, String title, String contentHtml) {
         return "<!doctype html>"
                 + "<html>"
-                + "<body style=\"margin:0;padding:0;background:#f6f3ec;font-family:Arial,sans-serif;color:#1b2522;\">"
-                + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\" style=\"background:#f6f3ec;padding:28px 12px;\">"
+                + "<body style=\"margin:0;padding:0;background:#f5f5f3;font-family:Segoe UI,Roboto,Arial,sans-serif;color:#241f1a;\">"
+                + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\" style=\"background:#f5f5f3;padding:28px 12px;\">"
                 + "<tr><td align=\"center\">"
                 + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\" style=\"max-width:520px;background:#ffffff;border-radius:26px;overflow:hidden;border:1px solid #e5d9ca;box-shadow:0 18px 48px rgba(47,35,24,0.12);\">"
                 + "<tr>"
                 + "<td style=\"padding:28px 28px 18px;background:#efe6d8;text-align:center;\">"
-                + "<div style=\"margin:0 auto 12px;width:58px;height:58px;border-radius:50%;background:#1d241f;color:#ffffff;line-height:58px;font-size:22px;font-weight:800;letter-spacing:-1px;\">SL</div>"
+                + "<img src=\"cid:stylelock-logo\" alt=\"StyleLock\" width=\"180\" "
+                + "style=\"display:block;margin:0 auto 14px;width:180px;max-width:78%;height:auto;\"/>"
                 + "<div style=\"font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#9a7652;font-weight:800;margin-bottom:8px;\">"
                 + HtmlUtils.htmlEscape(eyebrow)
                 + "</div>"
-                + "<h1 style=\"margin:0;color:#1b2522;font-size:26px;line-height:32px;font-weight:800;\">"
+                + "<h1 style=\"margin:0;color:#241f1a;font-size:24px;line-height:31px;font-weight:700;font-family:Segoe UI,Roboto,Arial,sans-serif;letter-spacing:0;\">"
                 + HtmlUtils.htmlEscape(title)
                 + "</h1>"
                 + "</td>"

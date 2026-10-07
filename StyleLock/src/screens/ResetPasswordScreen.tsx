@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Image,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -12,6 +11,7 @@ import {
 import { LocalizedText as Text, LocalizedTextInput as TextInput, LocalizedAlert as Alert } from '../i18n/LocalizedComponents';
 import { backendApi } from '../services/backendApi';
 import { AppIcon } from '../components/AppIcon';
+import { BrandLogo } from '../components/BrandLogo';
 
 interface ResetPasswordScreenProps {
   navigation: any;
@@ -90,80 +90,76 @@ export const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ naviga
         style={styles.keyboardView}
       >
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          <View style={styles.topBar}>
-            <TouchableOpacity style={styles.backBtn} onPress={() => navigation.navigate('Login')}>
-              <View style={styles.backRow}><AppIcon name="arrowLeft" size={16} color="#005C55" /><Text style={styles.backText}>Login</Text></View>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.brandingSection}>
-            <View style={styles.logoCircle}>
-              <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=320' }}
-                style={styles.logoImage}
-              />
-              <View style={styles.logoOverlay}>
-                <AppIcon name="check" size={32} color="#FFFFFF" />
-              </View>
+          <View style={styles.headerSection}>
+            <View style={styles.topBar}>
+              <TouchableOpacity style={styles.backBtn} onPress={() => navigation.navigate('Login')}>
+                <View style={styles.backRow}><AppIcon name="arrowLeft" size={16} color="#B8895A" /><Text style={styles.backText}>Login</Text></View>
+              </TouchableOpacity>
             </View>
-            <Text style={styles.brandTitle}>New Password</Text>
-            <Text style={styles.brandSubtitle}>
-              {email ? `Resetting password for ${email}` : 'Enter the new password for your StyleLock account.'}
-            </Text>
+
+            <View style={styles.brandingSection}>
+              <BrandLogo containerStyle={styles.logoCircle} imageStyle={styles.logoImage} />
+              <Text style={styles.brandTitle}>New Password</Text>
+              <Text style={styles.brandSubtitle}>
+                {email ? `Resetting password for ${email}` : 'Enter the new password for your StyleLock account.'}
+              </Text>
+            </View>
           </View>
 
-          <View style={styles.card}>
-            {!initialToken ? (
+          <View style={styles.bodySection}>
+            <View style={styles.card}>
+              {!initialToken ? (
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.fieldLabel}>VERIFY TOKEN</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Paste token from reset link"
+                    placeholderTextColor="#9B8B7A"
+                    value={token}
+                    onChangeText={setToken}
+                    autoCapitalize="none"
+                  />
+                </View>
+              ) : null}
+
               <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>VERIFY TOKEN</Text>
+                <Text style={styles.fieldLabel}>NEW PASSWORD</Text>
+                <View style={styles.passwordInputWrapper}>
+                  <TextInput
+                    style={[styles.input, styles.passwordInput]}
+                    placeholder="At least 8 characters"
+                    placeholderTextColor="#9B8B7A"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                  />
+                  <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPassword(!showPassword)}>
+                    <Text style={styles.eyeIcon}>{showPassword ? 'Hide' : 'Show'}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>CONFIRM PASSWORD</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Paste token from reset link"
-                  placeholderTextColor="#8A9894"
-                  value={token}
-                  onChangeText={setToken}
-                  autoCapitalize="none"
-                />
-              </View>
-            ) : null}
-
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>NEW PASSWORD</Text>
-              <View style={styles.passwordInputWrapper}>
-                <TextInput
-                  style={[styles.input, styles.passwordInput]}
-                  placeholder="At least 8 characters"
-                  placeholderTextColor="#8A9894"
-                  value={password}
-                  onChangeText={setPassword}
+                  placeholder="Re-enter new password"
+                  placeholderTextColor="#9B8B7A"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
                   secureTextEntry={!showPassword}
                 />
-                <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPassword(!showPassword)}>
-                  <Text style={styles.eyeIcon}>{showPassword ? 'Hide' : 'Show'}</Text>
-                </TouchableOpacity>
               </View>
-            </View>
 
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>CONFIRM PASSWORD</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Re-enter new password"
-                placeholderTextColor="#8A9894"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry={!showPassword}
-              />
+              <TouchableOpacity
+                style={[styles.primaryBtn, isSubmitting && styles.primaryBtnDisabled]}
+                activeOpacity={0.85}
+                onPress={handleResetPassword}
+                disabled={isSubmitting}
+              >
+                <Text style={styles.primaryBtnText}>{isSubmitting ? 'Updating...' : 'Update Password'}</Text>
+              </TouchableOpacity>
             </View>
-
-            <TouchableOpacity
-              style={[styles.primaryBtn, isSubmitting && styles.primaryBtnDisabled]}
-              activeOpacity={0.85}
-              onPress={handleResetPassword}
-              disabled={isSubmitting}
-            >
-              <Text style={styles.primaryBtnText}>{isSubmitting ? 'Updating...' : 'Update Password'}</Text>
-            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -174,15 +170,28 @@ export const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ naviga
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F9F4'
+    backgroundColor: '#FFFFFF'
   },
   keyboardView: {
     flex: 1
   },
   scrollContent: {
     minHeight: '100%',
-    justifyContent: 'center',
+    backgroundColor: '#FFFFFF'
+  },
+  headerSection: {
+    backgroundColor: '#EFE6D8',
     paddingHorizontal: 24,
+    paddingTop: 22,
+    paddingBottom: 28,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5D9CA'
+  },
+  bodySection: {
+    flexGrow: 1,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 24,
+    paddingTop: 26,
     paddingBottom: 40
   },
   topBar: {
@@ -199,52 +208,32 @@ const styles = StyleSheet.create({
     gap: 6
   },
   backText: {
-    color: '#005C55',
+    color: '#B8895A',
     fontSize: 14,
     fontWeight: '700'
   },
   brandingSection: {
     alignItems: 'center',
-    marginBottom: 26
+    marginBottom: 0
   },
   logoCircle: {
-    width: 82,
-    height: 82,
-    borderRadius: 41,
-    overflow: 'hidden',
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 92, 85, 0.16)',
-    backgroundColor: '#FFFFFF'
+    width: 166,
+    height: 104,
+    marginBottom: 10
   },
   logoImage: {
     width: '100%',
     height: '100%'
   },
-  logoOverlay: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    backgroundColor: 'rgba(0, 92, 85, 0.25)',
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  logoEmoji: {
-    color: '#FFFFFF',
-    fontSize: 30,
-    fontWeight: '900'
-  },
   brandTitle: {
     fontSize: 30,
     fontWeight: '800',
-    color: '#005C55',
+    color: '#B8895A',
     marginBottom: 6
   },
   brandSubtitle: {
     maxWidth: 300,
-    color: '#687572',
+    color: '#6F6255',
     textAlign: 'center',
     fontSize: 14,
     lineHeight: 20
@@ -254,7 +243,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 24,
     borderWidth: 1,
-    borderColor: '#E2E6E1',
+    borderColor: '#E5D9CA',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
@@ -267,19 +256,19 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#687572',
+    color: '#6F6255',
     letterSpacing: 0.8,
     marginBottom: 6
   },
   input: {
     height: 52,
-    backgroundColor: '#FBFFFE',
+    backgroundColor: '#FFFDF9',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#D0D8D4',
+    borderColor: '#DDCBB5',
     paddingHorizontal: 16,
     fontSize: 15,
-    color: '#182C2A'
+    color: '#241F1A'
   },
   passwordInputWrapper: {
     flexDirection: 'row',
@@ -296,18 +285,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2
   },
   eyeIcon: {
-    color: '#005C55',
+    color: '#B8895A',
     fontSize: 12,
     fontWeight: '800'
   },
   primaryBtn: {
     height: 52,
-    backgroundColor: '#005C55',
+    backgroundColor: '#B8895A',
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 6,
-    shadowColor: '#005C55',
+    shadowColor: '#B8895A',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -322,3 +311,4 @@ const styles = StyleSheet.create({
     fontWeight: '800'
   }
 });
+
