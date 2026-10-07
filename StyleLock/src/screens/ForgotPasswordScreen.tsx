@@ -22,14 +22,6 @@ interface ForgotPasswordScreenProps {
   };
 }
 
-function getResetRedirectUrl() {
-  if (Platform.OS === 'web' && typeof window !== 'undefined') {
-    return `${window.location.origin}/reset-password`;
-  }
-
-  return 'stylelock://reset-password';
-}
-
 export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation, route }) => {
   const [email, setEmail] = useState<string>(route?.params?.email || '');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -44,8 +36,7 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navi
     try {
       setIsSubmitting(true);
       await backendApi.requestPasswordReset({
-        email: email.trim(),
-        redirectUrl: getResetRedirectUrl()
+        email: email.trim().toLowerCase()
       });
       setHasSubmitted(true);
     } catch (error) {
@@ -106,13 +97,6 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navi
                   <Text style={styles.primaryBtnText}>Back to Login</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={styles.secondaryBtn}
-                  activeOpacity={0.85}
-                  onPress={() => navigation.navigate('ResetPassword', { email: email.trim() })}
-                >
-                  <Text style={styles.secondaryBtnText}>I Have A Reset Link</Text>
-                </TouchableOpacity>
               </View>
             ) : (
               <View>
@@ -300,19 +284,6 @@ const styles = StyleSheet.create({
   primaryBtnText: {
     color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: '800'
-  },
-  secondaryBtn: {
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#E2E6E1',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 12
-  },
-  secondaryBtnText: {
-    color: '#1C1C18',
-    fontSize: 14,
     fontWeight: '800'
   },
   footerRow: {

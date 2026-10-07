@@ -395,6 +395,22 @@ export const backendApi = {
     return session;
   },
 
+  async sendRegisterOtp(input: { email: string }) {
+    return apiRequest<void>('/api/auth/register/send-otp', {
+      method: 'POST',
+      auth: false,
+      body: JSON.stringify({ email: input.email })
+    });
+  },
+
+  async verifyRegisterOtp(input: { email: string; otp: string }) {
+    return apiRequest<void>('/api/auth/register/verify-otp', {
+      method: 'POST',
+      auth: false,
+      body: JSON.stringify(input)
+    });
+  },
+
   async register(input: { email: string; password: string; fullName: string; phone?: string }) {
     const session = await apiRequest<BackendLoginResponse>('/api/auth/register', {
       method: 'POST',
@@ -405,11 +421,11 @@ export const backendApi = {
     return session;
   },
 
-  async requestPasswordReset(input: { email: string; redirectUrl?: string }) {
+  async requestPasswordReset(input: { email: string }) {
     return apiRequest<void>('/api/auth/forgot-password', {
       method: 'POST',
       auth: false,
-      body: JSON.stringify(input)
+      body: JSON.stringify({ email: input.email })
     });
   },
 
