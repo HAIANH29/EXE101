@@ -10,6 +10,7 @@ public enum ErrorCode {
     RESOURCE_NOT_FOUND("COMMON_003", "Không tìm thấy dữ liệu", HttpStatus.NOT_FOUND),
     UNAUTHORIZED("COMMON_004", "Bạn chưa đăng nhập hoặc phiên đã hết hạn", HttpStatus.UNAUTHORIZED),
     FORBIDDEN("COMMON_005", "Bạn không có quyền thực hiện hành động này", HttpStatus.FORBIDDEN),
+    EMAIL_SEND_FAILED("COMMON_006", "Chưa gửi được email, vui lòng kiểm tra cấu hình SMTP", HttpStatus.SERVICE_UNAVAILABLE),
 
     // ===== Auth =====
     EMAIL_ALREADY_EXISTS("AUTH_001", "Email đã được sử dụng", HttpStatus.CONFLICT),

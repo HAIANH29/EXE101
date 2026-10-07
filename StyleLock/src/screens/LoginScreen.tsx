@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -18,7 +18,17 @@ interface LoginScreenProps {
   navigation: any;
 }
 
-const GOOGLE_CLIENT_ID = '67295940794-03jga5jo7pvhpootvae73u4ap5d20sfj.apps.googleusercontent.com';
+const runtimeEnv =
+  typeof globalThis !== 'undefined'
+    ? ((globalThis as unknown as { process?: { env?: Record<string, string | undefined> } }).process?.env || {})
+    : {};
+
+const GOOGLE_CLIENT_ID =
+  runtimeEnv.EXPO_PUBLIC_GOOGLE_CLIENT_ID ||
+  '67295940794-03jga5jo7pvhpootvae73u4ap5d20sfj.apps.googleusercontent.com';
+
+const GOOGLE_ORIGIN_HELP =
+  'Google OAuth Client chưa cho phép domain local này. Hãy thêm http://localhost:8082 vào Authorized JavaScript origins trong Google Cloud Console.';
 
 const SOCIAL_LOGOS = {
   google: 'https://developers.google.com/identity/images/g-logo.png'
@@ -48,74 +58,68 @@ const AppleLogo = () => {
   return <Text style={styles.appleLogoText}></Text>;
 };
 
+type StyleLockWebWindow = Window & {
+  google?: {
+    accounts?: {
+      id?: {
+        initialize: (config: Record<string, unknown>) => void;
+        prompt: (callback?: (notification: any) => void) => void;
+      };
+    };
+  };
+  __stylelockGoogleClientId?: string;
+  __stylelockGoogleInitialized?: boolean;
+  __stylelockGoogleCredentialHandler?: (response: any) => void;
+};
+
+type GoogleIdentityApi = NonNullable<
+  NonNullable<NonNullable<StyleLockWebWindow['google']>['accounts']>['id']
+>;
+
+function loadGoogleIdentityScript(): Promise<GoogleIdentityApi> {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') {
+    return Promise.reject(new Error('Google Sign-In chỉ khả dụng trên web trong bản hiện tại.'));
+  }
+
+  const win = window as StyleLockWebWindow;
+  const existingGsi = win.google?.accounts?.id;
+  if (existingGsi) return Promise.resolve(existingGsi);
+
+  return new Promise((resolve, reject) => {
+    const finish = () => {
+      const gsi = win.google?.accounts?.id;
+      if (gsi) {
+        resolve(gsi);
+      } else {
+        reject(new Error('Google Identity Services chưa sẵn sàng.'));
+      }
+    };
+
+    const existingScript = document.getElementById('google-gsi-script');
+    if (existingScript) {
+      existingScript.addEventListener('load', finish, { once: true });
+      existingScript.addEventListener('error', () => reject(new Error('Không tải được Google Sign-In.')), {
+        once: true
+      });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.id = 'google-gsi-script';
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = finish;
+    script.onerror = () => reject(new Error('Không tải được Google Sign-In.'));
+    document.body.appendChild(script);
+  });
+}
+
 export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      const handleCredentialResponse = async (response: any) => {
-        if (response?.credential) {
-          try {
-            setIsSubmitting(true);
-            await backendApi.loginWithGoogle(response.credential);
-            Alert.alert('Đăng nhập thành công', 'Đăng nhập với Google thành công!');
-            navigation.replace('Home');
-          } catch (err: any) {
-            Alert.alert('Đăng nhập Google thất bại', err?.message || 'Lỗi xác thực Google token');
-          } finally {
-            setIsSubmitting(false);
-          }
-        }
-      };
-
-      const initGsi = () => {
-        const gsi = (window as any).google?.accounts?.id;
-        if (gsi) {
-          gsi.initialize({
-            client_id: GOOGLE_CLIENT_ID,
-            callback: handleCredentialResponse,
-            auto_select: false,
-          });
-
-          const container = document.getElementById('google-btn-container');
-          if (container) {
-            container.innerHTML = '';
-            gsi.renderButton(container, {
-              type: 'standard',
-              theme: 'outline',
-              size: 'large',
-              text: 'continue_with',
-              shape: 'rectangular',
-              logo_alignment: 'left',
-              width: 280
-            });
-          }
-        }
-      };
-
-      if ((window as any).google?.accounts?.id) {
-        initGsi();
-      } else {
-        const existingScript = document.getElementById('google-gsi-script');
-        if (!existingScript) {
-          const script = document.createElement('script');
-          script.id = 'google-gsi-script';
-          script.src = 'https://accounts.google.com/gsi/client';
-          script.async = true;
-          script.defer = true;
-          script.onload = () => {
-            setTimeout(initGsi, 100);
-          };
-          document.body.appendChild(script);
-        } else {
-          existingScript.addEventListener('load', () => setTimeout(initGsi, 100));
-        }
-      }
-    }
-  }, []);
 
   const handleSignIn = async () => {
     if (!email.trim() || !password.trim()) {
@@ -155,43 +159,50 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     }
   };
 
-  const handleGoogleLogin = () => {
+  const handleGoogleCredential = async (response: any) => {
+    if (!response?.credential) {
+      Alert.alert('Google chưa trả credential', GOOGLE_ORIGIN_HELP);
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await backendApi.loginWithGoogle(response.credential);
+      Alert.alert('Đăng nhập thành công', 'Đăng nhập với Google thành công!');
+      navigation.replace('Home');
+    } catch (err: any) {
+      Alert.alert('Đăng nhập Google thất bại', err?.message || 'Lỗi xác thực Google token');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      // If GSI script loaded and available
-      const gsi = (window as any).google?.accounts?.id;
-      if (gsi) {
-        gsi.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          callback: async (response: any) => {
-            if (response.credential) {
-              try {
-                setIsSubmitting(true);
-                await backendApi.loginWithGoogle(response.credential);
-                Alert.alert('Đăng nhập thành công', 'Đăng nhập với Google thành công!');
-                navigation.replace('Home');
-              } catch (err: any) {
-                Alert.alert('Đăng nhập Google thất bại', err?.message || 'Lỗi xác thực Google token');
-              } finally {
-                setIsSubmitting(false);
-              }
-            }
-          }
-        });
+      try {
+        const gsi = await loadGoogleIdentityScript();
+        const win = window as StyleLockWebWindow;
+        win.__stylelockGoogleCredentialHandler = handleGoogleCredential;
+
+        if (!win.__stylelockGoogleInitialized || win.__stylelockGoogleClientId !== GOOGLE_CLIENT_ID) {
+          gsi.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: (response: any) => win.__stylelockGoogleCredentialHandler?.(response),
+            auto_select: false,
+            ux_mode: 'popup'
+          });
+          win.__stylelockGoogleInitialized = true;
+          win.__stylelockGoogleClientId = GOOGLE_CLIENT_ID;
+        }
+
         gsi.prompt((notification: any) => {
           if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            // Fallback to standard Google OAuth redirect
-            const redirectUri = window.location.origin;
-            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=id_token&scope=openid%20email%20profile&nonce=${Date.now()}`;
-            window.location.href = authUrl;
+            Alert.alert('Google Sign-In chưa sẵn sàng', GOOGLE_ORIGIN_HELP);
           }
         });
-        return;
+      } catch (err: any) {
+        Alert.alert('Không mở được Google Sign-In', err?.message || GOOGLE_ORIGIN_HELP);
       }
-
-      // Fallback: Redirect directly to Google OAuth Authorization URL
-      const redirectUri = window.location.origin;
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=id_token&scope=openid%20email%20profile&nonce=${Date.now()}`;
-      window.location.href = authUrl;
       return;
     }
 
@@ -332,21 +343,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
             {/* Side-by-side Social Login Buttons */}
             <View style={styles.socialRow}>
-              {/* Google Button */}
-              {Platform.OS === 'web' ? (
-                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                  <div id="google-btn-container" style={{ width: '100%', minHeight: 48, display: 'flex', justifyContent: 'center' }} />
-                </View>
-              ) : (
-                <TouchableOpacity
-                  style={styles.socialBtn}
-                  activeOpacity={0.8}
-                  onPress={() => handleSocialLogin('Google')}
-                >
-                  <Image source={{ uri: SOCIAL_LOGOS.google }} style={styles.socialLogo} />
-                  <Text style={styles.socialBtnText}>Google</Text>
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity
+                style={styles.socialBtn}
+                activeOpacity={0.8}
+                onPress={() => handleSocialLogin('Google')}
+                disabled={isSubmitting}
+              >
+                <Image source={{ uri: SOCIAL_LOGOS.google }} style={styles.socialLogo} />
+                <Text style={styles.socialBtnText}>Google</Text>
+              </TouchableOpacity>
 
               {/* Apple Button */}
               <TouchableOpacity
