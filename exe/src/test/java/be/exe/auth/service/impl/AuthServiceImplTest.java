@@ -53,7 +53,7 @@ public class AuthServiceImplTest {
         authService.sendRegisterOtp(request);
 
         verify(tokenRepository, times(1)).save(any(VerificationToken.class));
-        verify(emailService, times(1)).sendEmail(eq("test@gmail.com"), anyString(), anyString());
+        verify(emailService, times(1)).sendHtmlEmail(eq("test@gmail.com"), anyString(), anyString(), anyString());
     }
 
     @Test
