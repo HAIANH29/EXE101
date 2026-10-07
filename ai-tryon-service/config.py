@@ -16,5 +16,5 @@ REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN")
 # nếu model bị gỡ hoặc bạn muốn thử model khác.
 REPLICATE_HAIR_MODEL = os.getenv(
     "REPLICATE_HAIR_MODEL",
-    "subhash25rawat/custom-hair:79fcdf78d664c6f7bfd2468fdd3db2ba514bf5d777300f951f5e4b19cdbdbb5f",
+    "subhash25rawat/custom-hair:d4e9506ab3dd3d2d47384d78118f708ff6a79fe19a5013b9614021f0355543b9",
 )
