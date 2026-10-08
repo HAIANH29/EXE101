@@ -608,5 +608,54 @@ export const backendApi = {
       body: reason ? JSON.stringify({ reason }) : undefined
     });
     return mapBooking(booking);
+  },
+
+  async generateTryOn(input: {
+    imageUri: string;
+    hairstyleId: number;
+    fileName?: string;
+    mimeType?: string;
+  }) {
+    const formData = new FormData();
+    const fileName = inferAvatarFileName({ uri: input.imageUri, fileName: input.fileName, mimeType: input.mimeType });
+    const mimeType = inferAvatarMimeType({ uri: input.imageUri, fileName: input.fileName, mimeType: input.mimeType });
+
+    if (input.imageUri.startsWith('blob:') || input.imageUri.startsWith('data:')) {
+      const blob = await fetch(input.imageUri).then((response) => response.blob());
+      formData.append('image', blob, fileName);
+    } else {
+      formData.append('image', {
+        uri: input.imageUri,
+        name: fileName,
+        type: mimeType
+      } as unknown as Blob);
+    }
+    formData.append('hairstyleId', String(input.hairstyleId));
+
+    return apiRequest<{
+      requestId: number;
+      userId?: number;
+      hairstyleId: number;
+      inputImageUrl: string;
+      resultImageUrl: string;
+      status: string;
+    }>('/api/tryon', {
+      method: 'POST',
+      body: formData
+    });
+  },
+
+  async regenerateTryOn(requestId: number) {
+    return apiRequest<{
+      requestId: number;
+      userId?: number;
+      hairstyleId: number;
+      inputImageUrl: string;
+      resultImageUrl: string;
+      status: string;
+    }>(`/api/tryon/${requestId}/regenerate`, {
+      method: 'POST'
+    });
   }
 };
+
