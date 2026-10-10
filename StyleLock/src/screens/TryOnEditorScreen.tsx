@@ -14,6 +14,8 @@ import { Hairstyle } from '../types';
 import { AppIcon } from '../components/AppIcon';
 import { MOCK_HAIRSTYLES } from '../services/mockData';
 import { backendApi } from '../services/backendApi';
+import { HAIR_COLORS } from '../services/hairAssetMap';
+import { applyTransformToImage } from '../utils/imageTransform';
 
 interface TryOnEditorScreenProps {
   navigation: any;
@@ -21,16 +23,23 @@ interface TryOnEditorScreenProps {
 }
 
 export const TryOnEditorScreen: React.FC<TryOnEditorScreenProps> = ({ navigation, route }) => {
-  const { userPhotoUri, hairstyle: initialHairstyle } = route.params;
+  const { userPhotoUri, hairstyle: initialHairstyle, initialHairColor } = route.params;
 
   const [currentHairstyle, setCurrentHairstyle] = useState<Hairstyle>(initialHairstyle || MOCK_HAIRSTYLES[0]);
+  // Hairstyle overlay transform state
   const [scale, setScale] = useState<number>(1.0);
   const [rotation, setRotation] = useState<number>(0);
   const [offsetX, setOffsetX] = useState<number>(0);
   const [offsetY, setOffsetY] = useState<number>(0);
   const [isFlipped, setIsFlipped] = useState<boolean>(false);
-  const [hairColor, setHairColor] = useState<string>('#1E2322');
+  const [hairColor, setHairColor] = useState<string>(initialHairColor || '#1E2322');
   const [opacity, setOpacity] = useState<number>(1.0);
+
+  // User portrait photo transform state (phóng to, thu nhỏ, xoay ảnh khuôn mặt)
+  const [photoScale, setPhotoScale] = useState<number>(1.0);
+  const [photoRotation, setPhotoRotation] = useState<number>(0);
+  const [photoOffsetX, setPhotoOffsetX] = useState<number>(0);
+  const [photoOffsetY, setPhotoOffsetY] = useState<number>(0);
 
   // AI Model Generation State
   const [isAiGenerating, setIsAiGenerating] = useState<boolean>(false);
@@ -45,6 +54,10 @@ export const TryOnEditorScreen: React.FC<TryOnEditorScreenProps> = ({ navigation
     setIsFlipped(false);
     setHairColor('#1E2322');
     setOpacity(1.0);
+    setPhotoScale(1.0);
+    setPhotoRotation(0);
+    setPhotoOffsetX(0);
+    setPhotoOffsetY(0);
   };
 
   const handleSelectHairstyle = (hs: Hairstyle) => {
@@ -64,15 +77,37 @@ export const TryOnEditorScreen: React.FC<TryOnEditorScreenProps> = ({ navigation
     setIsAiGenerating(true);
     try {
       const hairId = currentHairstyle.apiId || (Number(currentHairstyle.id.replace(/\D/g, '')) || 1);
+      const highResHair = currentHairstyle.imageUrl && /^https?:\/\//.test(currentHairstyle.imageUrl)
+        ? currentHairstyle.imageUrl.replace(/([?&])w=\d+/, '$1w=1024')
+        : currentHairstyle.imageUrl;
+
+      // Map mã màu HEX sang ảnh mẫu màu cho HairFastGAN (StyleGAN2 latent space)
+      const matchedColor = HAIR_COLORS.find(
+        (c) => c.colorHex.toLowerCase() === hairColor.toLowerCase()
+      );
+      // Tự động bake ảnh đã xoay/zoom/căn chỉnh khuôn mặt để AI Model nhận ảnh chuẩn xác nhất
+      const alignedPhotoUri = await applyTransformToImage(userPhotoUri, {
+        scale: photoScale,
+        rotation: photoRotation,
+        offsetX: photoOffsetX,
+        offsetY: photoOffsetY,
+        outputSize: 1024
+      });
+
       const response = await backendApi.generateTryOn({
-        imageUri: userPhotoUri,
-        hairstyleId: hairId
+        imageUri: alignedPhotoUri,
+        hairstyleId: hairId,
+        hairImageUrl: highResHair,
+        colorImageUrl: colorImageUrl
       });
 
       if (response && response.resultImageUrl) {
         setAiResultImageUrl(response.resultImageUrl);
         setMode('aiResult');
-        Alert.alert('✨ Thành công', `Đã sinh ảnh thật bằng Model AI mới cho mẫu "${currentHairstyle.name}"!`);
+        Alert.alert(
+          '✨ Thành công',
+          `Đã sinh ảnh thật bằng Model AI mới cho mẫu "${currentHairstyle.name}" với tông màu ${matchedColor?.name || 'Tự nhiên'}!`
+        );
       } else {
         throw new Error('Không nhận được ảnh kết quả từ AI');
       }
@@ -215,10 +250,18 @@ export const TryOnEditorScreen: React.FC<TryOnEditorScreenProps> = ({ navigation
             isFlipped={isFlipped}
             hairColor={hairColor}
             opacity={opacity}
+            photoScale={photoScale}
+            photoRotation={photoRotation}
+            photoOffsetX={photoOffsetX}
+            photoOffsetY={photoOffsetY}
             onScaleChange={setScale}
             onRotationChange={setRotation}
             onOffsetXChange={setOffsetX}
             onOffsetYChange={setOffsetY}
+            onPhotoScaleChange={setPhotoScale}
+            onPhotoRotationChange={setPhotoRotation}
+            onPhotoOffsetXChange={setPhotoOffsetX}
+            onPhotoOffsetYChange={setPhotoOffsetY}
             onToggleFlip={() => setIsFlipped(!isFlipped)}
             onHairColorChange={setHairColor}
             onOpacityChange={setOpacity}

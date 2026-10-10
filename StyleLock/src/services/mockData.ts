@@ -26,7 +26,7 @@ export const MOCK_HAIRSTYLES: Hairstyle[] = [
     name: 'Undercut Fade Lịch Lãm',
     category: 'Undercut',
     gender: 'nam',
-    imageUrl: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=400',
+    imageUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400',
     description: 'Sát hai bên tạo vẻ ngoài nam tính, sang trọng thích hợp môi trường công sở.',
     suitableFace: 'Mặt vuông, mặt góc cạnh',
     tag: 'Lịch lãm'
@@ -56,7 +56,7 @@ export const MOCK_HAIRSTYLES: Hairstyle[] = [
     name: 'Curly Short Waves',
     category: 'Curly',
     gender: 'nam',
-    imageUrl: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400',
+    imageUrl: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400',
     description: 'Tóc xoăn xù sóng nhỏ cuốn hút và lãng tử.',
     suitableFace: 'Mặt gầy, mặt dài',
     tag: 'Mới'
