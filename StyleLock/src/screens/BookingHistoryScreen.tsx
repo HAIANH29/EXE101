@@ -484,7 +484,8 @@ const styles = StyleSheet.create({
         fontWeight: '800'
     },
     payBtn: {
-        height: 52,
+        width: '100%',
+        height: 48,
         paddingHorizontal: 16,
         borderRadius: 12,
         backgroundColor: '#B8895A',
@@ -498,6 +499,7 @@ const styles = StyleSheet.create({
     },
     cardActions: {
         flexDirection: 'row',
+        flexWrap: 'wrap',
         borderTopWidth: 1,
         borderTopColor: '#E5D9CA',
         padding: 12,
@@ -515,6 +517,7 @@ const styles = StyleSheet.create({
     },
     rescheduleBtn: {
         flex: 1,
+        minWidth: 90,
         height: 52,
         borderRadius: 12,
         borderWidth: 1,
@@ -530,6 +533,7 @@ const styles = StyleSheet.create({
     },
     messageBtn: {
         flex: 1,
+        minWidth: 90,
         height: 52,
         borderRadius: 12,
         backgroundColor: '#B8895A',
