@@ -6,6 +6,10 @@ import java.time.Instant;
 public record PaymentResponse(
         Long id,
         Long bookingId,
+        Long salonId,
+        String paymentType,
+        BigDecimal serviceAmount,
+        BigDecimal feeAmount,
         String provider,
         String transactionId,
         String referenceCode,

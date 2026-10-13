@@ -24,8 +24,18 @@ public class Payment {
     private Long id;
 
     // Cross-module (booking.Booking) - unique vì 1 booking chỉ có đúng 1 payment
-    @Column(name = "booking_id", nullable = false, unique = true)
+    @Column(name = "booking_id", unique = true)
     private Long bookingId;
+
+    @Column(name = "customer_id", nullable = false)
+    private Long customerId;
+
+    @Column(name = "salon_id")
+    private Long salonId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_type", nullable = false, length = 40)
+    private PaymentType paymentType = PaymentType.BOOKING_CONNECTION;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "provider", nullable = false, length = 50)
@@ -39,6 +49,12 @@ public class Payment {
 
     @Column(name = "amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
+
+    @Column(name = "service_amount", precision = 12, scale = 2)
+    private BigDecimal serviceAmount;
+
+    @Column(name = "fee_amount", nullable = false, precision = 12, scale = 2)
+    private BigDecimal feeAmount = BigDecimal.ZERO;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
@@ -80,8 +96,15 @@ public class Payment {
     protected Payment() {
     }
 
-    public Payment(Long bookingId, BigDecimal amount, String referenceCode, String paymentUrl) {
+    public Payment(Long bookingId, Long customerId, Long salonId, PaymentType paymentType,
+                   BigDecimal serviceAmount, BigDecimal feeAmount, BigDecimal amount,
+                   String referenceCode, String paymentUrl) {
         this.bookingId = bookingId;
+        this.customerId = customerId;
+        this.salonId = salonId;
+        this.paymentType = paymentType;
+        this.serviceAmount = serviceAmount;
+        this.feeAmount = feeAmount;
         this.amount = amount;
         this.referenceCode = referenceCode;
         this.paymentUrl = paymentUrl;
@@ -153,6 +176,26 @@ public class Payment {
 
     public Long getBookingId() {
         return bookingId;
+    }
+
+    public Long getCustomerId() {
+        return customerId;
+    }
+
+    public Long getSalonId() {
+        return salonId;
+    }
+
+    public PaymentType getPaymentType() {
+        return paymentType;
+    }
+
+    public BigDecimal getServiceAmount() {
+        return serviceAmount;
+    }
+
+    public BigDecimal getFeeAmount() {
+        return feeAmount;
     }
 
     public PaymentProvider getProvider() {
