@@ -49,6 +49,8 @@ public interface AuthService {
     /** Khóa/mở khóa tài khoản. status: ACTIVE / INACTIVE / BANNED */
     UserResponse updateUserStatus(Long userId, String status);
 
+    UserResponse promoteToSalonOwner(Long userId);
+
     Page<UserResponse> getUsers(String statusFilter, Pageable pageable);
 
     /** Dùng cho dashboard: tổng số user + số đăng ký mới trong khoảng thời gian. */

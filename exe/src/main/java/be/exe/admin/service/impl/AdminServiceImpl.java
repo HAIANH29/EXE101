@@ -51,6 +51,11 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
+    public UserResponse promoteToSalonOwner(Long userId) {
+        return authService.promoteToSalonOwner(userId);
+    }
+
+    @Override
     public void deleteUser(Long adminUserId, Long userId) {
         if (adminUserId != null && adminUserId.equals(userId)) {
             throw new BusinessException(

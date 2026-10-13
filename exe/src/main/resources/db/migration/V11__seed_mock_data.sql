@@ -6,7 +6,7 @@
 -- TRUNCATE TABLE tryon_results, tryon_requests, payments, bookings, reviews, salon_hairstyles, hairstyles, hairstyle_categories, services, stylists, salons, user_roles, users CASCADE;
 
 -- 2. Insert Users (Password mặc định là 'Password123!')
-INSERT INTO users (id, email, password_hash, full_name, phone, avatar_url, role, status, created_at, updated_at)
+INSERT INTO users (id, email, password_hash, full_name, phone, avatar_url, status, created_at, updated_at)
 VALUES 
 (1, 'hoang.minh.95@gmail.com', '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRps.9cGLcZEiGDMVr5yUP1KUOYTa', 'Trần Hoàng Minh', '0987654321', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80', 'CUSTOMER', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 (2, 'owner.ironcap@gmail.com', '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRps.9cGLcZEiGDMVr5yUP1KUOYTa', 'Lê Văn Chủ', '0911223344', null, 'SALON_OWNER', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
