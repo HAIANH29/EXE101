@@ -1,9 +1,11 @@
 package be.exe.payment.service;
 
-import be.exe.payment.dto.response.PaymentResponse;
 import be.exe.payment.sepay.SepayWebhookRequest;
 
 import java.math.BigDecimal;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import be.exe.payment.dto.response.PaymentResponse;
 
 public interface PaymentService {
 
@@ -11,7 +13,9 @@ public interface PaymentService {
      * Gọi tự động khi booking mới được tạo (nghe BookingCreatedEvent) - KHÔNG phải API
      * cho client gọi trực tiếp.
      */
-    void createPaymentForBooking(Long bookingId, BigDecimal amount);
+    void createPaymentForBooking(Long bookingId, Long customerId, Long salonId, BigDecimal serviceAmount);
+
+    PaymentResponse createSalonProPayment(Long salonId, Long ownerId);
 
     /**
      * Gọi tự động khi booking bị hủy (nghe BookingCancelledEvent) - hủy luôn payment
@@ -25,6 +29,8 @@ public interface PaymentService {
     PaymentResponse getPaymentByBooking(Long bookingId, Long requesterId);
 
     PaymentResponse getPayment(Long paymentId, Long requesterId);
+
+    Page<PaymentResponse> getPaymentHistory(Long requesterId, Pageable pageable);
 
     PaymentResponse refundPayment(Long paymentId, BigDecimal refundAmount, String refundReference, String note, Long adminId);
 }

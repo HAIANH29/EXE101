@@ -35,7 +35,8 @@ public class PaymentEventListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onBookingCreated(BookingCreatedEvent event) {
-        paymentService.createPaymentForBooking(event.bookingId(), event.totalAmount());
+        paymentService.createPaymentForBooking(event.bookingId(), event.customerId(), event.salonId(),
+                event.totalAmount());
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
