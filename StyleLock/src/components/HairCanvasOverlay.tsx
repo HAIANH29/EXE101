@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   StyleSheet,
   View,
   Image,
   TouchableOpacity,
-  Dimensions
+  Dimensions,
+  PanResponder
 } from 'react-native';
 import { LocalizedText as Text } from '../i18n/LocalizedComponents';
 import { Hairstyle } from '../types';
@@ -14,6 +15,7 @@ import { resolveHairOverlaySource, HAIR_COLORS, HairColorOption } from '../servi
 export interface HairCanvasOverlayProps {
   userPhotoUri: string;
   hairstyle: Hairstyle;
+  // Hair transform
   scale: number;
   rotation: number;
   offsetX: number;
@@ -21,10 +23,19 @@ export interface HairCanvasOverlayProps {
   isFlipped?: boolean;
   hairColor?: string;
   opacity?: number;
+  // User photo transform
+  photoScale?: number;
+  photoRotation?: number;
+  photoOffsetX?: number;
+  photoOffsetY?: number;
   onScaleChange: (scale: number) => void;
   onRotationChange: (rotation: number) => void;
   onOffsetXChange: (x: number) => void;
   onOffsetYChange: (y: number) => void;
+  onPhotoScaleChange?: (scale: number) => void;
+  onPhotoRotationChange?: (rotation: number) => void;
+  onPhotoOffsetXChange?: (x: number) => void;
+  onPhotoOffsetYChange?: (y: number) => void;
   onToggleFlip?: () => void;
   onHairColorChange?: (colorHex: string) => void;
   onOpacityChange?: (opacity: number) => void;
@@ -44,29 +55,137 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
   isFlipped = false,
   hairColor = '#1E2322',
   opacity = 1.0,
+  photoScale = 1.0,
+  photoRotation = 0,
+  photoOffsetX = 0,
+  photoOffsetY = 0,
   onScaleChange,
   onRotationChange,
   onOffsetXChange,
   onOffsetYChange,
+  onPhotoScaleChange,
+  onPhotoRotationChange,
+  onPhotoOffsetXChange,
+  onPhotoOffsetYChange,
   onToggleFlip,
   onHairColorChange,
   onOpacityChange,
   onReset
 }) => {
   const [activeTab, setActiveTab] = useState<'align' | 'color' | 'blend'>('align');
+  const [alignTarget, setAlignTarget] = useState<'hair' | 'photo'>('hair');
   const [isComparingOriginal, setIsComparingOriginal] = useState<boolean>(false);
-  const [showFaceGuide, setShowFaceGuide] = useState<boolean>(false);
+  const [showFaceGuide, setShowFaceGuide] = useState<boolean>(true);
 
-  // Resolve the dedicated transparent hair model (mẫu tóc trong suốt)
-  const hairSource = resolveHairOverlaySource(hairstyle);
+  // Dynamic SVG hair overlay with accurate color rendering
+  const hairSource = resolveHairOverlaySource(hairstyle, hairColor);
+
+  // Live state reference to prevent stale closure in PanResponder
+  const liveStateRef = useRef({
+    alignTarget,
+    offsetX,
+    offsetY,
+    photoOffsetX,
+    photoOffsetY,
+    scale,
+    photoScale,
+    rotation,
+    photoRotation
+  });
+  liveStateRef.current = {
+    alignTarget,
+    offsetX,
+    offsetY,
+    photoOffsetX,
+    photoOffsetY,
+    scale,
+    photoScale,
+    rotation,
+    photoRotation
+  };
+
+  // PanResponder to allow dragging on the canvas
+  const dragStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        const cur = liveStateRef.current;
+        if (cur.alignTarget === 'hair') {
+          dragStartRef.current = { x: cur.offsetX, y: cur.offsetY };
+        } else {
+          dragStartRef.current = { x: cur.photoOffsetX, y: cur.photoOffsetY };
+        }
+      },
+      onPanResponderMove: (_, gestureState) => {
+        const cur = liveStateRef.current;
+        if (cur.alignTarget === 'hair') {
+          onOffsetXChange(Math.round(dragStartRef.current.x + gestureState.dx));
+          onOffsetYChange(Math.round(dragStartRef.current.y + gestureState.dy));
+        } else if (onPhotoOffsetXChange && onPhotoOffsetYChange) {
+          onPhotoOffsetXChange(Math.round(dragStartRef.current.x + gestureState.dx));
+          onPhotoOffsetYChange(Math.round(dragStartRef.current.y + gestureState.dy));
+        }
+      }
+    })
+  ).current;
+
+  // Wheel zoom handler for Web
+  const handleWheel = (e: any) => {
+    if (e) {
+      if (typeof e.preventDefault === 'function') {
+        e.preventDefault();
+      }
+      if (e.deltaY) {
+        const delta = e.deltaY < 0 ? 0.08 : -0.08;
+        const cur = liveStateRef.current;
+        if (cur.alignTarget === 'hair') {
+          const next = Math.max(0.4, Math.min(2.5, Number((cur.scale + delta).toFixed(2))));
+          onScaleChange(next);
+        } else if (onPhotoScaleChange) {
+          const next = Math.max(0.5, Math.min(3.0, Number((cur.photoScale + delta).toFixed(2))));
+          onPhotoScaleChange(next);
+        }
+      }
+    }
+  };
 
   return (
     <View style={styles.container}>
       {/* Canvas Viewport */}
       <View style={styles.canvasContainer}>
-        <View style={styles.canvas}>
-          {/* Base User Portrait Photo */}
-          <Image source={{ uri: userPhotoUri }} style={styles.userPhoto} resizeMode="cover" />
+        <View
+          style={[
+            styles.canvas,
+            alignTarget === 'photo' ? styles.canvasActivePhoto : styles.canvasActiveHair
+          ]}
+          {...panResponder.panHandlers}
+          // @ts-ignore Web mouse wheel event support
+          onWheel={handleWheel}
+        >
+          {/* Base User Portrait Photo with transform */}
+          <View style={styles.userPhotoWrapper}>
+            <View
+              style={[
+                styles.userPhotoTransformContainer,
+                {
+                  transform: [
+                    { translateX: photoOffsetX },
+                    { translateY: photoOffsetY },
+                    { scale: photoScale },
+                    { rotate: `${photoRotation}deg` }
+                  ]
+                }
+              ]}
+            >
+              <Image
+                source={{ uri: userPhotoUri }}
+                style={styles.userPhoto}
+                resizeMode="cover"
+              />
+            </View>
+          </View>
 
           {/* Semi-transparent Face Guide Mask Overlay */}
           {showFaceGuide && (
@@ -77,7 +196,7 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
             </View>
           )}
 
-          {/* DEDICATED ISOLATED HAIRSTYLE OVERLAY (KHÔNG CÒN CẢ NGƯỜI MẪU) */}
+          {/* DEDICATED ISOLATED HAIRSTYLE OVERLAY */}
           {!isComparingOriginal && (
             <View
               style={[
@@ -96,10 +215,7 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
             >
               <Image
                 source={hairSource}
-                style={[
-                  styles.hairImage,
-                  hairColor && hairColor !== '#1E2322' ? { tintColor: hairColor } : undefined
-                ]}
+                style={styles.hairImage}
                 resizeMode="contain"
               />
             </View>
@@ -121,6 +237,18 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
             </TouchableOpacity>
 
             <View style={styles.topRightTools}>
+              {/* Rotate Photo 90deg quickly (Always available button) */}
+              {onPhotoRotationChange && (
+                <TouchableOpacity
+                  style={[styles.miniCircleBtn, styles.miniRotateBtn]}
+                  onPress={() => onPhotoRotationChange((photoRotation + 90) % 360)}
+                  activeOpacity={0.8}
+                >
+                  <AppIcon name="refresh" size={13} color="#FFFFFF" />
+                  <Text style={styles.miniBtnLabel}>90°</Text>
+                </TouchableOpacity>
+              )}
+
               {/* Flip Horizontal Toggle */}
               {onToggleFlip && (
                 <TouchableOpacity
@@ -146,7 +274,11 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
           {/* Bottom Live Hint Badge */}
           <View style={styles.bottomGuideBadge}>
             <AppIcon name="sparkle" size={12} color="#D8B98E" />
-            <Text style={styles.bottomGuideText}>Mẫu tóc AI • Dùng công cụ bên dưới để căn chỉnh vừa vặn</Text>
+            <Text style={styles.bottomGuideText}>
+              {alignTarget === 'hair'
+                ? `Đang chỉnh: 💇 MẪU TÓC (${Math.round(scale * 100)}%) • Kéo thả để dời vị trí`
+                : `Đang chỉnh: 👤 ẢNH MẶT (${Math.round(photoScale * 100)}%) • Kéo thả hoặc bấm 90° để xoay`}
+            </Text>
           </View>
         </View>
       </View>
@@ -160,7 +292,7 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
             onPress={() => setActiveTab('align')}
           >
             <AppIcon name="tool" size={14} color={activeTab === 'align' ? '#B8895A' : '#9B8B7A'} />
-            <Text style={[styles.tabLabel, activeTab === 'align' && styles.tabLabelActive]}>Căn chỉnh</Text>
+            <Text style={[styles.tabLabel, activeTab === 'align' && styles.tabLabelActive]}>Căn chỉnh & Kích thước</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -176,45 +308,139 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
             onPress={() => setActiveTab('blend')}
           >
             <AppIcon name="sparkle" size={14} color={activeTab === 'blend' ? '#B8895A' : '#9B8B7A'} />
-            <Text style={[styles.tabLabel, activeTab === 'blend' && styles.tabLabelActive]}>Hòa trộn</Text>
+            <Text style={[styles.tabLabel, activeTab === 'blend' && styles.tabLabelActive]}>Độ hòa trộn</Text>
           </TouchableOpacity>
         </View>
 
         {/* Tab 1: Align & Size Controls */}
         {activeTab === 'align' && (
           <View style={styles.tabContent}>
+            {/* Target Selector Switcher: Hair vs Photo */}
+            <View style={styles.targetSelectorRow}>
+              <TouchableOpacity
+                style={[styles.targetBtn, alignTarget === 'hair' && styles.targetBtnActive]}
+                onPress={() => setAlignTarget('hair')}
+                activeOpacity={0.8}
+              >
+                <AppIcon name="scissors" size={14} color={alignTarget === 'hair' ? '#FFFFFF' : '#8D7B68'} />
+                <Text style={[styles.targetBtnText, alignTarget === 'hair' && styles.targetBtnTextActive]}>
+                  💇 Căn chỉnh Mẫu tóc
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.targetBtn, alignTarget === 'photo' && styles.targetBtnActive]}
+                onPress={() => setAlignTarget('photo')}
+                activeOpacity={0.8}
+              >
+                <AppIcon name="user" size={14} color={alignTarget === 'photo' ? '#FFFFFF' : '#8D7B68'} />
+                <Text style={[styles.targetBtnText, alignTarget === 'photo' && styles.targetBtnTextActive]}>
+                  👤 Căn chỉnh Ảnh mặt
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Live Size & Position Metric Indicator */}
+            <View style={styles.metricRow}>
+              <Text style={styles.metricText}>
+                🔍 Tỉ lệ: <Text style={styles.metricHighlight}>{Math.round((alignTarget === 'hair' ? scale : photoScale) * 100)}%</Text>
+              </Text>
+              <Text style={styles.metricText}>
+                📐 Vị trí: <Text style={styles.metricHighlight}>
+                  X={alignTarget === 'hair' ? offsetX : photoOffsetX}px, Y={alignTarget === 'hair' ? offsetY : photoOffsetY}px
+                </Text>
+              </Text>
+              <Text style={styles.metricText}>
+                🔄 Xoay: <Text style={styles.metricHighlight}>{alignTarget === 'hair' ? rotation : photoRotation}°</Text>
+              </Text>
+            </View>
+
+            {/* Quick Scale Presets */}
+            <View style={styles.presetScaleRow}>
+              {[
+                { label: '85% Nhỏ', val: 0.85 },
+                { label: '100% Vừa', val: 1.0 },
+                { label: '120% Lớn', val: 1.2 },
+                { label: '140% Rộng', val: 1.4 }
+              ].map((p) => {
+                const currentVal = alignTarget === 'hair' ? scale : photoScale;
+                const isSelected = Math.abs(currentVal - p.val) < 0.05;
+                return (
+                  <TouchableOpacity
+                    key={p.val}
+                    style={[styles.presetScaleBtn, isSelected && styles.presetScaleBtnActive]}
+                    onPress={() => {
+                      if (alignTarget === 'hair') {
+                        onScaleChange(p.val);
+                      } else if (onPhotoScaleChange) {
+                        onPhotoScaleChange(p.val);
+                      }
+                    }}
+                  >
+                    <Text style={[styles.presetScaleText, isSelected && styles.presetScaleTextActive]}>
+                      {p.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
             {/* Zoom & Rotation Quick Row */}
             <View style={styles.toolRow}>
               <TouchableOpacity
                 style={styles.actionBtn}
-                onPress={() => onScaleChange(Math.max(0.4, Number((scale - 0.08).toFixed(2))))}
+                onPress={() => {
+                  if (alignTarget === 'hair') {
+                    onScaleChange(Math.max(0.4, Number((scale - 0.15).toFixed(2))));
+                  } else if (onPhotoScaleChange) {
+                    onPhotoScaleChange(Math.max(0.5, Number((photoScale - 0.15).toFixed(2))));
+                  }
+                }}
               >
                 <AppIcon name="zoomOut" size={14} color="#B8895A" />
-                <Text style={styles.actionBtnText}>Thu nhỏ</Text>
+                <Text style={styles.actionBtnText}>Thu nhỏ (-15%)</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.actionBtn}
-                onPress={() => onScaleChange(Math.min(2.5, Number((scale + 0.08).toFixed(2))))}
+                onPress={() => {
+                  if (alignTarget === 'hair') {
+                    onScaleChange(Math.min(2.5, Number((scale + 0.15).toFixed(2))));
+                  } else if (onPhotoScaleChange) {
+                    onPhotoScaleChange(Math.min(3.0, Number((photoScale + 0.15).toFixed(2))));
+                  }
+                }}
               >
                 <AppIcon name="zoomIn" size={14} color="#B8895A" />
-                <Text style={styles.actionBtnText}>Phóng to</Text>
+                <Text style={styles.actionBtnText}>Phóng to (+15%)</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.actionBtn}
-                onPress={() => onRotationChange(rotation - 4)}
+                onPress={() => {
+                  if (alignTarget === 'hair') {
+                    onRotationChange(rotation - 5);
+                  } else if (onPhotoRotationChange) {
+                    onPhotoRotationChange(photoRotation - 5);
+                  }
+                }}
               >
                 <AppIcon name="rotateLeft" size={14} color="#B8895A" />
-                <Text style={styles.actionBtnText}>Nghiêng trái</Text>
+                <Text style={styles.actionBtnText}>Xoay -5°</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.actionBtn}
-                onPress={() => onRotationChange(rotation + 4)}
+                onPress={() => {
+                  if (alignTarget === 'hair') {
+                    onRotationChange(rotation + 5);
+                  } else if (onPhotoRotationChange) {
+                    onPhotoRotationChange(photoRotation + 5);
+                  }
+                }}
               >
                 <AppIcon name="refresh" size={14} color="#B8895A" />
-                <Text style={styles.actionBtnText}>Nghiêng phải</Text>
+                <Text style={styles.actionBtnText}>Xoay +5°</Text>
               </TouchableOpacity>
             </View>
 
@@ -222,7 +448,13 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
             <View style={styles.toolRow}>
               <TouchableOpacity
                 style={styles.directionalBtn}
-                onPress={() => onOffsetYChange(offsetY - 8)}
+                onPress={() => {
+                  if (alignTarget === 'hair') {
+                    onOffsetYChange(offsetY - 15);
+                  } else if (onPhotoOffsetYChange) {
+                    onPhotoOffsetYChange(photoOffsetY - 15);
+                  }
+                }}
               >
                 <AppIcon name="arrowLeft" size={13} color="#FFFFFF" style={{ transform: [{ rotate: '90deg' }] }} />
                 <Text style={styles.directionalBtnText}>Lên</Text>
@@ -230,7 +462,13 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
 
               <TouchableOpacity
                 style={styles.directionalBtn}
-                onPress={() => onOffsetYChange(offsetY + 8)}
+                onPress={() => {
+                  if (alignTarget === 'hair') {
+                    onOffsetYChange(offsetY + 15);
+                  } else if (onPhotoOffsetYChange) {
+                    onPhotoOffsetYChange(photoOffsetY + 15);
+                  }
+                }}
               >
                 <AppIcon name="arrowLeft" size={13} color="#FFFFFF" style={{ transform: [{ rotate: '-90deg' }] }} />
                 <Text style={styles.directionalBtnText}>Xuống</Text>
@@ -238,7 +476,13 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
 
               <TouchableOpacity
                 style={styles.directionalBtn}
-                onPress={() => onOffsetXChange(offsetX - 8)}
+                onPress={() => {
+                  if (alignTarget === 'hair') {
+                    onOffsetXChange(offsetX - 15);
+                  } else if (onPhotoOffsetXChange) {
+                    onPhotoOffsetXChange(photoOffsetX - 15);
+                  }
+                }}
               >
                 <AppIcon name="arrowLeft" size={13} color="#FFFFFF" />
                 <Text style={styles.directionalBtnText}>Trái</Text>
@@ -246,7 +490,13 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
 
               <TouchableOpacity
                 style={styles.directionalBtn}
-                onPress={() => onOffsetXChange(offsetX + 8)}
+                onPress={() => {
+                  if (alignTarget === 'hair') {
+                    onOffsetXChange(offsetX + 15);
+                  } else if (onPhotoOffsetXChange) {
+                    onPhotoOffsetXChange(photoOffsetX + 15);
+                  }
+                }}
               >
                 <AppIcon name="arrowRight" size={13} color="#FFFFFF" />
                 <Text style={styles.directionalBtnText}>Phải</Text>
@@ -254,21 +504,53 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
 
               <TouchableOpacity
                 style={[styles.directionalBtn, styles.resetBtn]}
-                onPress={onReset}
+                onPress={() => {
+                  if (alignTarget === 'hair') {
+                    onScaleChange(1.0);
+                    onRotationChange(0);
+                    onOffsetXChange(0);
+                    onOffsetYChange(0);
+                  } else {
+                    onPhotoScaleChange?.(1.0);
+                    onPhotoRotationChange?.(0);
+                    onPhotoOffsetXChange?.(0);
+                    onPhotoOffsetYChange?.(0);
+                  }
+                }}
               >
                 <AppIcon name="refresh" size={13} color="#FFFFFF" />
-                <Text style={styles.directionalBtnText}>Đặt lại</Text>
+                <Text style={styles.directionalBtnText}>Về giữa</Text>
               </TouchableOpacity>
             </View>
+
+            {/* Quick 90-degree Rotation Button if modifying Photo */}
+            {alignTarget === 'photo' && onPhotoRotationChange && (
+              <TouchableOpacity
+                style={styles.rotate90Btn}
+                onPress={() => onPhotoRotationChange((photoRotation + 90) % 360)}
+                activeOpacity={0.8}
+              >
+                <AppIcon name="refresh" size={14} color="#B8895A" />
+                <Text style={styles.rotate90Text}>🔄 Xoay ảnh 90° (chỉnh ảnh chụp ngang thành thẳng đứng)</Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Hint Note for User */}
+            <Text style={styles.alignHintText}>
+              💡 Mẹo: Bạn có thể nhấn giữ chuột/ngón tay để kéo thả trực tiếp trên ảnh, lăn chuột để phóng to/thu nhỏ nhanh.
+            </Text>
           </View>
         )}
 
         {/* Tab 2: Hair Dye Palette */}
         {activeTab === 'color' && (
           <View style={styles.tabContent}>
+            <Text style={styles.colorSubText}>
+              Chọn màu nhuộm (màu sẽ cập nhật xem trước và truyền cho Model AI):
+            </Text>
             <View style={styles.colorPaletteRow}>
               {HAIR_COLORS.map((c: HairColorOption) => {
-                const isSelected = (hairColor === c.colorHex) || (!hairColor && c.id === 'natural');
+                const isSelected = (hairColor.toLowerCase() === c.colorHex.toLowerCase()) || (!hairColor && c.id === 'natural');
                 return (
                   <TouchableOpacity
                     key={c.id}
@@ -276,7 +558,13 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
                     onPress={() => onHairColorChange && onHairColorChange(c.colorHex)}
                     activeOpacity={0.8}
                   >
-                    <View style={[styles.colorCircle, { backgroundColor: c.colorHex }]} />
+                    <View
+                      style={[
+                        styles.colorCircle,
+                        { backgroundColor: c.colorHex },
+                        isSelected && styles.colorCircleActive
+                      ]}
+                    />
                     <Text
                       numberOfLines={1}
                       style={[styles.colorNameText, isSelected && styles.colorNameTextActive]}
@@ -337,10 +625,35 @@ const styles = StyleSheet.create({
     height: CANVAS_SIZE * 1.25,
     borderRadius: 24,
     overflow: 'hidden',
-    backgroundColor: '#241F1A',
+    backgroundColor: '#1E1A17',
     position: 'relative',
-    borderWidth: 2,
-    borderColor: '#B8895A'
+    borderWidth: 2.5,
+    cursor: 'grab' as any
+  },
+  canvasActiveHair: {
+    borderColor: '#B8895A',
+  },
+  canvasActivePhoto: {
+    borderColor: '#48D1B7',
+  },
+  userPhotoWrapper: {
+    width: '100%',
+    height: '100%',
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#0F0E0D'
+  },
+  userPhotoTransformContainer: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   userPhoto: {
     width: '100%',
@@ -386,7 +699,8 @@ const styles = StyleSheet.create({
     width: '76%',
     height: '58%',
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    pointerEvents: 'none'
   },
   hairImage: {
     width: '100%',
@@ -441,6 +755,19 @@ const styles = StyleSheet.create({
   miniCircleBtnActive: {
     backgroundColor: '#B8895A',
     borderColor: '#D8B98E'
+  },
+  miniRotateBtn: {
+    flexDirection: 'row',
+    width: 'auto',
+    paddingHorizontal: 8,
+    gap: 2,
+    backgroundColor: 'rgba(46, 34, 24, 0.9)',
+    borderColor: '#B8895A'
+  },
+  miniBtnLabel: {
+    color: '#FFD700',
+    fontSize: 10,
+    fontWeight: '700'
   },
   bottomGuideBadge: {
     position: 'absolute',
@@ -497,7 +824,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#B8895A'
   },
   tabLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: '#9B8B7A'
   },
@@ -506,6 +833,81 @@ const styles = StyleSheet.create({
   },
   tabContent: {
     padding: 12
+  },
+  targetSelectorRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 10
+  },
+  targetBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#F7EFE4',
+    borderWidth: 1,
+    borderColor: '#E8D8C4'
+  },
+  targetBtnActive: {
+    backgroundColor: '#B8895A',
+    borderColor: '#B8895A'
+  },
+  targetBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#8D7B68'
+  },
+  targetBtnTextActive: {
+    color: '#FFFFFF'
+  },
+  metricRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: '#FAF5ED',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#EFE5D8'
+  },
+  metricText: {
+    fontSize: 11,
+    color: '#6F6255',
+    fontWeight: '500'
+  },
+  metricHighlight: {
+    color: '#B8895A',
+    fontWeight: '700'
+  },
+  presetScaleRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 8
+  },
+  presetScaleBtn: {
+    flex: 1,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#F7EFE4',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#DDCBB5'
+  },
+  presetScaleBtnActive: {
+    backgroundColor: '#B8895A',
+    borderColor: '#B8895A'
+  },
+  presetScaleText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#B8895A'
+  },
+  presetScaleTextActive: {
+    color: '#FFFFFF'
   },
   toolRow: {
     flexDirection: 'row',
@@ -547,10 +949,41 @@ const styles = StyleSheet.create({
   resetBtn: {
     backgroundColor: '#B65A4B'
   },
+  rotate90Btn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#F7EFE4',
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#DDCBB5',
+    marginBottom: 8
+  },
+  rotate90Text: {
+    color: '#B8895A',
+    fontSize: 11,
+    fontWeight: '700'
+  },
+  alignHintText: {
+    fontSize: 11,
+    color: '#8D7B68',
+    textAlign: 'center',
+    marginTop: 4,
+    lineHeight: 16
+  },
+  colorSubText: {
+    fontSize: 12,
+    color: '#6F6255',
+    marginBottom: 8,
+    textAlign: 'center',
+    fontWeight: '500'
+  },
   colorPaletteRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 4
+    paddingVertical: 6
   },
   colorItem: {
     alignItems: 'center',
@@ -565,12 +998,19 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: '#EFE5D8',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
     elevation: 2
+  },
+  colorCircleActive: {
+    borderColor: '#B8895A',
+    borderWidth: 3,
+    shadowColor: '#B8895A',
+    shadowOpacity: 0.5,
+    shadowRadius: 4
   },
   colorNameText: {
     fontSize: 10,
@@ -615,4 +1055,3 @@ const styles = StyleSheet.create({
     color: '#FFFFFF'
   }
 });
-

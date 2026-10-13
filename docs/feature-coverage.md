@@ -1,34 +1,31 @@
 # Feature Capability Map
 
-Đây là đối chiếu heuristic dựa trên pattern phổ biến của app đặt lịch salon + AI thử tóc, **không phải đánh giá theo requirements chính thức** vì project chưa có tài liệu requirements được cung cấp.
+Bảng đối chiếu hiện trạng tính năng hệ thống StyleLock (EXE101) dựa trên mã nguồn thực tế tại backend (`exe/src/main/java`) và Python AI service (`ai-tryon-service`).
 
-| Nhóm tính năng | Trạng thái | Endpoint liên quan | Ghi chú |
+| Nhóm tính năng | Trạng thái | Endpoint liên quan | Ghi chú chi tiết |
 |---|---|---|---|
-| Đăng ký, đăng nhập, Google login, refresh/logout | Đã có | AUTH-01..08 | JWT stateless; change password và user profile hiện có. |
-| Quản lý salon | Đã có | SALON-01..07 | Tạo/sửa, list/detail, business hours, trạng thái admin. |
-| Quản lý stylist | Đã có | STYLIST-01..04 | Owner thêm/sửa, user xem detail/list. |
-| Danh mục dịch vụ | Đã có | SERVICE-01..04 | CRUD hạn chế; không có delete/availability riêng. |
-| Danh mục kiểu tóc | Đã có | CATEGORY-01..02, HAIR-01..07 | CRUD admin và gán kiểu tóc cho salon. |
-| Xem lịch trống | Đã có một phần | API-63 | Trả giờ mở cửa và booked intervals theo ngày/stylist; frontend vẫn tự chia slot theo duration. |
-| Đặt lịch | Đã có | BOOK-01..08, API-64 | Tạo, xem, confirm, cancel, complete và đổi lịch cho owner. |
-| Race condition/trùng slot | Một phần | BOOK-01 | DB migration có exclusion constraint và ErrorCode `BOOKING_001`; chưa có HTTP integration test xác nhận. |
-| Đổi lịch | Đã có | API-64 | Chỉ PENDING/CONFIRMED, owner, trước giờ hẹn ít nhất 2 giờ và không trùng slot. |
-| Thanh toán | Một phần | PAY-01..03 | Payment tạo theo booking event, xem payment, SePay webhook; không có API initiate/payment retry/refund. |
-| Thông báo | Đã có | NOTIFY-01..04 | List/unread/read/read-all; event listener tạo notification. |
-| Review/đánh giá | Đã có | REVIEW-01..05 | Tạo/sửa/xem/list/summary; service kiểm tra quan hệ booking. |
-| AI thử tóc, upload ảnh | Đã có | API-61, API-62 | Java có `TryOnController`/`TryOnService`; API-61 upload ảnh và gọi AI overlay, API-62 lưu ảnh finalize (Server-side merge). |
-| Lưu/xem kết quả AI | Đã có | API-62, API-65..66 | Có finalize, đọc một result và list result theo user; mỗi request chỉ có một result theo unique constraint. |
-| Xử lý ảnh không mặt/nhiều mặt/size/type | Đã có | API-61, API-62 | Java validate rỗng, tối đa 5 MB, JPEG/PNG/WebP và filename; Python từ chối ảnh không phát hiện mặt. Chưa có contract riêng cho nhiều mặt; MediaPipe chỉ lấy tối đa một mặt. |
-| Nhắc lịch | Đã có | Scheduler | Có `BookingReminderService` chạy ngầm. |
-| Quản trị user | Đã có | ADMIN-01..03 | List, cập nhật status, xóa (soft-delete). |
-| Duyệt salon | Đã có | ADMIN-04..06 | List, approve, reject. |
-| Báo cáo admin | Đã có | REPORT-01..03 | Overview, revenue theo Instant range, booking statistics. |
-| Phân quyền và ownership | Một phần | Security toàn bộ API | Role checks tồn tại ở nhiều controller; một số read route chỉ có global JWT, ownership phụ thuộc service, cần HTTP test User A/B. |
-| Audit/observability API | Đã có | AuditFilter | Đã thêm bảng `audit_logs` và `AuditFilter` cho `/api/`. |
+| Xác thực, Token & Tài khoản | Hoàn thiện | AUTH-01..13 | Đăng ký, Đăng nhập local, Google OAuth2, Refresh Token Rotation, Đăng xuất/Đăng xuất mọi thiết bị, Đổi mật khẩu, Quên/Đặt lại mật khẩu qua email token, Cập nhật profile, Upload Avatar Cloudinary, Xóa tài khoản (soft delete). |
+| Quản lý Salon | Hoàn thiện | SALON-01..07 | Đăng ký salon (chờ duyệt), cập nhật thông tin salon, business hours (thứ 2 - CN), trạng thái salon, chi tiết và danh sách. |
+| Quản lý Stylist | Hoàn thiện | STYLIST-01..04 | Thêm stylist vào salon, cập nhật stylist, xem chi tiết và danh sách stylist theo salon. |
+| Quản lý Dịch vụ | Hoàn thiện | SERVICE-01..04 | Tạo dịch vụ, cập nhật thông tin/giá/thời lượng, xem chi tiết và danh sách dịch vụ theo salon. |
+| Danh mục & Kiểu tóc | Hoàn thiện | CATEGORY-01..02, HAIR-01..07 | Admin tạo danh mục và kiểu tóc catalog; Salon gán/bỏ gán kiểu tóc làm việc; xem danh sách kiểu tóc salon. |
+| Xem lịch trống (Availability) | Hoàn thiện | BOOK-09 | Trả về giờ hoạt động của salon và các khoảng thời gian đã được đặt lịch của stylist theo ngày (`bookedIntervals`). |
+| Đặt lịch hẹn | Hoàn thiện | BOOK-01..08, BOOK-10 | Đặt lịch mới, xem chi tiết (chống lộ chéo), xem lịch của tôi, xem lịch theo salon/stylist, xác nhận, hủy lịch, hoàn thành lịch. |
+| Ngăn chặn trùng slot (Race condition) | Hoàn thiện | BOOK-01, BOOK-10 | Ràng buộc DB exclusion / unique constraint kèm bắt lỗi trả về `BOOKING_001` (409 Conflict). |
+| Đổi lịch hẹn (Reschedule) | Hoàn thiện | BOOK-10 | Khách hàng đổi sang giờ hẹn mới trước ít nhất 2 giờ, chỉ áp dụng cho đơn `PENDING`/`CONFIRMED`, tự động kiểm tra trùng slot. |
+| Thanh toán & Webhook | Hoàn thiện | PAY-01..03, ADMIN-07 | Tạo Payment tự động khi đặt lịch, xem payment của booking, Webhook SePay tự động xác thực và cập nhật `PAID` kèm chuyển booking sang `CONFIRMED`; Admin có API hoàn tiền `REFUNDED` (`ADMIN-07`). |
+| Thông báo (Notification) | Hoàn thiện | NOTIFY-01..04 | Lắng nghe sự kiện hệ thống (BookingCreated, BookingConfirmed, BookingCancelled, BookingCompleted, BookingReminder, PaymentCompleted, PaymentRefunded) để tự động sinh thông báo; API xem unread, read, read all. |
+| Nhắc lịch tự động | Hoàn thiện | Scheduler | `BookingReminderService` chạy định kỳ mỗi 15 phút, quét booking trong 2 giờ tới chưa gửi thông báo để phát `BookingReminderEvent`. |
+| Đánh giá & Nhận xét | Hoàn thiện | REVIEW-01..05 | Tạo đánh giá sau khi booking `COMPLETED`, chỉnh sửa đánh giá, xem danh sách đánh giá salon và xem tóm tắt rating (sao trung bình, biểu đồ sao). |
+| AI Thử tóc 2 bước | Hoàn thiện | TRYON-01..04 | Bước 1: Upload ảnh gốc -> MediaPipe Face Mesh phát hiện 468 điểm mặt -> trả tọa độ overlay ban đầu (`TRYON-01`). Bước 2: Khách căn chỉnh và xác nhận -> Python Pillow thực hiện server-side merge -> lưu kết quả lên Cloudinary (`TRYON-02`). Đọc chi tiết kết quả (`TRYON-03`) và xem danh sách lịch sử thử tóc (`TRYON-04`). |
+| Validate file ảnh AI | Hoàn thiện | TRYON-01 | Kiểm tra kích thước tối đa 5MB, định dạng JPEG/PNG/WebP, chống path traversal filename, Python kiểm tra khuôn mặt trước khi xử lý. |
+| Quản trị Người dùng & Duyệt Salon | Hoàn thiện | ADMIN-01..06 | Danh sách người dùng, khóa/mở khóa tài khoản, xóa tài khoản, danh sách salon, duyệt/từ chối salon. |
+| Quản trị Hoàn tiền | Hoàn thiện | ADMIN-07 | Admin xử lý hoàn tiền giao dịch hợp lệ, lưu lý do hoàn tiền và gửi thông báo cho khách. |
+| Báo cáo & Thống kê | Hoàn thiện | REPORT-01..03 | Dashboard Overview (theo timezone `Asia/Ho_Chi_Minh`), báo cáo doanh thu theo dải thời gian `from - to`, thống kê số lượng booking theo trạng thái. |
+| Ghi vết truy cập (Audit Log) | Hoàn thiện | AuditFilter | Bộ lọc `AuditFilter` bắt toàn bộ request `/api/**`, ghi log IP, method, URI, status, response time, userId vào bảng `audit_logs`. |
 
-## Đối chiếu service với endpoint
+## Đối chiếu kiến trúc & sự kiện
 
-- Có service nhưng không có endpoint riêng: tạo payment cho booking và hủy payment cho booking được gọi qua booking/payment event flow; `getBookingOrThrow`, `getSalonOrThrow`, `getServiceOrThrow`, `getHairstyleOrThrow` và các hàm đếm/báo cáo chỉ là service nội bộ hoặc được endpoint khác sử dụng.
-- Không thấy service hoặc endpoint cho refund, initiate payment riêng. Nhắc lịch, xóa user, audit log đã được thêm.
-- Ownership được kiểm tra ở service cho booking detail/cancel, salon update/business hours, stylist create/update, service create/update, hairstyle assign/unassign, review update/create, notification read và payment theo booking. Một số list/detail như stylist/service/hairstyle/review theo salon chỉ query theo id và có thể trả danh sách rỗng nếu salon không tồn tại.
-- Tài liệu này dùng tên API theo `requirements.md` hiện tại. Các mã `AUTH-01`, `BOOK-01`... trong tài liệu audit cũ là mã inventory trước đó, không phải mã mới của tài liệu requirements.
+1. **Event-Driven Architecture**: Booking, Payment và Notification liên kết lỏng lẻo thông qua Spring `ApplicationEventPublisher`. Khi một trạng thái thay đổi, event được bắn ra và `NotificationEventListener` xử lý tạo thông báo tương ứng.
+2. **AI Processing Pipeline**: Tách biệt giữa xử lý tính toán khuôn mặt (Python MediaPipe/Pillow) và quản lý nghiệp vụ/lưu trữ (Java Spring Boot/Cloudinary). Giao tiếp nội bộ qua HTTP RestClient với `Internal-Token` bảo mật.
+3. **Transaction & Compensation**: Khi upload ảnh AI hoặc finalize thất bại sau khi đã tải ảnh lên Cloudinary, hệ thống tự động gọi `StorageService.delete` để dọn dẹp file rác.

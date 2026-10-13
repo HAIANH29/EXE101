@@ -5,13 +5,17 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
-  Image
+  Image,
+  ActivityIndicator
 } from 'react-native';
-import { LocalizedText as Text } from '../i18n/LocalizedComponents';
+import { LocalizedText as Text, LocalizedAlert as Alert } from '../i18n/LocalizedComponents';
 import { HairCanvasOverlay } from '../components/HairCanvasOverlay';
 import { Hairstyle } from '../types';
 import { AppIcon } from '../components/AppIcon';
 import { MOCK_HAIRSTYLES } from '../services/mockData';
+import { backendApi } from '../services/backendApi';
+import { HAIR_COLORS } from '../services/hairAssetMap';
+import { applyTransformToImage } from '../utils/imageTransform';
 
 interface TryOnEditorScreenProps {
   navigation: any;
@@ -19,16 +23,28 @@ interface TryOnEditorScreenProps {
 }
 
 export const TryOnEditorScreen: React.FC<TryOnEditorScreenProps> = ({ navigation, route }) => {
-  const { userPhotoUri, hairstyle: initialHairstyle } = route.params;
+  const { userPhotoUri, hairstyle: initialHairstyle, initialHairColor } = route.params;
 
   const [currentHairstyle, setCurrentHairstyle] = useState<Hairstyle>(initialHairstyle || MOCK_HAIRSTYLES[0]);
+  // Hairstyle overlay transform state
   const [scale, setScale] = useState<number>(1.0);
   const [rotation, setRotation] = useState<number>(0);
   const [offsetX, setOffsetX] = useState<number>(0);
   const [offsetY, setOffsetY] = useState<number>(0);
   const [isFlipped, setIsFlipped] = useState<boolean>(false);
-  const [hairColor, setHairColor] = useState<string>('#1E2322');
+  const [hairColor, setHairColor] = useState<string>(initialHairColor || '#1E2322');
   const [opacity, setOpacity] = useState<number>(1.0);
+
+  // User portrait photo transform state (phóng to, thu nhỏ, xoay ảnh khuôn mặt)
+  const [photoScale, setPhotoScale] = useState<number>(1.0);
+  const [photoRotation, setPhotoRotation] = useState<number>(0);
+  const [photoOffsetX, setPhotoOffsetX] = useState<number>(0);
+  const [photoOffsetY, setPhotoOffsetY] = useState<number>(0);
+
+  // AI Model Generation State
+  const [isAiGenerating, setIsAiGenerating] = useState<boolean>(false);
+  const [aiResultImageUrl, setAiResultImageUrl] = useState<string | null>(null);
+  const [mode, setMode] = useState<'canvas' | 'aiResult'>('canvas');
 
   const handleReset = () => {
     setScale(1.0);
@@ -38,23 +54,81 @@ export const TryOnEditorScreen: React.FC<TryOnEditorScreenProps> = ({ navigation
     setIsFlipped(false);
     setHairColor('#1E2322');
     setOpacity(1.0);
+    setPhotoScale(1.0);
+    setPhotoRotation(0);
+    setPhotoOffsetX(0);
+    setPhotoOffsetY(0);
   };
 
   const handleSelectHairstyle = (hs: Hairstyle) => {
     setCurrentHairstyle(hs);
-    // Keep scale and position centered for the new hairstyle
     setScale(1.0);
     setRotation(0);
     setOffsetX(0);
     setOffsetY(0);
+    if (aiResultImageUrl) {
+      setMode('canvas');
+    }
+  };
+
+  const handleGenerateAi = async () => {
+    if (!userPhotoUri) return;
+
+    setIsAiGenerating(true);
+    try {
+      const hairId = currentHairstyle.apiId || (Number(currentHairstyle.id.replace(/\D/g, '')) || 1);
+      const highResHair = currentHairstyle.imageUrl && /^https?:\/\//.test(currentHairstyle.imageUrl)
+        ? currentHairstyle.imageUrl.replace(/([?&])w=\d+/, '$1w=1024')
+        : currentHairstyle.imageUrl;
+
+      // Map mã màu HEX sang ảnh mẫu màu cho HairFastGAN (StyleGAN2 latent space)
+      const matchedColor = HAIR_COLORS.find(
+        (c) => c.colorHex.toLowerCase() === hairColor.toLowerCase()
+      );
+      // Tự động bake ảnh đã xoay/zoom/căn chỉnh khuôn mặt để AI Model nhận ảnh chuẩn xác nhất
+      const alignedPhotoUri = await applyTransformToImage(userPhotoUri, {
+        scale: photoScale,
+        rotation: photoRotation,
+        offsetX: photoOffsetX,
+        offsetY: photoOffsetY,
+        outputSize: 1024
+      });
+
+      const response = await backendApi.generateTryOn({
+        imageUri: alignedPhotoUri,
+        hairstyleId: hairId,
+        hairImageUrl: highResHair,
+        colorImageUrl: colorImageUrl
+      });
+
+      if (response && response.resultImageUrl) {
+        setAiResultImageUrl(response.resultImageUrl);
+        setMode('aiResult');
+        Alert.alert(
+          '✨ Thành công',
+          `Đã sinh ảnh thật bằng Model AI mới cho mẫu "${currentHairstyle.name}" với tông màu ${matchedColor?.name || 'Tự nhiên'}!`
+        );
+      } else {
+        throw new Error('Không nhận được ảnh kết quả từ AI');
+      }
+    } catch (err: any) {
+      Alert.alert(
+        'Thử tóc bằng AI',
+        err?.message || 'Không thể gọi dịch vụ AI lúc này. Bạn có thể tiếp tục chỉnh sửa bằng thanh công cụ thủ công.',
+        [{ text: 'Đóng', style: 'cancel' }]
+      );
+    } finally {
+      setIsAiGenerating(false);
+    }
   };
 
   const handleProceedToFindSalon = () => {
     navigation.navigate('SalonList', {
       selectedHairstyle: currentHairstyle,
-      userPhotoUri: userPhotoUri
+      userPhotoUri: mode === 'aiResult' && aiResultImageUrl ? aiResultImageUrl : userPhotoUri
     });
   };
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -98,26 +172,103 @@ export const TryOnEditorScreen: React.FC<TryOnEditorScreenProps> = ({ navigation
           </View>
         </View>
 
-        {/* INTERACTIVE CANVAS OVERLAY WITH DEDICATED TRANSPARENT HAIR */}
-        <HairCanvasOverlay
-          userPhotoUri={userPhotoUri}
-          hairstyle={currentHairstyle}
-          scale={scale}
-          rotation={rotation}
-          offsetX={offsetX}
-          offsetY={offsetY}
-          isFlipped={isFlipped}
-          hairColor={hairColor}
-          opacity={opacity}
-          onScaleChange={setScale}
-          onRotationChange={setRotation}
-          onOffsetXChange={setOffsetX}
-          onOffsetYChange={setOffsetY}
-          onToggleFlip={() => setIsFlipped(!isFlipped)}
-          onHairColorChange={setHairColor}
-          onOpacityChange={setOpacity}
-          onReset={handleReset}
-        />
+        {/* AI Model Generation Bar */}
+        <View style={styles.aiActionBar}>
+          {aiResultImageUrl ? (
+            <View style={styles.modeToggleContainer}>
+              <TouchableOpacity
+                style={[styles.modeTab, mode === 'canvas' && styles.modeTabActive]}
+                onPress={() => setMode('canvas')}
+                activeOpacity={0.8}
+              >
+                <AppIcon name="scissors" size={14} color={mode === 'canvas' ? '#FFFFFF' : '#6F6255'} />
+                <Text style={[styles.modeTabText, mode === 'canvas' && styles.modeTabTextActive]}>
+                  Ghép thủ công
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modeTab, mode === 'aiResult' && styles.modeTabActive]}
+                onPress={() => setMode('aiResult')}
+                activeOpacity={0.8}
+              >
+                <AppIcon name="sparkle" size={14} color={mode === 'aiResult' ? '#FFFFFF' : '#6F6255'} />
+                <Text style={[styles.modeTabText, mode === 'aiResult' && styles.modeTabTextActive]}>
+                  Kết quả AI Model
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.generateAiBtn}
+              onPress={handleGenerateAi}
+              disabled={isAiGenerating}
+              activeOpacity={0.85}
+            >
+              {isAiGenerating ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <AppIcon name="sparkle" size={16} color="#FFFFFF" />
+              )}
+              <Text style={styles.generateAiBtnText}>
+                {isAiGenerating ? 'Model AI đang biến đổi tóc...' : '✨ Tạo ảnh thực tế bằng Model AI mới'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* INTERACTIVE CANVAS OVERLAY OR AI RESULT PREVIEW */}
+        {mode === 'aiResult' && aiResultImageUrl ? (
+          <View style={styles.aiResultPreviewContainer}>
+            <Image
+              source={{ uri: aiResultImageUrl }}
+              style={styles.aiResultImage}
+              resizeMode="contain"
+            />
+            <View style={styles.aiResultOverlayBadge}>
+              <AppIcon name="sparkle" size={14} color="#FFD700" />
+              <Text style={styles.aiResultOverlayText}>AI Model Generated</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.reGenerateSmallBtn}
+              onPress={handleGenerateAi}
+              disabled={isAiGenerating}
+              activeOpacity={0.8}
+            >
+              <AppIcon name="refresh" size={14} color="#B8895A" />
+              <Text style={styles.reGenerateSmallText}>Tạo lại AI</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <HairCanvasOverlay
+            userPhotoUri={userPhotoUri}
+            hairstyle={currentHairstyle}
+            scale={scale}
+            rotation={rotation}
+            offsetX={offsetX}
+            offsetY={offsetY}
+            isFlipped={isFlipped}
+            hairColor={hairColor}
+            opacity={opacity}
+            photoScale={photoScale}
+            photoRotation={photoRotation}
+            photoOffsetX={photoOffsetX}
+            photoOffsetY={photoOffsetY}
+            onScaleChange={setScale}
+            onRotationChange={setRotation}
+            onOffsetXChange={setOffsetX}
+            onOffsetYChange={setOffsetY}
+            onPhotoScaleChange={setPhotoScale}
+            onPhotoRotationChange={setPhotoRotation}
+            onPhotoOffsetXChange={setPhotoOffsetX}
+            onPhotoOffsetYChange={setPhotoOffsetY}
+            onToggleFlip={() => setIsFlipped(!isFlipped)}
+            onHairColorChange={setHairColor}
+            onOpacityChange={setOpacity}
+            onReset={handleReset}
+          />
+        )}
+
 
         {/* QUICK HAIRSTYLE SWITCHER CAROUSEL (ĐỔI MẪU TÓC NGAY DƯỚI ẢNH) */}
         <View style={styles.quickSelectorSection}>
@@ -449,6 +600,122 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     letterSpacing: 0.5
+  },
+  aiActionBar: {
+    marginBottom: 12
+  },
+  generateAiBtn: {
+    backgroundColor: '#B8895A',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    shadowColor: '#B8895A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3
+  },
+  generateAiBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  modeToggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#E5D9CA',
+    borderRadius: 12,
+    padding: 3,
+    gap: 4
+  },
+  modeTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    borderRadius: 9
+  },
+  modeTabActive: {
+    backgroundColor: '#B8895A',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2
+  },
+  modeTabText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6F6255'
+  },
+  modeTabTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700'
+  },
+  aiResultPreviewContainer: {
+    width: '100%',
+    height: 380,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E5D9CA',
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  aiResultImage: {
+    width: '100%',
+    height: '100%'
+  },
+  aiResultOverlayBadge: {
+    position: 'absolute',
+    top: 14,
+    left: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(36, 31, 26, 0.85)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FFD700'
+  },
+  aiResultOverlayText: {
+    color: '#FFD700',
+    fontSize: 10,
+    fontWeight: '800'
+  },
+  reGenerateSmallBtn: {
+    position: 'absolute',
+    bottom: 14,
+    right: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255, 253, 249, 0.95)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5D9CA',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2
+  },
+  reGenerateSmallText: {
+    color: '#B8895A',
+    fontSize: 11,
+    fontWeight: '700'
   }
 });
+
 

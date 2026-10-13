@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Salon Booking Backend API
   version: 0.0.1
-  description: Historical contract reconstructed from an earlier source snapshot. The current 66-endpoint contract, including availability, reschedule, try-on result routes, and 201 creation responses, is documented in docs/requirements.md.
+  description: Historical contract reconstructed from an earlier source snapshot. The current 73-endpoint contract, including availability, reschedule, try-on result routes, password reset, profile patch, refund, and 201 creation responses, is documented in docs/requirements.md.
 servers:
   - url: http://localhost:8080
 security:

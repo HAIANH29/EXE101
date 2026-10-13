@@ -13,6 +13,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import java.util.List;
 
@@ -118,6 +120,20 @@ public class GlobalExceptionHandler {
         ErrorResponse body = new ErrorResponse(
                 ErrorCode.VALIDATION_FAILED.getCode(),
                 message,
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    @ExceptionHandler({MissingServletRequestPartException.class, MultipartException.class})
+    public ResponseEntity<ErrorResponse> handleMultipartException(
+            Exception ex, HttpServletRequest request) {
+
+        log.warn("Multipart upload error at {}: {}", request.getRequestURI(), ex.getMessage());
+
+        ErrorResponse body = new ErrorResponse(
+                ErrorCode.TRYON_INVALID_FILE.getCode(),
+                "Dữ liệu ảnh tải lên không hợp lệ hoặc thiếu file ảnh.",
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);

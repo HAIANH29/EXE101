@@ -306,6 +306,40 @@ function inferAvatarFileName(input: AvatarUploadInput) {
   return `avatar-${Date.now()}.${extension}`;
 }
 
+async function appendImageToFormData(
+  formData: FormData,
+  fieldName: string,
+  uri: string,
+  fileName: string,
+  mimeType: string
+) {
+  const isWeb = typeof window !== 'undefined';
+  const isUrlLike = uri.startsWith('blob:') || uri.startsWith('data:') || uri.startsWith('http://') || uri.startsWith('https://');
+
+  if (isWeb || isUrlLike) {
+    try {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      if (typeof File !== 'undefined') {
+        const file = new File([blob], fileName, { type: mimeType || blob.type || 'image/jpeg' });
+        formData.append(fieldName, file);
+      } else {
+        formData.append(fieldName, blob, fileName);
+      }
+      return;
+    } catch (err) {
+      console.warn('Could not convert URI to File for FormData:', err);
+    }
+  }
+
+  // React Native Native (iOS / Android)
+  formData.append(fieldName, {
+    uri,
+    name: fileName,
+    type: mimeType
+  } as unknown as Blob);
+}
+
 export const backendApi = {
   isAuthenticated: authSessionStore.isAuthenticated,
   getCurrentUser: authSessionStore.get,
@@ -353,16 +387,7 @@ export const backendApi = {
     const fileName = inferAvatarFileName(input);
     const mimeType = inferAvatarMimeType(input);
 
-    if (input.uri.startsWith('blob:') || input.uri.startsWith('data:')) {
-      const blob = await fetch(input.uri).then((response) => response.blob());
-      formData.append('file', blob, fileName);
-    } else {
-      formData.append('file', {
-        uri: input.uri,
-        name: fileName,
-        type: mimeType
-      } as unknown as Blob);
-    }
+    await appendImageToFormData(formData, 'file', input.uri, fileName, mimeType);
 
     const user = await apiRequest<BackendUser>('/api/auth/me/avatar', {
       method: 'POST',
@@ -608,5 +633,59 @@ export const backendApi = {
       body: reason ? JSON.stringify({ reason }) : undefined
     });
     return mapBooking(booking);
+  },
+
+  async generateTryOn(input: {
+    imageUri: string;
+    hairstyleId: number;
+    hairImageUrl?: string;
+    colorImageUrl?: string;
+    fileName?: string;
+    mimeType?: string;
+  }) {
+    const formData = new FormData();
+    const fileName = inferAvatarFileName({ uri: input.imageUri, fileName: input.fileName, mimeType: input.mimeType });
+    const mimeType = inferAvatarMimeType({ uri: input.imageUri, fileName: input.fileName, mimeType: input.mimeType });
+
+    // If input.imageUri is already an online HTTP/HTTPS URL, send imageUrl field as well
+    if (input.imageUri.startsWith('http://') || input.imageUri.startsWith('https://')) {
+      formData.append('imageUrl', input.imageUri);
+    }
+
+    await appendImageToFormData(formData, 'image', input.imageUri, fileName, mimeType);
+
+    formData.append('hairstyleId', String(input.hairstyleId));
+    if (input.hairImageUrl) {
+      formData.append('hairImageUrl', input.hairImageUrl);
+    }
+    if (input.colorImageUrl) {
+      formData.append('colorImageUrl', input.colorImageUrl);
+    }
+
+    return apiRequest<{
+      requestId: number;
+      userId?: number;
+      hairstyleId: number;
+      inputImageUrl: string;
+      resultImageUrl: string;
+      status: string;
+    }>('/api/tryon', {
+      method: 'POST',
+      body: formData
+    });
+  },
+
+  async regenerateTryOn(requestId: number) {
+    return apiRequest<{
+      requestId: number;
+      userId?: number;
+      hairstyleId: number;
+      inputImageUrl: string;
+      resultImageUrl: string;
+      status: string;
+    }>(`/api/tryon/${requestId}/regenerate`, {
+      method: 'POST'
+    });
   }
 };
+
