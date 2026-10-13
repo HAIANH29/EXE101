@@ -43,7 +43,7 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navi
       const message = error instanceof Error ? error.message : 'Backend chưa gửi được email khôi phục.';
       Alert.alert(
         'Chưa gửi được email',
-        `${message}\n\nVui lòng kiểm tra backend đang chạy và cấu hình Gmail SMTP nếu muốn gửi mail thật.`
+        `${message}\n\nVui lòng thử lại sau hoặc liên hệ hỗ trợ nếu lỗi vẫn tiếp diễn.`
       );
     } finally {
       setIsSubmitting(false);

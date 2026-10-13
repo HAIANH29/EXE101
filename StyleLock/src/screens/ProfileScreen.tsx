@@ -34,6 +34,7 @@ const profileCopy = {
     editProfileRequired: 'Vui lòng đăng nhập trước khi chỉnh sửa hồ sơ.',
     avatarRequired: 'Vui lòng đăng nhập trước khi cập nhật ảnh đại diện.',
     passwordRequired: 'Vui lòng đăng nhập trước khi đổi mật khẩu.',
+    paymentHistoryRequired: 'Vui lòng đăng nhập để xem lịch sử thanh toán.',
     missingNameTitle: 'Thiếu họ tên',
     missingNameMessage: 'Họ tên không được để trống.',
     profileUpdatedTitle: 'Đã cập nhật',
@@ -82,6 +83,7 @@ const profileCopy = {
     favoriteHairstyles: 'Kiểu tóc yêu thích',
     savedSalons: 'Salon đã lưu',
     notifications: 'Thông báo',
+    paymentHistory: 'Lịch sử thanh toán',
     changePassword: 'Đổi mật khẩu',
     loggingOut: 'Đang đăng xuất...',
     editProfileTitle: 'Chỉnh sửa hồ sơ',
@@ -115,6 +117,7 @@ const profileCopy = {
     editProfileRequired: 'Please sign in before editing your profile.',
     avatarRequired: 'Please sign in before updating your avatar.',
     passwordRequired: 'Please sign in before changing your password.',
+    paymentHistoryRequired: 'Please sign in to view your payment history.',
     missingNameTitle: 'Missing name',
     missingNameMessage: 'Full name cannot be empty.',
     profileUpdatedTitle: 'Profile updated',
@@ -163,6 +166,7 @@ const profileCopy = {
     favoriteHairstyles: 'Favorite hairstyles',
     savedSalons: 'Saved salons',
     notifications: 'Notifications',
+    paymentHistory: 'Payment history',
     changePassword: 'Change password',
     loggingOut: 'Logging out...',
     editProfileTitle: 'Edit profile',
@@ -619,6 +623,24 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
             <AppIcon name="arrowRight" size={18} color="#6F6255" />
           </TouchableOpacity>
 
+          {/* Payment history */}
+          <TouchableOpacity
+            style={[styles.menuItem, styles.menuItemBorder]}
+            onPress={() =>
+              isAuthenticated
+                ? navigation.navigate('PaymentHistory')
+                : Alert.alert(t.signInTitle, t.paymentHistoryRequired)
+            }
+          >
+            <View style={styles.menuLeft}>
+              <View style={styles.menuIconBg}>
+                <AppIcon name="card" size={19} color="#B8895A" />
+              </View>
+              <Text style={styles.menuTitle}>{t.paymentHistory}</Text>
+            </View>
+            <AppIcon name="arrowRight" size={18} color="#6F6255" />
+          </TouchableOpacity>
+
           {/* Notifications */}
           <TouchableOpacity
             style={styles.menuItem}
@@ -864,18 +886,6 @@ const styles = StyleSheet.create({
     color: '#B8895A',
     letterSpacing: -0.5
   },
-  bellBadgeWrap: {
-    position: 'relative'
-  },
-  redDot: {
-    position: 'absolute',
-    top: 2,
-    right: 2,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#B65A4B'
-  },
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 24
@@ -919,9 +929,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#FFFFFF',
     elevation: 4
-  },
-  editAvatarIcon: {
-    fontSize: 14
   },
   userName: {
     fontSize: 24,
@@ -1070,12 +1077,6 @@ const styles = StyleSheet.create({
   logoutIconBg: {
     backgroundColor: 'rgba(186, 26, 26, 0.1)'
   },
-  menuIconText: {
-    fontSize: 18
-  },
-  logoutIconText: {
-    fontSize: 18
-  },
   menuTitle: {
     fontSize: 16,
     fontWeight: '600',
@@ -1085,17 +1086,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#B65A4B'
-  },
-  chevronIcon: {
-    fontSize: 20,
-    color: '#6F6255',
-    fontWeight: '300'
-  },
-  versionText: {
-    textAlign: 'center',
-    fontSize: 12,
-    color: '#9B8B7A',
-    marginTop: 12
   },
   modalBackdrop: {
     flex: 1,
@@ -1178,52 +1168,6 @@ const styles = StyleSheet.create({
   modalPrimaryText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '700'
-  },
-  bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 75,
-    backgroundColor: 'rgba(255, 253, 249, 0.96)',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#DDCBB5',
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10
-  },
-  navItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20
-  },
-  navItemActive: {
-    backgroundColor: 'rgba(169, 120, 69, 0.16)'
-  },
-  navIcon: {
-    fontSize: 18,
-    marginBottom: 2
-  },
-  navIconActive: {
-    transform: [{ scale: 1.1 }]
-  },
-  navLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#6F6255'
-  },
-  navLabelActive: {
-    color: '#B8895A',
     fontWeight: '700'
   }
 });

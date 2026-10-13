@@ -1,6 +1,7 @@
 import {
   Appointment,
   AuthSession,
+  PaymentInfo,
   BusinessHour,
   PageResponse,
   Salon,
@@ -47,7 +48,7 @@ function readEnvelope<T>(payload: ApiEnvelope<T> | T | undefined): T {
   return payload as T;
 }
 
-async function request<T>(path: string, options: RequestOptions = {}) {
+export async function request<T>(path: string, options: RequestOptions = {}) {
   const { auth = true, ...fetchOptions } = options;
   const session = getStoredSession();
   const headers: Record<string, string> = {
@@ -80,7 +81,7 @@ async function request<T>(path: string, options: RequestOptions = {}) {
   return readEnvelope<T>(payload);
 }
 
-async function page<T>(path: string) {
+export async function page<T>(path: string) {
   const result = await request<PageResponse<T>>(path);
   return result.content || [];
 }
@@ -202,6 +203,18 @@ export const salonApi = {
       method: 'POST',
       body: JSON.stringify(input)
     });
+  },
+
+  subscribePro(salonId: number) {
+    return request<PaymentInfo>(`/api/salons/${salonId}/pro/subscribe`, { method: 'POST' });
+  },
+
+  getPayment(paymentId: number) {
+    return request<PaymentInfo>(`/api/payments/${paymentId}`);
+  },
+
+  getPaymentHistory() {
+    return page<PaymentInfo>('/api/payments/history?size=50');
   },
 
   async getSalonBookings(salonId: number) {

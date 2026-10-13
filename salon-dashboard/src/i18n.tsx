@@ -103,7 +103,6 @@ const translations: Record<Language, Record<string, string>> = {
     complete: 'Hoàn tất',
     cancel: 'Hủy',
     all: 'Tất cả',
-    confirmed: 'Đã xác nhận',
     cancelled: 'Đã hủy',
 
     customerCrm: 'Customer CRM',
@@ -227,8 +226,6 @@ const translations: Record<Language, Record<string, string>> = {
     unlockShiftManagement: 'Mở khóa quản lý ca làm việc thợ',
     detailedRevenueReports: 'Báo cáo doanh thu chi tiết',
     unlimitedCustomersStylists: 'Không giới hạn khách hàng và stylist',
-    paymentComing: 'Chưa kết nối thanh toán',
-    paymentComingTitle: 'Tính năng thanh toán gói Pro đang được chuẩn bị',
     needConsulting: 'Cần tư vấn?',
     consultingDesc: 'Đội ngũ StyleLock có thể giúp salon chọn cấu hình dashboard phù hợp.',
     contactComing: 'Chưa có kênh liên hệ',
@@ -342,7 +339,6 @@ const translations: Record<Language, Record<string, string>> = {
     complete: 'Complete',
     cancel: 'Cancel',
     all: 'All',
-    confirmed: 'Confirmed',
     cancelled: 'Cancelled',
 
     customerCrm: 'Customer CRM',
@@ -466,8 +462,6 @@ const translations: Record<Language, Record<string, string>> = {
     unlockShiftManagement: 'Unlock advanced stylist shift management',
     detailedRevenueReports: 'Detailed revenue reports',
     unlimitedCustomersStylists: 'Unlimited customers and stylists',
-    paymentComing: 'Payment not connected',
-    paymentComingTitle: 'Pro plan payment is being prepared',
     needConsulting: 'Need guidance?',
     consultingDesc: 'The StyleLock team can help choose the right dashboard setup for your salon.',
     contactComing: 'Contact channel not available',

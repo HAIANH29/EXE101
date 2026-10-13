@@ -56,6 +56,18 @@ const TYPE_META: Record<NotificationType, NotificationMeta> = {
     color: '#B8895A',
     backgroundColor: '#F3E7D8',
     label: 'Thanh toán'
+  },
+  PAYMENT_REFUND_REQUESTED: {
+    icon: 'refresh',
+    color: '#8A6A2F',
+    backgroundColor: '#F7EBD3',
+    label: 'Chờ hoàn tiền'
+  },
+  PAYMENT_REFUNDED: {
+    icon: 'check',
+    color: '#4B6E8A',
+    backgroundColor: '#E1ECF4',
+    label: 'Đã hoàn tiền'
   }
 };
 
@@ -91,7 +103,11 @@ function formatTime(value: string, language: 'vi' | 'en') {
 }
 
 function isBookingRelated(type: NotificationItem['type']) {
-  return type.startsWith('BOOKING') || type === 'PAYMENT_COMPLETED';
+  return type.startsWith('BOOKING');
+}
+
+function isPaymentRelated(type: NotificationItem['type']) {
+  return type.startsWith('PAYMENT');
 }
 
 export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation }) => {
@@ -155,7 +171,15 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ naviga
       }
     }
 
-    const actions = isBookingRelated(notification.type)
+    const actions = isPaymentRelated(notification.type)
+      ? [
+          { text: 'Đóng', style: 'cancel' as const },
+          {
+            text: 'Xem thanh toán',
+            onPress: () => navigation.navigate('PaymentHistory')
+          }
+        ]
+      : isBookingRelated(notification.type)
       ? [
           { text: 'Đóng', style: 'cancel' as const },
           {

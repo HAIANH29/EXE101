@@ -6,15 +6,14 @@ import {
   TouchableOpacity,
   Image,
   SafeAreaView,
-  Dimensions,
   ImageBackground
 } from 'react-native';
 import { LocalizedText as Text, LocalizedTextInput as TextInput } from '../i18n/LocalizedComponents';
 import { useFocusEffect } from '@react-navigation/native';
-import { MOCK_HAIRSTYLES, MOCK_SALONS } from '../services/mockData';
+import { DataState } from '../components/DataState';
 import { backendApi } from '../services/backendApi';
-import { AppIcon, IconBadge } from '../components/AppIcon';
-import { Booking, Hairstyle, Salon } from '../types';
+import { AppIcon } from '../components/AppIcon';
+import { Booking, Hairstyle } from '../types';
 import { BottomNavBar } from '../components/BottomNavBar';
 import { NotificationBellButton } from '../components/NotificationBellButton';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -24,7 +23,6 @@ interface HomeScreenProps {
   navigation: any;
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 type DisplayUser = {
   fullName?: string;
@@ -46,9 +44,10 @@ function getStoredDisplayName() {
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const { language } = useLanguage();
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<string>('Home');
-  const [hairstyles, setHairstyles] = useState<Hairstyle[]>(MOCK_HAIRSTYLES);
-  const [salons, setSalons] = useState<Salon[]>(MOCK_SALONS);
+  const [hairstyles, setHairstyles] = useState<Hairstyle[]>([]);
+  const [loadingCatalog, setLoadingCatalog] = useState<boolean>(true);
+  const [catalogError, setCatalogError] = useState<string | undefined>();
+  const [reloadKey, setReloadKey] = useState<number>(0);
   const [upcomingBooking, setUpcomingBooking] = useState<Booking | undefined>();
   const [displayName, setDisplayName] = useState<string>(getStoredDisplayName);
   const [, setFavVersion] = useState<number>(0);
@@ -63,15 +62,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     const loadBackendData = async () => {
       setDisplayName(getStoredDisplayName());
 
-      try {
-        const [apiHairstyles, apiSalons] = await Promise.all([
-          backendApi.getHairstyles(),
-          backendApi.getSalons()
-        ]);
+      setLoadingCatalog(true);
+      setCatalogError(undefined);
 
+      try {
+        const apiHairstyles = await backendApi.getHairstyles();
         if (!isMounted) return;
-        if (apiHairstyles.length > 0) setHairstyles(apiHairstyles);
-        if (apiSalons.length > 0) setSalons(apiSalons);
+        setHairstyles(apiHairstyles);
+        setLoadingCatalog(false);
 
         if (backendApi.isAuthenticated()) {
           const [user, bookings] = await Promise.all([
@@ -85,8 +83,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           );
           if (isMounted) setUpcomingBooking(upcoming);
         }
-      } catch {
-        // Keep mock data when backend is unavailable or auth/CORS is not ready.
+      } catch (error) {
+        if (!isMounted) return;
+        setLoadingCatalog(false);
+        setCatalogError(error instanceof Error ? error.message : 'Không tải được danh sách kiểu tóc.');
       }
     };
 
@@ -94,8 +94,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
     return () => {
       isMounted = false;
+      unsubscribe();
     };
-  }, []));
+  }, [reloadKey]));
 
   const greetingTitle = displayName
     ? language === 'vi'
@@ -260,6 +261,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
+        <DataState
+          loading={loadingCatalog}
+          error={catalogError}
+          empty={!loadingCatalog && !catalogError && hairstyles.length === 0}
+          emptyText="Chưa có kiểu tóc nào trong catalog."
+          onRetry={() => setReloadKey((k) => k + 1)}
+        />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
           {hairstyles.slice(0, 6).map((hair, index) => {
             const matchPercent = 98 - index * 3;
@@ -465,9 +473,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8
   },
-  actionEmoji: {
-    fontSize: 22
-  },
   quickActionText: {
     fontSize: 13,
     fontWeight: '600',
@@ -541,10 +546,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
-  arrowIcon: {
-    color: '#FFFFFF',
-    fontSize: 16
-  },
   horizontalScroll: {
     marginBottom: 20,
     marginHorizontal: -20,
@@ -583,9 +584,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
-  favHeart: {
-    fontSize: 14
-  },
   recommendName: {
     fontSize: 14,
     fontWeight: '600',
@@ -595,52 +593,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6F6255',
     marginTop: 2
-  },
-  bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 75,
-    backgroundColor: 'rgba(255, 253, 249, 0.96)',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#DDCBB5',
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10
-  },
-  navItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20
-  },
-  navItemActive: {
-    backgroundColor: 'rgba(169, 120, 69, 0.16)'
-  },
-  navIcon: {
-    fontSize: 18,
-    marginBottom: 2
-  },
-  navIconActive: {
-    transform: [{ scale: 1.1 }]
-  },
-  navLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#6F6255'
-  },
-  navLabelActive: {
-    color: '#B8895A',
-    fontWeight: '700'
   }
 });
 

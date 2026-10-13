@@ -62,10 +62,6 @@ export const favoritesStore = {
     return nextState;
   },
 
-  getAllFavoriteIds(): string[] {
-    return Array.from(favoriteIds);
-  },
-
   subscribe(listener: FavoriteListener) {
     listeners.add(listener);
     return () => {

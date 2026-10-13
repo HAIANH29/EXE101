@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { LocalizedText as Text, LocalizedAlert as Alert } from '../i18n/LocalizedComponents';
 import { Hairstyle } from '../types';
-import { MOCK_HAIRSTYLES } from '../services/mockData';
 import { AppIcon } from '../components/AppIcon';
 import { favoritesStore } from '../services/favoritesStore';
 
@@ -21,7 +20,24 @@ interface HairstyleDetailScreenProps {
 
 export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ navigation, route }) => {
   const hairstyleParam: Hairstyle | undefined = route?.params?.hairstyle;
-  const hair: Hairstyle = hairstyleParam || MOCK_HAIRSTYLES[0];
+
+  if (!hairstyleParam) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 16 }}>
+          <Text>Không tìm thấy thông tin kiểu tóc.</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('HairstyleSelect')}>
+            <Text>Xem danh sách kiểu tóc</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return <HairstyleDetailContent navigation={navigation} hair={hairstyleParam} />;
+};
+
+const HairstyleDetailContent: React.FC<{ navigation: any; hair: Hairstyle }> = ({ navigation, hair }) => {
 
   const [isFavorite, setIsFavorite] = useState<boolean>(
     favoritesStore.isFavorite(hair.id)
@@ -125,7 +141,7 @@ export const HairstyleDetailScreen: React.FC<HairstyleDetailScreenProps> = ({ na
           <View style={styles.styleTitlePriceRow}>
             <View style={styles.styleTitleCol}>
               <View style={styles.statusBadge}>
-                <Text style={styles.statusBadgeText}>{hair.tag || 'TRENDING'}</Text>
+                <Text style={styles.statusBadgeText}>{hair.category}</Text>
               </View>
               <Text style={styles.styleNameText}>{hair.name}</Text>
             </View>

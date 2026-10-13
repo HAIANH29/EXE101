@@ -9,7 +9,7 @@ import {
   Platform
 } from 'react-native';
 import { LocalizedText as Text, LocalizedTextInput as TextInput, LocalizedAlert as Alert } from '../i18n/LocalizedComponents';
-import { MOCK_SALONS } from '../services/mockData';
+import { DataState } from '../components/DataState';
 import { backendApi } from '../services/backendApi';
 import { Hairstyle, Salon } from '../types';
 import { AppIcon } from '../components/AppIcon';
@@ -31,19 +31,24 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeFilter, setActiveFilter] = useState<string>('Open Now');
   const [, setFavVersion] = useState<number>(0);
-  const [salons, setSalons] = useState<Salon[]>(MOCK_SALONS);
+  const [salons, setSalons] = useState<Salon[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<string | undefined>();
+  const [reloadKey, setReloadKey] = useState<number>(0);
 
   useEffect(() => {
     let isMounted = true;
 
     const loadSalons = async () => {
+      setLoading(true);
+      setLoadError(undefined);
       try {
         const apiSalons = await backendApi.getSalons();
-        if (isMounted && apiSalons.length > 0) {
-          setSalons(apiSalons);
-        }
-      } catch {
-        // Keep mock salons when backend salon APIs are unavailable.
+        if (isMounted) setSalons(apiSalons);
+      } catch (error) {
+        if (isMounted) setLoadError(error instanceof Error ? error.message : 'Không tải được danh sách salon.');
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
 
@@ -57,7 +62,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
       isMounted = false;
       unsubscribe();
     };
-  }, []);
+  }, [reloadKey]);
 
   const toggleFavorite = (id: string) => {
     favoritesStore.toggleFavorite(id);
@@ -191,6 +196,13 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
 
         {/* Salon Cards List */}
         <View style={styles.salonList}>
+          <DataState
+            loading={loading}
+            error={loadError}
+            empty={!loading && !loadError && salonsToDisplay.length === 0}
+            emptyText="Không tìm thấy salon phù hợp."
+            onRetry={() => setReloadKey((k) => k + 1)}
+          />
           {salonsToDisplay.map((salon) => {
             const isFav = favoritesStore.isFavorite(salon.id);
             const isSupported = selectedHairstyle

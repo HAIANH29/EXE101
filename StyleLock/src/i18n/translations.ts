@@ -29,10 +29,6 @@ const entries: TranslationEntry[] = [
   { vi: 'Vui lòng nhập email và mật khẩu để đăng nhập backend.', en: 'Please enter email and password to sign in to the backend.' },
   { vi: 'Không đăng nhập được backend', en: 'Could not sign in to backend' },
   { vi: 'Vào demo', en: 'Enter demo' },
-  { vi: 'Đăng nhập Google', en: 'Google sign in' },
-  { vi: 'Đăng nhập Apple', en: 'Apple sign in' },
-  { vi: 'Đang đăng nhập qua Google...', en: 'Signing in with Google...' },
-  { vi: 'Đang đăng nhập qua Apple...', en: 'Signing in with Apple...' },
   { vi: 'OK', en: 'OK' },
   { vi: 'Hủy', en: 'Cancel' },
   { vi: 'Đóng', en: 'Close' },
@@ -392,14 +388,6 @@ const dynamicRules: Array<{
       const percent = value.match(/^(\d+)% Match$/)?.[1];
       if (!percent) return undefined;
       return language === 'vi' ? `${percent}% phù hợp` : `${percent}% Match`;
-    }
-  },
-  {
-    match: /^Đăng nhập (Google|Apple)$/,
-    build: (language, value) => {
-      const provider = value.match(/^Đăng nhập (Google|Apple)$/)?.[1];
-      if (!provider) return undefined;
-      return language === 'vi' ? `Đăng nhập ${provider}` : `${provider} sign in`;
     }
   },
   {

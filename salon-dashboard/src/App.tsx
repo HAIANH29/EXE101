@@ -14,14 +14,26 @@ import { useI18n } from './i18n';
 import { salonApi } from './services/api';
 import { NavigationTab, Salon, UserAccount } from './types/salon';
 import styleLockLogo from './assets/stylelock-logo-transparent.png';
+import { AdminShell } from './components/admin/AdminShell';
+import { AdminOverview } from './components/admin/AdminOverview';
+import { AdminSalons } from './components/admin/AdminSalons';
+import { AdminUsers } from './components/admin/AdminUsers';
+import { AdminCatalog } from './components/admin/AdminCatalog';
+import { AdminPayments } from './components/admin/AdminPayments';
+import { AdminTab } from './types/admin';
+
+function isAdminUser(user?: UserAccount) {
+  return Boolean(user?.roles?.includes('ADMIN'));
+}
 
 function hasOwnerRole(user?: UserAccount) {
-  return Boolean(user?.roles?.includes('SALON_OWNER') || user?.roles?.includes('ADMIN'));
+  return Boolean(user?.roles?.includes('SALON_OWNER') || isAdminUser(user));
 }
 
 export function App() {
   const { t } = useI18n();
   const [currentTab, setCurrentTab] = useState<NavigationTab>('Dashboard');
+  const [adminTab, setAdminTab] = useState<AdminTab>('Overview');
   const [user, setUser] = useState<UserAccount | undefined>(salonApi.getStoredSession()?.user);
   const [salons, setSalons] = useState<Salon[]>([]);
   const [selectedSalonId, setSelectedSalonId] = useState<number | undefined>();
@@ -83,7 +95,7 @@ export function App() {
           setAuthError(t('missingOwnerRole'));
           return;
         }
-        await loadSalons();
+        if (!isAdminUser(me)) await loadSalons();
       } catch {
         if (active) setUser(undefined);
       } finally {
@@ -106,7 +118,7 @@ export function App() {
       setAuthError(t('loginNoOwnerRole'));
       return;
     }
-    await loadSalons();
+    if (!isAdminUser(me)) await loadSalons();
   };
 
   const handleLogout = async () => {
@@ -116,6 +128,7 @@ export function App() {
     setSelectedSalonId(undefined);
     setCreatingSalon(false);
     setCurrentTab('Dashboard');
+    setAdminTab('Overview');
   };
 
   const refreshAfterSettingsSave = async (preferredSalonId?: number) => {
@@ -147,7 +160,7 @@ export function App() {
           />
         );
       case 'Subscription':
-        return <SubscriptionView />;
+        return <SubscriptionView salon={selectedSalon} />;
       default:
         return <PlaceholderView tab={currentTab} />;
     }
@@ -164,6 +177,18 @@ export function App() {
 
   if (!user || authError) {
     return <LoginScreen error={authError} onLogin={handleLogin} />;
+  }
+
+  if (isAdminUser(user)) {
+    return (
+      <AdminShell currentTab={adminTab} user={user} onTabChange={setAdminTab} onLogout={handleLogout}>
+        {adminTab === 'Overview' && <AdminOverview onNavigate={setAdminTab} />}
+        {adminTab === 'Salons' && <AdminSalons />}
+        {adminTab === 'Users' && <AdminUsers currentUserId={user.id} />}
+        {adminTab === 'Catalog' && <AdminCatalog />}
+        {adminTab === 'Payments' && <AdminPayments />}
+      </AdminShell>
+    );
   }
 
   return (

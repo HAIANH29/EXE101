@@ -9,10 +9,9 @@ import {
   Platform
 } from 'react-native';
 import { LocalizedText as Text, LocalizedAlert as Alert } from '../i18n/LocalizedComponents';
-import { backendApi } from '../services/backendApi';
-import { Salon, Hairstyle, ServiceItem, StylistItem, Booking } from '../types';
+import { backendApi, BackendAvailability } from '../services/backendApi';
+import { Salon, Hairstyle, ServiceItem, StylistItem } from '../types';
 import { AppIcon } from '../components/AppIcon';
-import { useLanguage } from '../i18n/LanguageContext';
 import { favoritesStore } from '../services/favoritesStore';
 import { bookingService } from '../services/bookingService';
 
@@ -21,29 +20,42 @@ interface SalonDetailScreenProps {
   route: any;
 }
 
-const TIME_SLOTS = [
-  '09:00', '09:30', '10:00', '10:30', '11:00',
-  '14:00', '14:30', '15:00', '15:30', '16:00',
-  '17:00', '17:30', '18:00', '18:30', '19:00'
-];
+const SLOT_STEP_MINUTES = 30;
+const DEFAULT_DURATION_MINUTES = 30;
 
-const DEFAULT_STYLISTS: StylistItem[] = [
-  {
-    id: 'st-1',
-    name: 'Elena R.',
-    role: 'Master Colorist',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300'
-  },
-  {
-    id: 'st-2',
-    name: 'Marcus T.',
-    role: 'Precision Cuts',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300'
+type TimeSlot = { value: string; disabled: boolean };
+
+const pad = (n: number) => String(n).padStart(2, '0');
+
+function toMinutes(time: string) {
+  const [h, m] = time.split(':').map(Number);
+  return h * 60 + m;
+}
+
+// Sinh khung giờ từ giờ mở/đóng cửa của salon, khóa các giờ đã qua hoặc trùng lịch của stylist.
+function buildTimeSlots(date: string, availability: BackendAvailability | undefined, durationMinutes: number): TimeSlot[] {
+  if (!availability || availability.closed || !availability.openTime || !availability.closeTime) return [];
+
+  const open = toMinutes(availability.openTime);
+  const close = toMinutes(availability.closeTime);
+  const booked = availability.bookedIntervals.map((interval) => ({
+    start: new Date(interval.startAt).getTime(),
+    end: new Date(interval.endAt).getTime()
+  }));
+
+  const slots: TimeSlot[] = [];
+  for (let minute = open; minute + durationMinutes <= close; minute += SLOT_STEP_MINUTES) {
+    const value = `${pad(Math.floor(minute / 60))}:${pad(minute % 60)}`;
+    const start = new Date(`${date}T${value}:00+07:00`).getTime();
+    const end = start + durationMinutes * 60000;
+    const isPast = start <= Date.now();
+    const overlaps = booked.some((interval) => interval.start < end && interval.end > start);
+    slots.push({ value, disabled: isPast || overlaps });
   }
-];
+  return slots;
+}
 
 export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation, route }) => {
-  const { language } = useLanguage();
   const salon: Salon = route.params.salon;
   const selectedHairstyle: Hairstyle | undefined = route.params?.selectedHairstyle;
   const userPhotoUri: string | undefined = route.params?.userPhotoUri;
@@ -51,9 +63,7 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
   const [activeTab, setActiveTab] = useState<string>('Services');
   const [isFavorite, setIsFavorite] = useState<boolean>(favoritesStore.isFavorite(salon.id));
   const [salonServices, setSalonServices] = useState<ServiceItem[]>(salon.services);
-  const [salonStylists, setSalonStylists] = useState<StylistItem[]>(
-    salon.stylists && salon.stylists.length > 0 ? salon.stylists : DEFAULT_STYLISTS
-  );
+  const [salonStylists, setSalonStylists] = useState<StylistItem[]>(salon.stylists || []);
 
   // Dates
   const today = new Date();
@@ -71,11 +81,51 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
   });
 
   const [selectedDate, setSelectedDate] = useState<string>(dateOptions[0].fullDate);
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('14:30');
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
+  const [availability, setAvailability] = useState<BackendAvailability | undefined>();
+  const [slotsLoading, setSlotsLoading] = useState<boolean>(false);
+  const [slotsError, setSlotsError] = useState<string | undefined>();
   const [selectedService, setSelectedService] = useState<ServiceItem | undefined>(salon.services[0]);
   const [selectedStylist, setSelectedStylist] = useState<StylistItem | undefined>(
-    salon.stylists && salon.stylists.length > 0 ? salon.stylists[0] : DEFAULT_STYLISTS[0]
+    salon.stylists && salon.stylists.length > 0 ? salon.stylists[0] : undefined
   );
+
+  const timeSlots = buildTimeSlots(
+    selectedDate,
+    availability,
+    selectedService?.durationMinutes || DEFAULT_DURATION_MINUTES
+  );
+
+  // Lấy lịch trống thật của stylist theo ngày
+  useEffect(() => {
+    if (!salon.apiId || !selectedStylist?.apiId) {
+      setAvailability(undefined);
+      return;
+    }
+
+    let isMounted = true;
+    setSlotsLoading(true);
+    setSlotsError(undefined);
+    setSelectedTimeSlot('');
+
+    backendApi
+      .getAvailability(salon.apiId, selectedStylist.apiId, selectedDate)
+      .then((result) => {
+        if (isMounted) setAvailability(result);
+      })
+      .catch((error) => {
+        if (!isMounted) return;
+        setAvailability(undefined);
+        setSlotsError(error instanceof Error ? error.message : 'Không tải được lịch trống.');
+      })
+      .finally(() => {
+        if (isMounted) setSlotsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [salon.apiId, selectedStylist?.apiId, selectedDate]);
 
   useEffect(() => {
     let isMounted = true;
@@ -101,7 +151,7 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
           setSelectedStylist(apiStylists[0]);
         }
       } catch {
-        // Keep route/mock salon details when backend detail APIs are unavailable.
+        // Giữ dữ liệu salon từ route nếu API chi tiết tạm lỗi.
       }
     };
 
@@ -141,55 +191,40 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
       return;
     }
 
+    if (!backendApi.isAuthenticated()) {
+      Alert.alert('Cần đăng nhập', 'Vui lòng đăng nhập để đặt lịch.', [
+        { text: 'Đóng', style: 'cancel' },
+        { text: 'Đăng nhập', onPress: () => navigation.navigate('Login') }
+      ]);
+      return;
+    }
+
+    if (!salon.apiId || !selectedService.apiId || !selectedStylist.apiId) {
+      Alert.alert('Không thể đặt lịch', 'Salon, dịch vụ hoặc stylist này chưa có trên hệ thống.');
+      return;
+    }
+
     const currentUser = backendApi.getCurrentUser()?.user;
     const customerName = currentUser?.fullName || 'Khách hàng StyleLock';
-    const customerPhone = currentUser?.phone || '0901234567';
+    const customerPhone = currentUser?.phone;
 
     try {
-      if (salon.apiId && selectedService.apiId && selectedStylist?.apiId && backendApi.isAuthenticated()) {
-        const backendBooking = await backendApi.createBooking({
-          salon: {
-            ...salon,
-            services: salonServices,
-            stylists: salonStylists
-          },
-          service: selectedService,
-          stylist: selectedStylist,
-          selectedDate,
-          selectedTimeSlot,
-          hairstyle: selectedHairstyle,
-          userPhotoUri,
-          note: `Đặt lịch hẹn trực tiếp từ StyleLock app. Khách: ${customerName} (${customerPhone})`
-        });
-        bookingService.upsertBooking(backendBooking);
-        navigation.navigate('BookingStatus', { bookingId: backendBooking.id });
-        return;
-      }
-
-      // Local mock booking fallback
-      const mockBooking: Booking = {
-        id: `book-${Date.now()}`,
-        customerName,
-        customerPhone,
-        salonId: salon.id,
-        salonName: salon.name,
-        salonAddress: salon.address,
-        hairstyleId: selectedHairstyle?.id,
-        hairstyleName: selectedHairstyle?.name,
-        tryOnImageUrl: userPhotoUri || selectedHairstyle?.imageUrl,
-        serviceId: selectedService.id,
-        serviceName: selectedService.name,
-        stylistId: selectedStylist.id,
-        stylistName: selectedStylist.name,
-        date: selectedDate,
-        timeSlot: selectedTimeSlot,
-        status: 'CONFIRMED',
-        createdAt: new Date().toISOString(),
-        totalPrice: selectedService.price,
-        qrCode: `STYLELOCK-${Date.now()}`
-      };
-      bookingService.upsertBooking(mockBooking);
-      navigation.navigate('BookingStatus', { bookingId: mockBooking.id });
+      const backendBooking = await backendApi.createBooking({
+        salon: {
+          ...salon,
+          services: salonServices,
+          stylists: salonStylists
+        },
+        service: selectedService,
+        stylist: selectedStylist,
+        selectedDate,
+        selectedTimeSlot,
+        hairstyle: selectedHairstyle,
+        userPhotoUri,
+        note: `Đặt lịch hẹn từ StyleLock app. Khách: ${customerName}${customerPhone ? ` (${customerPhone})` : ''}`
+      });
+      bookingService.upsertBooking(backendBooking);
+      navigation.navigate('Payment', { bookingId: backendBooking.id });
     } catch (error: any) {
       const message = error instanceof Error ? error.message : 'Không tạo được lịch hẹn.';
       Alert.alert('Lỗi đặt lịch', message);
@@ -288,7 +323,7 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionHeading}>Top Stylists</Text>
           <View style={styles.stylistsGrid}>
-            {salonStylists.slice(0, 2).map((st) => {
+            {salonStylists.map((st) => {
               const isSelected = selectedStylist?.id === st.id;
               return (
                 <TouchableOpacity
@@ -300,7 +335,7 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
                   <Image source={{ uri: st.avatar || salon.imageUrl }} style={styles.stylistAvatarImg} />
                   <View style={styles.stylistInfoCol}>
                     <Text style={styles.stylistNameText} numberOfLines={1}>{st.name}</Text>
-                    <Text style={styles.stylistRoleText} numberOfLines={1}>{st.role || 'Master Colorist'}</Text>
+                    <Text style={styles.stylistRoleText} numberOfLines={1}>{st.role || 'Stylist'}</Text>
                   </View>
                 </TouchableOpacity>
               );
@@ -379,23 +414,44 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
         {/* Time Slot Selection */}
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionHeading}>Select Time</Text>
-          <View style={styles.timeSlotsGrid}>
-            {TIME_SLOTS.map((slot) => {
-              const isSelected = selectedTimeSlot === slot;
-              return (
-                <TouchableOpacity
-                  key={slot}
-                  style={[styles.timeSlotPill, isSelected && styles.timeSlotPillActive]}
-                  onPress={() => setSelectedTimeSlot(slot)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[styles.timeSlotText, isSelected && styles.timeSlotTextActive]}>
-                    {slot}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          {slotsLoading ? (
+            <Text style={styles.emptyServiceText}>Đang tải lịch trống...</Text>
+          ) : slotsError ? (
+            <Text style={styles.emptyServiceText}>{slotsError}</Text>
+          ) : timeSlots.length === 0 ? (
+            <Text style={styles.emptyServiceText}>
+              {availability?.closed ? 'Salon nghỉ vào ngày này.' : 'Chưa có khung giờ trống cho lựa chọn này.'}
+            </Text>
+          ) : (
+            <View style={styles.timeSlotsGrid}>
+              {timeSlots.map((slot) => {
+                const isSelected = selectedTimeSlot === slot.value;
+                return (
+                  <TouchableOpacity
+                    key={slot.value}
+                    style={[
+                      styles.timeSlotPill,
+                      isSelected && styles.timeSlotPillActive,
+                      slot.disabled && styles.timeSlotPillDisabled
+                    ]}
+                    onPress={() => setSelectedTimeSlot(slot.value)}
+                    disabled={slot.disabled}
+                    activeOpacity={0.8}
+                  >
+                    <Text
+                      style={[
+                        styles.timeSlotText,
+                        isSelected && styles.timeSlotTextActive,
+                        slot.disabled && styles.timeSlotTextDisabled
+                      ]}
+                    >
+                      {slot.value}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
         </View>
 
         {/* Location Section */}
@@ -618,10 +674,12 @@ const styles = StyleSheet.create({
   },
   stylistsGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12
   },
   stylistCard: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: '45%',
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
@@ -792,6 +850,15 @@ const styles = StyleSheet.create({
   timeSlotPillActive: {
     backgroundColor: '#B8895A',
     borderColor: '#B8895A'
+  },
+  timeSlotPillDisabled: {
+    backgroundColor: '#F1EBE2',
+    borderColor: '#E5D9CA',
+    opacity: 0.55
+  },
+  timeSlotTextDisabled: {
+    color: '#A39482',
+    textDecorationLine: 'line-through'
   },
   timeSlotText: {
     fontSize: 12,

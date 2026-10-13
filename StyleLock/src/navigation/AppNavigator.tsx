@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { authSessionStore } from '../services/apiClient';
 import { LoginScreen } from '../screens/LoginScreen';
@@ -17,6 +17,8 @@ import { BookingHistoryScreen } from '../screens/BookingHistoryScreen';
 import { NotificationsScreen } from '../screens/NotificationsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { SalonDashboardScreen } from '../screens/SalonDashboardScreen';
+import { PaymentScreen } from '../screens/PaymentScreen';
+import { PaymentHistoryScreen } from '../screens/PaymentHistoryScreen';
 import { AdminDashboardScreen } from '../screens/AdminDashboardScreen';
 import { palette } from '../theme/palette';
 
@@ -62,6 +64,8 @@ export const AppNavigator = () => {
           <Stack.Screen name="SalonDetail" component={SalonDetailScreen} />
           <Stack.Screen name="BookingStatus" component={BookingStatusScreen} />
           <Stack.Screen name="BookingHistory" component={BookingHistoryScreen} />
+          <Stack.Screen name="Payment" component={PaymentScreen} />
+          <Stack.Screen name="PaymentHistory" component={PaymentHistoryScreen} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
           <Stack.Screen name="Profile" component={ProfileScreen} />
           <Stack.Screen name="SalonDashboard" component={SalonDashboardScreen} />

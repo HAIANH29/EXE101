@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -8,8 +8,8 @@ import {
   Platform
 } from 'react-native';
 import { LocalizedText as Text } from '../i18n/LocalizedComponents';
-import { bookingService } from '../services/bookingService';
-import { MOCK_HAIRSTYLES, MOCK_SALONS } from '../services/mockData';
+import { backendApi, DashboardOverview } from '../services/backendApi';
+import { DataState } from '../components/DataState';
 import { AppIcon, IconBadge } from '../components/AppIcon';
 
 interface AdminDashboardScreenProps {
@@ -17,13 +17,41 @@ interface AdminDashboardScreenProps {
 }
 
 export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ navigation }) => {
-  const analytics = bookingService.getAnalytics();
+  const [overview, setOverview] = useState<DashboardOverview | undefined>();
+  const [loading, setLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<string | undefined>();
+  const [reloadKey, setReloadKey] = useState<number>(0);
 
-  const totalTryOns = 1420;
-  const conversionRate = (
-    (analytics.totalBookings / (totalTryOns || 1)) *
-    100
-  ).toFixed(1);
+  const isAdmin = backendApi.isAuthenticated() && backendApi.hasRole('ADMIN');
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setLoading(false);
+      return;
+    }
+
+    let isMounted = true;
+    setLoading(true);
+    setLoadError(undefined);
+
+    backendApi
+      .getDashboardOverview()
+      .then((result) => {
+        if (isMounted) setOverview(result);
+      })
+      .catch((error) => {
+        if (isMounted) setLoadError(error instanceof Error ? error.message : 'Không tải được số liệu hệ thống.');
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isAdmin, reloadKey]);
+
+  const revenueThisMonth = Number(overview?.revenueThisMonth || 0);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -46,71 +74,84 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ navi
         <View style={styles.pitchBanner}>
           <View style={styles.pitchHeaderRow}>
             <IconBadge name="trendingUp" size={16} containerStyle={styles.pitchIconBadge} />
-            <Text style={styles.pitchTitle}>PITCH DECK METRICS</Text>
+            <Text style={styles.pitchTitle}>CHỈ SỐ HỆ THỐNG</Text>
             <View style={styles.funnelBadge}>
               <Text style={styles.funnelBadgeText}>O2O Funnel</Text>
             </View>
           </View>
-          <Text style={styles.pitchSub}>Chỉ số đo lường hiệu quả chuyển đổi từ Virtual Try-On đến Salon Booking</Text>
+          <Text style={styles.pitchSub}>Số liệu thật từ backend StyleLock (chỉ dành cho quản trị viên)</Text>
         </View>
+
+        {!isAdmin && (
+          <View style={styles.kpiCard}>
+            <Text style={styles.kpiLabel}>
+              Khu vực này dành cho quản trị viên. Vui lòng đăng nhập bằng tài khoản admin để xem số liệu hệ thống.
+            </Text>
+            {!backendApi.isAuthenticated() && (
+              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                <Text style={styles.backBtnText}>Đăng nhập</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {isAdmin && (
+          <DataState loading={loading} error={loadError} onRetry={() => setReloadKey((k) => k + 1)} />
+        )}
 
         {/* 2-COLUMN COMPACT KPI GRID */}
-        <View style={styles.kpiGrid}>
-          {/* Card 1: Total Try-ons */}
-          <View style={styles.kpiCard}>
-            <View style={styles.kpiCardTop}>
-              <IconBadge name="scissors" size={18} containerStyle={styles.kpiIconBadge} />
-              <Text style={styles.kpiTrendTag}>+18.4%</Text>
+        {overview && (
+          <View style={styles.kpiGrid}>
+            <View style={styles.kpiCard}>
+              <View style={styles.kpiCardTop}>
+                <IconBadge name="user" size={18} containerStyle={styles.kpiIconBadge} />
+                <Text style={styles.kpiTrendTag}>+{overview.newUsersThisMonth}</Text>
+              </View>
+              <Text style={styles.kpiValue}>{overview.totalUsers.toLocaleString('vi-VN')}</Text>
+              <Text style={styles.kpiLabel}>Người dùng (mới trong tháng)</Text>
             </View>
-            <Text style={styles.kpiValue}>{totalTryOns.toLocaleString('vi-VN')}</Text>
-            <Text style={styles.kpiLabel}>Lượt thử tóc AI (Virtual Try-on)</Text>
-          </View>
 
-          {/* Card 2: Total Bookings */}
-          <View style={styles.kpiCard}>
-            <View style={styles.kpiCardTop}>
-              <IconBadge name="calendar" size={18} containerStyle={[styles.kpiIconBadge, { backgroundColor: '#F3E7D8' }]} />
-              <Text style={[styles.kpiTrendTag, { color: '#B8895A', backgroundColor: '#F7EFE4' }]}>O2O</Text>
+            <View style={styles.kpiCard}>
+              <View style={styles.kpiCardTop}>
+                <IconBadge name="calendar" size={18} containerStyle={[styles.kpiIconBadge, { backgroundColor: '#F3E7D8' }]} />
+                <Text style={[styles.kpiTrendTag, { color: '#B8895A', backgroundColor: '#F7EFE4' }]}>Tháng này</Text>
+              </View>
+              <Text style={styles.kpiValue}>{overview.totalBookingsThisMonth}</Text>
+              <Text style={styles.kpiLabel}>Yêu cầu đặt lịch (Bookings)</Text>
             </View>
-            <Text style={styles.kpiValue}>{analytics.totalBookings}</Text>
-            <Text style={styles.kpiLabel}>Yêu cầu đặt lịch (Bookings)</Text>
-          </View>
 
-          {/* Card 3: Conversion Rate */}
-          <View style={styles.kpiCard}>
-            <View style={styles.kpiCardTop}>
-              <IconBadge name="trendingUp" size={18} containerStyle={[styles.kpiIconBadge, { backgroundColor: '#F3E7D8' }]} />
-              <Text style={[styles.kpiTrendTag, { color: '#7C6E3F', backgroundColor: '#F4EAD8' }]}>CR</Text>
+            <View style={styles.kpiCard}>
+              <View style={styles.kpiCardTop}>
+                <IconBadge name="trendingUp" size={18} containerStyle={[styles.kpiIconBadge, { backgroundColor: '#F3E7D8' }]} />
+                <Text style={[styles.kpiTrendTag, { color: '#7C6E3F', backgroundColor: '#F4EAD8' }]}>Pending</Text>
+              </View>
+              <Text style={[styles.kpiValue, { color: '#7C6E3F' }]}>{overview.pendingBookings}</Text>
+              <Text style={styles.kpiLabel}>Đơn đang chờ salon duyệt</Text>
             </View>
-            <Text style={[styles.kpiValue, { color: '#7C6E3F' }]}>{conversionRate}%</Text>
-            <Text style={styles.kpiLabel}>Tỷ lệ chuyển đổi (Try ➔ Book)</Text>
-          </View>
 
-          {/* Card 4: Confirmed & Completed */}
-          <View style={styles.kpiCard}>
-            <View style={styles.kpiCardTop}>
-              <IconBadge name="check" size={18} containerStyle={[styles.kpiIconBadge, { backgroundColor: '#F7EFE4' }]} />
-              <Text style={[styles.kpiTrendTag, { color: '#B8895A', backgroundColor: '#F7EFE4' }]}>Success</Text>
+            <View style={styles.kpiCard}>
+              <View style={styles.kpiCardTop}>
+                <IconBadge name="check" size={18} containerStyle={[styles.kpiIconBadge, { backgroundColor: '#F7EFE4' }]} />
+                <Text style={[styles.kpiTrendTag, { color: '#B8895A', backgroundColor: '#F7EFE4' }]}>Success</Text>
+              </View>
+              <Text style={[styles.kpiValue, { color: '#B8895A' }]}>{overview.completedBookings}</Text>
+              <Text style={styles.kpiLabel}>Đơn đã hoàn tất</Text>
             </View>
-            <Text style={[styles.kpiValue, { color: '#B8895A' }]}>
-              {analytics.confirmedBookings + analytics.completedBookings}
-            </Text>
-            <Text style={styles.kpiLabel}>Đơn đặt lịch thành công</Text>
           </View>
-        </View>
+        )}
 
         {/* REVENUE & MONETIZATION SECTION */}
         <View style={styles.revenueCard}>
           <View style={styles.revHeaderRow}>
             <View style={styles.revLeftHeader}>
               <IconBadge name="money" size={18} containerStyle={styles.revIconBadge} />
-              <Text style={styles.revTitle}>Tổng doanh thu giao dịch</Text>
+              <Text style={styles.revTitle}>Doanh thu tháng này</Text>
             </View>
             <Text style={styles.revStatusPill}>Giai đoạn 1</Text>
           </View>
 
           <Text style={styles.revValue}>
-            {analytics.totalRevenue.toLocaleString('vi-VN')} <Text style={styles.currencySymbol}>VNĐ</Text>
+            {revenueThisMonth.toLocaleString('vi-VN')} <Text style={styles.currencySymbol}>VNĐ</Text>
           </Text>
 
           <View style={styles.divider} />
@@ -141,15 +182,15 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ navi
           <View style={styles.mgmtCard}>
             <View style={styles.mgmtIconRow}>
               <AppIcon name="scissors" size={16} color="#B8895A" />
-              <Text style={styles.mgmtNum}>{MOCK_HAIRSTYLES.length}</Text>
+              <Text style={styles.mgmtNum}>{overview?.pendingApprovalSalons ?? '-'}</Text>
             </View>
-            <Text style={styles.mgmtLabel}>Mẫu tóc AI PNG Catalog</Text>
+            <Text style={styles.mgmtLabel}>Salon chờ phê duyệt</Text>
           </View>
 
           <View style={styles.mgmtCard}>
             <View style={styles.mgmtIconRow}>
               <AppIcon name="calendar" size={16} color="#8A7748" />
-              <Text style={styles.mgmtNum}>{MOCK_SALONS.length}</Text>
+              <Text style={styles.mgmtNum}>{overview ? `${overview.activeSalons}/${overview.totalSalons}` : '-'}</Text>
             </View>
             <Text style={styles.mgmtLabel}>Salon đối tác hoạt động</Text>
           </View>

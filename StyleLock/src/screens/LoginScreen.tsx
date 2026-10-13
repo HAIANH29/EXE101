@@ -5,115 +5,16 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
-  Image,
   KeyboardAvoidingView,
   Platform
 } from 'react-native';
 import { LocalizedText as Text, LocalizedTextInput as TextInput, LocalizedAlert as Alert } from '../i18n/LocalizedComponents';
 import { backendApi } from '../services/backendApi';
-import { authSessionStore } from '../services/apiClient';
 import { AppIcon } from '../components/AppIcon';
 import { BrandLogo } from '../components/BrandLogo';
 
 interface LoginScreenProps {
   navigation: any;
-}
-
-const runtimeEnv =
-  typeof globalThis !== 'undefined'
-    ? ((globalThis as unknown as { process?: { env?: Record<string, string | undefined> } }).process?.env || {})
-    : {};
-
-const GOOGLE_CLIENT_ID =
-  runtimeEnv.EXPO_PUBLIC_GOOGLE_CLIENT_ID ||
-  '67295940794-03jga5jo7pvhpootvae73u4ap5d20sfj.apps.googleusercontent.com';
-
-const GOOGLE_ORIGIN_HELP =
-  'Google OAuth Client chưa cho phép domain local này. Hãy thêm http://localhost:8082 vào Authorized JavaScript origins trong Google Cloud Console.';
-
-const SOCIAL_LOGOS = {
-  google: 'https://developers.google.com/identity/images/g-logo.png'
-};
-
-const APPLE_LOGO_SVG =
-  '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 1000 1000" aria-hidden="true"><path fill="#241F1A" d="M747.2 535.7c-.4-86.7 70.8-128.2 74-130.3-40.3-59-103.1-67.1-125.4-68-53.4-5.4-104.2 31.4-131.3 31.4-27 0-68.8-30.6-113.1-29.8-58.2.9-111.9 33.9-141.9 86.1-60.5 105-15.5 260.4 43.5 345.5 28.8 41.6 63.1 88.4 108.2 86.7 43.4-1.7 59.8-28.1 112.4-28.1s67.3 28.1 113.4 27.2c46.8-.9 76.5-42.4 105.1-84.2 33.1-48.4 46.7-95.2 47.5-97.6-1-.5-91.2-35-92.1-138.5zM660.8 281.1c23.9-29 40-69.2 35.6-109.1-34.5 1.4-76.2 23-100.9 52-22.1 25.6-41.5 66.6-36.2 105.9 38.5 3 77.6-19.5 101.5-48.8z"/></svg>';
-
-const appleLogoWebStyle: React.CSSProperties = {
-  width: 18,
-  height: 18,
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  lineHeight: 0,
-  flexShrink: 0
-};
-
-const AppleLogo = () => {
-  if (Platform.OS === 'web') {
-    return React.createElement('span', {
-      style: appleLogoWebStyle,
-      dangerouslySetInnerHTML: { __html: APPLE_LOGO_SVG }
-    });
-  }
-
-  return <Text style={styles.appleLogoText}></Text>;
-};
-
-type StyleLockWebWindow = Window & {
-  google?: {
-    accounts?: {
-      id?: {
-        initialize: (config: Record<string, unknown>) => void;
-        prompt: (callback?: (notification: any) => void) => void;
-      };
-    };
-  };
-  __stylelockGoogleClientId?: string;
-  __stylelockGoogleInitialized?: boolean;
-  __stylelockGoogleCredentialHandler?: (response: any) => void;
-};
-
-type GoogleIdentityApi = NonNullable<
-  NonNullable<NonNullable<StyleLockWebWindow['google']>['accounts']>['id']
->;
-
-function loadGoogleIdentityScript(): Promise<GoogleIdentityApi> {
-  if (Platform.OS !== 'web' || typeof window === 'undefined') {
-    return Promise.reject(new Error('Google Sign-In chỉ khả dụng trên web trong bản hiện tại.'));
-  }
-
-  const win = window as StyleLockWebWindow;
-  const existingGsi = win.google?.accounts?.id;
-  if (existingGsi) return Promise.resolve(existingGsi);
-
-  return new Promise((resolve, reject) => {
-    const finish = () => {
-      const gsi = win.google?.accounts?.id;
-      if (gsi) {
-        resolve(gsi);
-      } else {
-        reject(new Error('Google Identity Services chưa sẵn sàng.'));
-      }
-    };
-
-    const existingScript = document.getElementById('google-gsi-script');
-    if (existingScript) {
-      existingScript.addEventListener('load', finish, { once: true });
-      existingScript.addEventListener('error', () => reject(new Error('Không tải được Google Sign-In.')), {
-        once: true
-      });
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.id = 'google-gsi-script';
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = finish;
-    script.onerror = () => reject(new Error('Không tải được Google Sign-In.'));
-    document.body.appendChild(script);
-  });
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
@@ -133,114 +34,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       await backendApi.login(email.trim(), password);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Không thể kết nối backend.';
-      Alert.alert('Đăng nhập thất bại', message, [
-        { text: 'Thử lại', style: 'cancel' },
-        {
-          text: 'Dùng phiên Demo',
-          onPress: () => {
-            authSessionStore.set({
-              accessToken: 'demo-token-' + Date.now(),
-              refreshToken: 'demo-refresh-token-' + Date.now(),
-              tokenType: 'Bearer',
-              expiresIn: 86400,
-              user: {
-                id: 999,
-                email: email.trim() || 'demo@stylelock.vn',
-                fullName: 'Khách hàng Demo',
-                phone: '0901234567',
-                status: 'ACTIVE',
-                roles: ['ROLE_CUSTOMER']
-              }
-            });
-          }
-        }
-      ]);
+      Alert.alert('Đăng nhập thất bại', message);
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleGoogleCredential = async (response: any) => {
-    if (!response?.credential) {
-      Alert.alert('Google chưa trả credential', GOOGLE_ORIGIN_HELP);
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      await backendApi.loginWithGoogle(response.credential);
-      Alert.alert('Đăng nhập thành công', 'Đăng nhập với Google thành công!');
-      navigation.replace('Home');
-    } catch (err: any) {
-      Alert.alert('Đăng nhập Google thất bại', err?.message || 'Lỗi xác thực Google token');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      try {
-        const gsi = await loadGoogleIdentityScript();
-        const win = window as StyleLockWebWindow;
-        win.__stylelockGoogleCredentialHandler = handleGoogleCredential;
-
-        if (!win.__stylelockGoogleInitialized || win.__stylelockGoogleClientId !== GOOGLE_CLIENT_ID) {
-          gsi.initialize({
-            client_id: GOOGLE_CLIENT_ID,
-            callback: (response: any) => win.__stylelockGoogleCredentialHandler?.(response),
-            auto_select: false,
-            ux_mode: 'popup'
-          });
-          win.__stylelockGoogleInitialized = true;
-          win.__stylelockGoogleClientId = GOOGLE_CLIENT_ID;
-        }
-
-        gsi.prompt((notification: any) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            Alert.alert('Google Sign-In chưa sẵn sàng', GOOGLE_ORIGIN_HELP);
-          }
-        });
-      } catch (err: any) {
-        Alert.alert('Không mở được Google Sign-In', err?.message || GOOGLE_ORIGIN_HELP);
-      }
-      return;
-    }
-
-    authSessionStore.set({
-      accessToken: 'google-token-' + Date.now(),
-      refreshToken: 'google-refresh-token-' + Date.now(),
-      tokenType: 'Bearer',
-      expiresIn: 86400,
-      user: {
-        id: Date.now(),
-        email: 'google.user@stylelock.vn',
-        fullName: 'Google User',
-        status: 'ACTIVE',
-        roles: ['ROLE_CUSTOMER']
-      }
-    });
-  };
-
-  const handleSocialLogin = (provider: string) => {
-    if (provider === 'Google') {
-      handleGoogleLogin();
-      return;
-    }
-
-    authSessionStore.set({
-      accessToken: `${provider.toLowerCase()}-token-` + Date.now(),
-      refreshToken: `${provider.toLowerCase()}-refresh-token-` + Date.now(),
-      tokenType: 'Bearer',
-      expiresIn: 86400,
-      user: {
-        id: Date.now(),
-        email: `user.${provider.toLowerCase()}@stylelock.vn`,
-        fullName: `Tài khoản ${provider}`,
-        status: 'ACTIVE',
-        roles: ['ROLE_CUSTOMER']
-      }
-    });
   };
 
   return (
@@ -324,35 +121,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                 </View>
               </TouchableOpacity>
 
-              {/* Divider */}
-              <View style={styles.dividerRow}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>Or continue with</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
-              {/* Side-by-side Social Login Buttons */}
-              <View style={styles.socialRow}>
-                <TouchableOpacity
-                  style={styles.socialBtn}
-                  activeOpacity={0.8}
-                  onPress={() => handleSocialLogin('Google')}
-                  disabled={isSubmitting}
-                >
-                  <Image source={{ uri: SOCIAL_LOGOS.google }} style={styles.socialLogo} />
-                  <Text style={styles.socialBtnText}>Google</Text>
-                </TouchableOpacity>
-
-                {/* Apple Button */}
-                <TouchableOpacity
-                  style={styles.socialBtn}
-                  activeOpacity={0.8}
-                  onPress={() => handleSocialLogin('Apple')}
-                >
-                  <AppleLogo />
-                  <Text style={styles.socialBtnText}>Apple</Text>
-                </TouchableOpacity>
-              </View>
             </View>
 
             {/* Bottom Footer Signup Link */}
@@ -490,63 +258,6 @@ const styles = StyleSheet.create({
   },
   signInBtnDisabled: {
     opacity: 0.7
-  },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 24,
-    marginBottom: 24
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#DDCBB5'
-  },
-  dividerText: {
-    fontSize: 14,
-    color: '#6F6255',
-    paddingHorizontal: 16,
-    fontWeight: '400'
-  },
-  socialRow: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 32
-  },
-  socialBtn: {
-    flex: 1,
-    height: 54,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#DDCBB5',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 10,
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 4 },
-      android: { elevation: 1 },
-      web: { boxShadow: '0 2px 6px rgba(0, 0, 0, 0.02)' }
-    })
-  },
-  socialLogo: {
-    width: 22,
-    height: 22,
-    resizeMode: 'contain'
-  },
-  appleLogoText: {
-    width: 22,
-    height: 22,
-    color: '#241F1A',
-    fontSize: 20,
-    lineHeight: 22,
-    textAlign: 'center'
-  },
-  socialBtnText: {
-    color: '#241F1A',
-    fontSize: 16,
-    fontWeight: '600'
   },
   footerRow: {
     flexDirection: 'row',

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -12,7 +12,6 @@ import { LocalizedText as Text, LocalizedAlert as Alert } from '../i18n/Localize
 import { HairCanvasOverlay } from '../components/HairCanvasOverlay';
 import { Hairstyle } from '../types';
 import { AppIcon } from '../components/AppIcon';
-import { MOCK_HAIRSTYLES } from '../services/mockData';
 import { backendApi } from '../services/backendApi';
 import { HAIR_COLORS } from '../services/hairAssetMap';
 import { applyTransformToImage } from '../utils/imageTransform';
@@ -23,9 +22,42 @@ interface TryOnEditorScreenProps {
 }
 
 export const TryOnEditorScreen: React.FC<TryOnEditorScreenProps> = ({ navigation, route }) => {
+  if (!route.params?.userPhotoUri || !route.params?.hairstyle) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 16 }}>
+          <Text style={styles.hairName}>Chưa có ảnh hoặc kiểu tóc để thử.</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('CameraUpload')}>
+            <Text style={styles.seeAllText}>Quay lại chọn ảnh ➔</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return <TryOnEditorContent navigation={navigation} route={route} />;
+};
+
+const TryOnEditorContent: React.FC<TryOnEditorScreenProps> = ({ navigation, route }) => {
   const { userPhotoUri, hairstyle: initialHairstyle, initialHairColor } = route.params;
 
-  const [currentHairstyle, setCurrentHairstyle] = useState<Hairstyle>(initialHairstyle || MOCK_HAIRSTYLES[0]);
+  const [currentHairstyle, setCurrentHairstyle] = useState<Hairstyle>(initialHairstyle);
+  const [catalogHairstyles, setCatalogHairstyles] = useState<Hairstyle[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    backendApi
+      .getHairstyles()
+      .then((items) => {
+        if (isMounted) setCatalogHairstyles(items);
+      })
+      .catch(() => {
+        // Danh sách gợi ý nhanh là phần phụ; vẫn chỉnh được kiểu tóc đã chọn.
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
   // Hairstyle overlay transform state
   const [scale, setScale] = useState<number>(1.0);
   const [rotation, setRotation] = useState<number>(0);
@@ -46,20 +78,6 @@ export const TryOnEditorScreen: React.FC<TryOnEditorScreenProps> = ({ navigation
   const [aiResultImageUrl, setAiResultImageUrl] = useState<string | null>(null);
   const [mode, setMode] = useState<'canvas' | 'aiResult'>('canvas');
 
-  const handleReset = () => {
-    setScale(1.0);
-    setRotation(0);
-    setOffsetX(0);
-    setOffsetY(0);
-    setIsFlipped(false);
-    setHairColor('#1E2322');
-    setOpacity(1.0);
-    setPhotoScale(1.0);
-    setPhotoRotation(0);
-    setPhotoOffsetX(0);
-    setPhotoOffsetY(0);
-  };
-
   const handleSelectHairstyle = (hs: Hairstyle) => {
     setCurrentHairstyle(hs);
     setScale(1.0);
@@ -76,7 +94,10 @@ export const TryOnEditorScreen: React.FC<TryOnEditorScreenProps> = ({ navigation
 
     setIsAiGenerating(true);
     try {
-      const hairId = currentHairstyle.apiId || (Number(currentHairstyle.id.replace(/\D/g, '')) || 1);
+      const hairId = currentHairstyle.apiId;
+      if (!hairId) {
+        throw new Error('Kiểu tóc này chưa có trong catalog backend.');
+      }
       const highResHair = currentHairstyle.imageUrl && /^https?:\/\//.test(currentHairstyle.imageUrl)
         ? currentHairstyle.imageUrl.replace(/([?&])w=\d+/, '$1w=1024')
         : currentHairstyle.imageUrl;
@@ -85,6 +106,7 @@ export const TryOnEditorScreen: React.FC<TryOnEditorScreenProps> = ({ navigation
       const matchedColor = HAIR_COLORS.find(
         (c) => c.colorHex.toLowerCase() === hairColor.toLowerCase()
       );
+      const colorImageUrl = matchedColor?.sampleImg;
       // Tự động bake ảnh đã xoay/zoom/căn chỉnh khuôn mặt để AI Model nhận ảnh chuẩn xác nhất
       const alignedPhotoUri = await applyTransformToImage(userPhotoUri, {
         scale: photoScale,
@@ -165,8 +187,7 @@ export const TryOnEditorScreen: React.FC<TryOnEditorScreenProps> = ({ navigation
           <View style={styles.infoTextContainer}>
             <View style={styles.badgeRow}>
               <Text style={styles.categoryBadge}>{currentHairstyle.category}</Text>
-              {currentHairstyle.tag && <Text style={styles.trendBadge}>{currentHairstyle.tag}</Text>}
-            </View>
+                          </View>
             <Text style={styles.hairName}>{currentHairstyle.name}</Text>
             <Text style={styles.hairCategory}>Gợi ý: {currentHairstyle.suitableFace || 'Phù hợp nhiều dáng mặt'}</Text>
           </View>
@@ -265,7 +286,6 @@ export const TryOnEditorScreen: React.FC<TryOnEditorScreenProps> = ({ navigation
             onToggleFlip={() => setIsFlipped(!isFlipped)}
             onHairColorChange={setHairColor}
             onOpacityChange={setOpacity}
-            onReset={handleReset}
           />
         )}
 
@@ -290,7 +310,7 @@ export const TryOnEditorScreen: React.FC<TryOnEditorScreenProps> = ({ navigation
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.quickHairScroll}
           >
-            {MOCK_HAIRSTYLES.slice(0, 8).map((hs) => {
+            {catalogHairstyles.slice(0, 8).map((hs) => {
               const isSelected = currentHairstyle.id === hs.id;
               return (
                 <TouchableOpacity
@@ -444,15 +464,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#B8895A',
     backgroundColor: '#F3E7D8',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6
-  },
-  trendBadge: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#B65A4B',
-    backgroundColor: '#FBE7E1',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6

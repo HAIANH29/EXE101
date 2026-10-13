@@ -39,7 +39,6 @@ export interface HairCanvasOverlayProps {
   onToggleFlip?: () => void;
   onHairColorChange?: (colorHex: string) => void;
   onOpacityChange?: (opacity: number) => void;
-  onReset: () => void;
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -69,8 +68,7 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
   onPhotoOffsetYChange,
   onToggleFlip,
   onHairColorChange,
-  onOpacityChange,
-  onReset
+  onOpacityChange
 }) => {
   const [activeTab, setActiveTab] = useState<'align' | 'color' | 'blend'>('align');
   const [alignTarget, setAlignTarget] = useState<'hair' | 'photo'>('hair');

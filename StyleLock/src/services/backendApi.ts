@@ -1,4 +1,4 @@
-import { Booking, BookingStatus, GenderCategory, Hairstyle, NotificationItem, Salon, ServiceItem, StylistItem } from '../types';
+import { Booking, BookingStatus, GenderCategory, Hairstyle, NotificationItem, Payment, PaymentStatus, PaymentType, Salon, ServiceItem, StylistItem } from '../types';
 import { ApiError, apiRequest, authSessionStore } from './apiClient';
 
 type PageResponse<T> = {
@@ -27,6 +27,35 @@ type BackendUser = {
   status?: string;
   roles?: string[];
   createdAt?: string;
+};
+
+type BackendCategory = {
+  id: number;
+  name: string;
+  description?: string;
+};
+
+export type BackendAvailability = {
+  salonId: number;
+  stylistId: number;
+  date: string;
+  closed: boolean;
+  openTime?: string;
+  closeTime?: string;
+  bookedIntervals: { startAt: string; endAt: string }[];
+};
+
+export type DashboardOverview = {
+  totalUsers: number;
+  newUsersThisMonth: number;
+  totalSalons: number;
+  activeSalons: number;
+  pendingApprovalSalons: number;
+  totalBookingsThisMonth: number;
+  pendingBookings: number;
+  completedBookings: number;
+  cancelledBookings: number;
+  revenueThisMonth: number | string;
 };
 
 type BackendHairstyle = {
@@ -104,11 +133,24 @@ type BackendBooking = {
 
 type BackendPayment = {
   id: number;
-  bookingId: number;
+  bookingId?: number;
+  salonId?: number;
+  paymentType?: string;
+  serviceAmount?: number | string;
+  feeAmount?: number | string;
+  provider?: string;
+  transactionId?: string;
   referenceCode?: string;
   amount: number | string;
   status: string;
   paymentUrl?: string;
+  paidAt?: string;
+  createdAt?: string;
+  refundAmount?: number | string;
+  refundReason?: string;
+  refundReference?: string;
+  refundRequestedAt?: string;
+  refundedAt?: string;
 };
 
 type BackendNotification = {
@@ -183,17 +225,16 @@ function formatPriceRange(services: ServiceItem[]) {
   return min === max ? short(min) : `${short(min)} - ${short(max)}`;
 }
 
-function mapHairstyle(item: BackendHairstyle): Hairstyle {
+function mapHairstyle(item: BackendHairstyle, categories: Map<number, string> = new Map()): Hairstyle {
   return {
     id: `api-hs-${item.id}`,
     apiId: item.id,
     name: item.name,
-    category: item.categoryId ? `Category ${item.categoryId}` : 'StyleLock',
+    category: (item.categoryId && categories.get(item.categoryId)) || 'StyleLock',
     gender: mapGender(item.gender),
     imageUrl: item.imageUrl || FALLBACK_IMAGE,
-    description: item.description || 'Kiểu tóc từ catalog backend StyleLock.',
-    suitableFace: 'Tư vấn trực tiếp tại salon',
-    tag: item.status === 'ACTIVE' ? 'Backend' : item.status
+    description: item.description || '',
+    suitableFace: 'Tư vấn trực tiếp tại salon'
   };
 }
 
@@ -248,12 +289,13 @@ function mapSalon(
 function mapBooking(item: BackendBooking, context: BookingContext = {}): Booking {
   const dateInfo = toDisplayTime(item.startAt);
   const user = authSessionStore.get()?.user;
+  const isOwnBooking = !!user && user.id === item.customerId;
 
   return {
     id: String(item.id),
     apiId: item.id,
-    customerName: user?.fullName || 'Khách StyleLock',
-    customerPhone: user?.phone || '',
+    customerName: isOwnBooking ? user?.fullName || 'Khách StyleLock' : `Khách #${item.customerId}`,
+    customerPhone: isOwnBooking ? user?.phone || '' : '',
     salonId: context.salon?.id || `api-sal-${item.salonId}`,
     salonName: item.salonName || context.salon?.name || `Salon #${item.salonId}`,
     salonAddress: item.salonAddress || context.salon?.address || '',
@@ -262,12 +304,49 @@ function mapBooking(item: BackendBooking, context: BookingContext = {}): Booking
     tryOnImageUrl: context.userPhotoUri || context.hairstyle?.imageUrl,
     serviceId: context.service?.id || `api-srv-${item.serviceId}`,
     serviceName: item.serviceName || context.service?.name,
+    stylistId: item.stylistId ? `api-st-${item.stylistId}` : undefined,
+    stylistName: item.stylistName,
     date: dateInfo.date,
     timeSlot: dateInfo.timeSlot,
     status: item.status,
     createdAt: item.createdAt || new Date().toISOString(),
     totalPrice: moneyToNumber(item.totalAmount),
     qrCode: context.payment?.referenceCode || `STYLELOCK-${item.id}`
+  };
+}
+
+function readQueryParam(url: string | undefined, name: string) {
+  if (!url) return undefined;
+  const match = url.match(new RegExp(`[?&]${name}=([^&]*)`));
+  return match ? decodeURIComponent(match[1]) : undefined;
+}
+
+function optionalMoney(value: number | string | undefined | null) {
+  return value === undefined || value === null ? undefined : moneyToNumber(value);
+}
+
+function mapPayment(item: BackendPayment): Payment {
+  return {
+    id: item.id,
+    bookingId: item.bookingId ?? undefined,
+    salonId: item.salonId ?? undefined,
+    type: (item.paymentType as PaymentType) || 'BOOKING_CONNECTION',
+    serviceAmount: moneyToNumber(item.serviceAmount),
+    feeAmount: moneyToNumber(item.feeAmount),
+    amount: moneyToNumber(item.amount),
+    status: item.status as PaymentStatus,
+    referenceCode: item.referenceCode || '',
+    qrUrl: item.paymentUrl || undefined,
+    bankCode: readQueryParam(item.paymentUrl, 'bank'),
+    bankAccount: readQueryParam(item.paymentUrl, 'acc'),
+    transactionId: item.transactionId || undefined,
+    paidAt: item.paidAt || undefined,
+    createdAt: item.createdAt || '',
+    refundAmount: optionalMoney(item.refundAmount),
+    refundReason: item.refundReason || undefined,
+    refundReference: item.refundReference || undefined,
+    refundRequestedAt: item.refundRequestedAt || undefined,
+    refundedAt: item.refundedAt || undefined
   };
 }
 
@@ -284,6 +363,19 @@ function mapNotification(item: BackendNotification): NotificationItem {
 
 function buildStartAt(date: string, timeSlot: string) {
   return new Date(`${date}T${timeSlot}:00+07:00`).toISOString();
+}
+
+let categoryCache: Map<number, string> | undefined;
+
+async function getCategoryMap(): Promise<Map<number, string>> {
+  if (categoryCache) return categoryCache;
+  try {
+    const items = await apiRequest<BackendCategory[]>('/api/catalog/hairstyle-categories');
+    categoryCache = new Map(items.map((item) => [item.id, item.name]));
+  } catch {
+    return new Map();
+  }
+  return categoryCache;
 }
 
 async function getPage<T>(path: string): Promise<T[]> {
@@ -410,16 +502,6 @@ export const backendApi = {
     return session;
   },
 
-  async loginWithGoogle(idToken: string) {
-    const session = await apiRequest<BackendLoginResponse>('/api/auth/google', {
-      method: 'POST',
-      auth: false,
-      body: JSON.stringify({ idToken })
-    });
-    authSessionStore.set(session);
-    return session;
-  },
-
   async sendRegisterOtp(input: { email: string }) {
     return apiRequest<void>('/api/auth/register/send-otp', {
       method: 'POST',
@@ -485,17 +567,6 @@ export const backendApi = {
     }
   },
 
-  async logoutAllDevices() {
-    authSessionStore.clear();
-    try {
-      await apiRequest<void>('/api/auth/logout-all', {
-        method: 'POST'
-      });
-    } catch {
-      // Local session cleared
-    }
-  },
-
   async deleteAccount() {
     await apiRequest<void>('/api/auth/me', {
       method: 'DELETE'
@@ -525,8 +596,11 @@ export const backendApi = {
   },
 
   async getHairstyles() {
-    const items = await getPage<BackendHairstyle>('/api/catalog/hairstyles?size=100');
-    return items.map(mapHairstyle);
+    const [items, categories] = await Promise.all([
+      getPage<BackendHairstyle>('/api/catalog/hairstyles?size=100'),
+      getCategoryMap()
+    ]);
+    return items.map((item) => mapHairstyle(item, categories));
   },
 
   async getServicesBySalon(salonId: number) {
@@ -540,8 +614,11 @@ export const backendApi = {
   },
 
   async getHairstylesBySalon(salonId: number) {
-    const items = await apiRequest<BackendHairstyle[]>(`/api/salons/${salonId}/hairstyles`);
-    return items.map(mapHairstyle);
+    const [items, categories] = await Promise.all([
+      apiRequest<BackendHairstyle[]>(`/api/salons/${salonId}/hairstyles`),
+      getCategoryMap()
+    ]);
+    return items.map((item) => mapHairstyle(item, categories));
   },
 
   async getSalons() {
@@ -572,6 +649,22 @@ export const backendApi = {
 
   async getPaymentByBooking(bookingId: string | number) {
     return apiRequest<BackendPayment>(`/api/bookings/${bookingId}/payment`);
+  },
+
+  async getBookingPayment(bookingId: string | number) {
+    return mapPayment(await this.getPaymentByBooking(bookingId));
+  },
+
+  async getPayment(paymentId: number) {
+    return mapPayment(await apiRequest<BackendPayment>(`/api/payments/${paymentId}`));
+  },
+
+  async getPaymentHistory(page = 0, size = 20) {
+    const result = await apiRequest<PageResponse<BackendPayment>>(`/api/payments/history?page=${page}&size=${size}`);
+    return {
+      items: (result.content || []).map(mapPayment),
+      hasMore: !result.last
+    };
   },
 
   async createBooking(input: {
@@ -635,6 +728,40 @@ export const backendApi = {
     return mapBooking(booking);
   },
 
+  async getAvailability(salonId: number, stylistId: number, date: string) {
+    return apiRequest<BackendAvailability>(
+      `/api/bookings/salon/${salonId}/stylists/${stylistId}/availability?date=${date}`
+    );
+  },
+
+  hasRole(role: string) {
+    return !!authSessionStore.get()?.user?.roles?.includes(role);
+  },
+
+  async getMySalons() {
+    const items = await getPage<BackendSalon>('/api/salons/my-salons?size=50');
+    return items.map((item) => mapSalon(item));
+  },
+
+  async getSalonBookings(salonId: number) {
+    const items = await getPage<BackendBooking>(`/api/bookings/salon/${salonId}?size=100`);
+    return items.map((item) => mapBooking(item));
+  },
+
+  async confirmBooking(bookingId: string | number) {
+    const booking = await apiRequest<BackendBooking>(`/api/bookings/${bookingId}/confirm`, { method: 'PATCH' });
+    return mapBooking(booking);
+  },
+
+  async completeBooking(bookingId: string | number) {
+    const booking = await apiRequest<BackendBooking>(`/api/bookings/${bookingId}/complete`, { method: 'PATCH' });
+    return mapBooking(booking);
+  },
+
+  async getDashboardOverview() {
+    return apiRequest<DashboardOverview>('/api/dashboard/overview');
+  },
+
   async generateTryOn(input: {
     imageUri: string;
     hairstyleId: number;
@@ -675,17 +802,5 @@ export const backendApi = {
     });
   },
 
-  async regenerateTryOn(requestId: number) {
-    return apiRequest<{
-      requestId: number;
-      userId?: number;
-      hairstyleId: number;
-      inputImageUrl: string;
-      resultImageUrl: string;
-      status: string;
-    }>(`/api/tryon/${requestId}/regenerate`, {
-      method: 'POST'
-    });
-  }
 };
 

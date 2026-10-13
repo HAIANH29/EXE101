@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -8,9 +8,9 @@ import {
   Image
 } from 'react-native';
 import { LocalizedText as Text, LocalizedAlert as Alert } from '../i18n/LocalizedComponents';
-import { bookingService } from '../services/bookingService';
-import { MOCK_SALONS } from '../services/mockData';
-import { Booking, BookingStatus } from '../types';
+import { backendApi } from '../services/backendApi';
+import { DataState } from '../components/DataState';
+import { Booking, Salon } from '../types';
 import { AppIcon, IconBadge } from '../components/AppIcon';
 
 interface SalonDashboardScreenProps {
@@ -18,26 +18,83 @@ interface SalonDashboardScreenProps {
 }
 
 export const SalonDashboardScreen: React.FC<SalonDashboardScreenProps> = ({ navigation }) => {
-  const [selectedSalonId, setSelectedSalonId] = useState<string>(MOCK_SALONS[0].id);
+  const [salons, setSalons] = useState<Salon[]>([]);
+  const [selectedSalonId, setSelectedSalonId] = useState<number | undefined>();
+  const [salonBookings, setSalonBookings] = useState<Booking[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('PENDING');
+  const [loading, setLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<string | undefined>();
+  const [reloadKey, setReloadKey] = useState<number>(0);
 
-  const salonBookings = bookingService.getBookingsBySalon(selectedSalonId);
-  const currentSalon = MOCK_SALONS.find((s) => s.id === selectedSalonId) || MOCK_SALONS[0];
+  const canManage =
+    backendApi.isAuthenticated() && (backendApi.hasRole('SALON_OWNER') || backendApi.hasRole('ADMIN'));
+
+  // Danh sách salon của chủ salon đang đăng nhập
+  useEffect(() => {
+    if (!canManage) {
+      setLoading(false);
+      return;
+    }
+
+    let isMounted = true;
+    setLoading(true);
+    setLoadError(undefined);
+
+    backendApi
+      .getMySalons()
+      .then((items) => {
+        if (!isMounted) return;
+        setSalons(items);
+        setSelectedSalonId((current) => current ?? items[0]?.apiId);
+        if (items.length === 0) setLoading(false);
+      })
+      .catch((error) => {
+        if (!isMounted) return;
+        setLoadError(error instanceof Error ? error.message : 'Không tải được danh sách salon.');
+        setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [canManage, reloadKey]);
+
+  // Lịch hẹn của salon đang chọn
+  const loadBookings = useCallback(async () => {
+    if (!selectedSalonId) return;
+    setLoading(true);
+    setLoadError(undefined);
+    try {
+      setSalonBookings(await backendApi.getSalonBookings(selectedSalonId));
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : 'Không tải được lịch hẹn.');
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedSalonId]);
+
+  useEffect(() => {
+    loadBookings();
+  }, [loadBookings, reloadKey]);
 
   const filteredBookings = salonBookings.filter((b) => {
     if (statusFilter === 'ALL') return true;
     return b.status === statusFilter;
   });
 
-  const handleUpdateStatus = (bookingId: string, newStatus: BookingStatus) => {
-    const updated = bookingService.updateBookingStatus(bookingId, newStatus);
-    if (updated) {
-      // Trigger re-render by updating dummy state or state change
-      Alert.alert(
-        'Cập nhật thành công',
-        `Lịch hẹn #${bookingId} đã chuyển sang trạng thái [${newStatus}]`
-      );
-      setStatusFilter(newStatus);
+  const handleUpdateStatus = async (bookingId: string, action: 'CONFIRMED' | 'COMPLETED' | 'CANCELLED') => {
+    try {
+      const updated =
+        action === 'CONFIRMED'
+          ? await backendApi.confirmBooking(bookingId)
+          : action === 'COMPLETED'
+            ? await backendApi.completeBooking(bookingId)
+            : await backendApi.cancelBooking(bookingId, 'Salon hủy lịch hẹn');
+      setSalonBookings((current) => current.map((item) => (item.id === bookingId ? { ...item, ...updated } : item)));
+      Alert.alert('Cập nhật thành công', `Lịch hẹn #${bookingId} đã chuyển sang trạng thái [${updated.status}]`);
+      setStatusFilter(updated.status);
+    } catch (error) {
+      Alert.alert('Cập nhật thất bại', error instanceof Error ? error.message : 'Không thể cập nhật lịch hẹn.');
     }
   };
 
@@ -53,16 +110,39 @@ export const SalonDashboardScreen: React.FC<SalonDashboardScreenProps> = ({ navi
           <View style={{ width: 60 }} />
         </View>
 
+        {!canManage && (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyText}>
+              Khu vực này dành cho chủ salon. Vui lòng đăng nhập bằng tài khoản chủ salon để quản lý lịch hẹn.
+            </Text>
+            {!backendApi.isAuthenticated() && (
+              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                <Text style={styles.backBtnText}>Đăng nhập</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {canManage && (
+          <DataState
+            loading={loading}
+            error={loadError}
+            empty={!loading && !loadError && salons.length === 0}
+            emptyText="Tài khoản này chưa có salon nào."
+            onRetry={() => setReloadKey((k) => k + 1)}
+          />
+        )}
+
         {/* Salon Selector Pill */}
         <Text style={styles.sectionLabel}>Đang quản lý với tư cách Salon đối tác:</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.salonSelectorScroll}>
-          {MOCK_SALONS.map((s) => (
+          {salons.map((s) => (
             <TouchableOpacity
               key={s.id}
-              style={[styles.salonPill, selectedSalonId === s.id && styles.activeSalonPill]}
-              onPress={() => setSelectedSalonId(s.id)}
+              style={[styles.salonPill, selectedSalonId === s.apiId && styles.activeSalonPill]}
+              onPress={() => setSelectedSalonId(s.apiId)}
             >
-              <Text style={[styles.salonPillText, selectedSalonId === s.id && styles.activeSalonPillText]}>
+              <Text style={[styles.salonPillText, selectedSalonId === s.apiId && styles.activeSalonPillText]}>
                 {s.name}
               </Text>
             </TouchableOpacity>
@@ -108,7 +188,7 @@ export const SalonDashboardScreen: React.FC<SalonDashboardScreenProps> = ({ navi
         </View>
 
         {/* BOOKING REQUEST CARDS */}
-        {filteredBookings.length === 0 ? (
+        {!canManage || loading || loadError ? null : filteredBookings.length === 0 ? (
           <View style={styles.emptyCard}>
             <IconBadge name="calendar" size={24} containerStyle={styles.emptyIconBadge} />
             <Text style={styles.emptyText}>Không có lịch hẹn nào ở mục [{statusFilter}]</Text>
@@ -342,10 +422,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#DDCBB5'
-  },
-  emptyIcon: {
-    fontSize: 36,
-    marginBottom: 8
   },
   emptyIconBadge: {
     width: 58,

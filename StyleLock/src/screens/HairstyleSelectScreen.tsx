@@ -6,11 +6,10 @@ import {
   Image,
   SafeAreaView,
   ScrollView,
-  Modal,
-  Dimensions
+  Modal
 } from 'react-native';
 import { LocalizedText as Text, LocalizedTextInput as TextInput } from '../i18n/LocalizedComponents';
-import { MOCK_HAIRSTYLES } from '../services/mockData';
+import { DataState } from '../components/DataState';
 import { backendApi } from '../services/backendApi';
 import { Hairstyle } from '../types';
 import { AppIcon } from '../components/AppIcon';
@@ -23,7 +22,6 @@ interface HairstyleSelectScreenProps {
   route?: any;
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ navigation, route }) => {
   const userPhotoUri = route?.params?.userPhotoUri;
@@ -33,20 +31,25 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
   const [selectedGender, setSelectedGender] = useState<string>('All');
   const [selectedLength, setSelectedLength] = useState<string>('All');
   const [selectedStyleFilter, setSelectedStyleFilter] = useState<string>('All');
-  const [favVersion, setFavVersion] = useState<number>(0);
-  const [hairstyles, setHairstyles] = useState<Hairstyle[]>(MOCK_HAIRSTYLES);
+  const [, setFavVersion] = useState<number>(0);
+  const [hairstyles, setHairstyles] = useState<Hairstyle[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<string | undefined>();
+  const [reloadKey, setReloadKey] = useState<number>(0);
 
   useEffect(() => {
     let isMounted = true;
 
     const loadHairstyles = async () => {
+      setLoading(true);
+      setLoadError(undefined);
       try {
         const apiHairstyles = await backendApi.getHairstyles();
-        if (isMounted && apiHairstyles.length > 0) {
-          setHairstyles(apiHairstyles);
-        }
-      } catch {
-        // Keep mock hairstyles when backend catalog is unavailable.
+        if (isMounted) setHairstyles(apiHairstyles);
+      } catch (error) {
+        if (isMounted) setLoadError(error instanceof Error ? error.message : 'Không tải được danh sách kiểu tóc.');
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
 
@@ -60,7 +63,7 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
       isMounted = false;
       unsubscribe();
     };
-  }, []);
+  }, [reloadKey]);
 
   const toggleFavorite = (id: string) => {
     favoritesStore.toggleFavorite(id);
@@ -175,6 +178,13 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ na
         </View>
 
         {/* Editorial Bento Grid Layout */}
+        <DataState
+          loading={loading}
+          error={loadError}
+          empty={!loading && !loadError && filteredHairstyles.length === 0}
+          emptyText="Không tìm thấy kiểu tóc phù hợp."
+          onRetry={() => setReloadKey((k) => k + 1)}
+        />
         <View style={styles.grid}>
           {filteredHairstyles.map((hair) => {
             const isFav = favoritesStore.isFavorite(hair.id);
@@ -418,9 +428,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
-  filterIcon: {
-    fontSize: 20
-  },
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 16
@@ -480,9 +487,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.85)',
     justifyContent: 'center',
     alignItems: 'center'
-  },
-  favIcon: {
-    fontSize: 16
   },
   cardContent: {
     padding: 10
@@ -547,11 +551,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
     color: '#241F1A'
-  },
-  closeBtnText: {
-    fontSize: 20,
-    color: '#6F6255',
-    padding: 4
   },
   modalBody: {
     marginBottom: 20

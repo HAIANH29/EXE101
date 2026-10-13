@@ -75,7 +75,9 @@ export type NotificationType =
   | 'BOOKING_CONFIRMED'
   | 'BOOKING_CANCELLED'
   | 'BOOKING_COMPLETED'
-  | 'PAYMENT_COMPLETED';
+  | 'PAYMENT_COMPLETED'
+  | 'PAYMENT_REFUND_REQUESTED'
+  | 'PAYMENT_REFUNDED';
 
 export interface NotificationItem {
   id: number;
@@ -84,4 +86,30 @@ export interface NotificationItem {
   content: string;
   read: boolean;
   createdAt: string;
+}
+
+export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED' | 'REFUND_PENDING' | 'REFUNDED';
+export type PaymentType = 'BOOKING_CONNECTION' | 'SALON_PRO_SUBSCRIPTION';
+
+export interface Payment {
+  id: number;
+  bookingId?: number;
+  salonId?: number;
+  type: PaymentType;
+  serviceAmount: number;
+  feeAmount: number;
+  amount: number;
+  status: PaymentStatus;
+  referenceCode: string;
+  qrUrl?: string;
+  bankCode?: string;
+  bankAccount?: string;
+  transactionId?: string;
+  paidAt?: string;
+  createdAt: string;
+  refundAmount?: number;
+  refundReason?: string;
+  refundReference?: string;
+  refundRequestedAt?: string;
+  refundedAt?: string;
 }

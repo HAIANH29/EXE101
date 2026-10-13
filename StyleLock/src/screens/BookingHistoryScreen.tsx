@@ -12,7 +12,8 @@ import { backendApi } from '../services/backendApi';
 import { AppIcon, IconBadge } from '../components/AppIcon';
 import { bookingService } from '../services/bookingService';
 import { BottomNavBar } from '../components/BottomNavBar';
-import { Booking, BookingStatus } from '../types';
+import { Booking, BookingStatus, Payment } from '../types';
+import { formatVnd, getPaymentStatusMeta } from '../utils/payment';
 import { NotificationBellButton } from '../components/NotificationBellButton';
 
 interface BookingHistoryScreenProps {
@@ -28,6 +29,20 @@ const TABS = [
 export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navigation }) => {
     const [activeTab, setActiveTab] = useState<string>('UPCOMING');
     const [allBookings, setAllBookings] = useState<Booking[]>(bookingService.getAllBookings());
+    const [paymentsByBooking, setPaymentsByBooking] = useState<Record<string, Payment>>({});
+
+    const loadPayments = async () => {
+        try {
+            const history = await backendApi.getPaymentHistory(0, 100);
+            const map: Record<string, Payment> = {};
+            history.items.forEach((payment) => {
+                if (payment.bookingId) map[String(payment.bookingId)] = payment;
+            });
+            setPaymentsByBooking(map);
+        } catch {
+            // Trạng thái thanh toán là thông tin phụ, bỏ qua nếu tạm thời không tải được.
+        }
+    };
 
     useEffect(() => {
         let isMounted = true;
@@ -40,6 +55,7 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
                 if (isMounted) {
                     setAllBookings(bookingService.replaceBookings(apiBookings));
                 }
+                if (isMounted) await loadPayments();
             } catch (error) {
                 const message = error instanceof Error ? error.message : 'Không tải được lịch hẹn backend.';
                 Alert.alert('Không tải được lịch hẹn', message);
@@ -84,9 +100,14 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
     };
 
     const handleCancelBooking = (bookingId: string) => {
+        const payment = paymentsByBooking[bookingId];
+        const refundNote =
+            payment?.status === 'PAID'
+                ? '\n\nLịch hẹn này đã thanh toán. Khoản tiền sẽ được hoàn lại sau khi quản trị viên xác nhận, bạn có thể theo dõi trong Lịch sử thanh toán.'
+                : '';
         Alert.alert(
             'Hủy lịch hẹn',
-            'Bạn có chắc chắn muốn hủy lịch hẹn này?',
+            `Bạn có chắc chắn muốn hủy lịch hẹn này?${refundNote}`,
             [
                 { text: 'Bỏ qua', style: 'cancel' },
                 {
@@ -95,13 +116,13 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
                     onPress: async () => {
                         try {
                             const booking = allBookings.find((item) => item.id === bookingId);
-                            if (booking?.apiId && backendApi.isAuthenticated()) {
-                                const cancelled = await backendApi.cancelBooking(booking.apiId.toString(), 'Khách hủy từ StyleLock app');
-                                bookingService.upsertBooking(cancelled);
-                            } else {
-                                bookingService.updateBookingStatus(bookingId, 'CANCELLED');
+                            if (!booking?.apiId) {
+                                throw new Error('Không tìm thấy lịch hẹn trên hệ thống.');
                             }
+                            const cancelled = await backendApi.cancelBooking(booking.apiId.toString(), 'Khách hủy từ StyleLock app');
+                            bookingService.upsertBooking(cancelled);
                             setAllBookings(bookingService.getAllBookings());
+                            loadPayments();
                             Alert.alert('Đã hủy', 'Lịch hẹn của bạn đã được hủy thành công.');
                         } catch (error) {
                             const message = error instanceof Error ? error.message : 'Không thể hủy booking backend.';
@@ -204,6 +225,9 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
                     <View style={styles.bookingsList}>
                         {filteredBookings.map((b) => {
                             const badge = getStatusBadge(b.status);
+                            const payment = paymentsByBooking[b.id];
+                            const paymentMeta = payment ? getPaymentStatusMeta(payment.status) : undefined;
+                            const canPay = payment?.status === 'PENDING' && (b.status === 'PENDING' || b.status === 'CONFIRMED');
                             const cardImage =
                                 b.tryOnImageUrl ||
                                 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400';
@@ -243,11 +267,28 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
                                                 <AppIcon name="clock" size={13} color="#9B8B7A" />
                                                 <Text style={styles.metaText}>{b.timeSlot}</Text>
                                             </View>
+
+                                            {payment && paymentMeta && (
+                                                <View style={[styles.paymentPill, { backgroundColor: paymentMeta.background }]}>
+                                                    <Text style={[styles.paymentPillText, { color: paymentMeta.color }]}>
+                                                        {paymentMeta.label} · {formatVnd(payment.amount)}
+                                                    </Text>
+                                                </View>
+                                            )}
                                         </View>
                                     </TouchableOpacity>
 
                                     {/* Bottom Actions Row */}
                                     <View style={styles.cardActions}>
+                                        {canPay && (
+                                            <TouchableOpacity
+                                                style={styles.payBtn}
+                                                onPress={() => navigation.navigate('Payment', { bookingId: b.id })}
+                                            >
+                                                <Text style={styles.payBtnText}>Thanh toán</Text>
+                                            </TouchableOpacity>
+                                        )}
+
                                         {/* Show Cancel Button for Pending bookings */}
                                         {b.status === 'PENDING' && (
                                             <TouchableOpacity
@@ -427,12 +468,33 @@ const styles = StyleSheet.create({
         gap: 6,
         marginBottom: 2
     },
-    metaIcon: {
-        fontSize: 12
-    },
     metaText: {
         fontSize: 12,
         color: '#6F6255'
+    },
+    paymentPill: {
+        alignSelf: 'flex-start',
+        borderRadius: 999,
+        paddingVertical: 3,
+        paddingHorizontal: 9,
+        marginTop: 6
+    },
+    paymentPillText: {
+        fontSize: 11,
+        fontWeight: '800'
+    },
+    payBtn: {
+        height: 52,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        backgroundColor: '#B8895A',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    payBtnText: {
+        color: '#FFFFFF',
+        fontSize: 13,
+        fontWeight: '800'
     },
     cardActions: {
         flexDirection: 'row',
@@ -450,11 +512,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#FBE7E1'
-    },
-    cancelBtnIcon: {
-        fontSize: 16,
-        color: '#B65A4B',
-        fontWeight: '700'
     },
     rescheduleBtn: {
         flex: 1,
@@ -493,10 +550,6 @@ const styles = StyleSheet.create({
         borderColor: '#E5D9CA',
         marginTop: 20
     },
-    emptyIcon: {
-        fontSize: 48,
-        marginBottom: 12
-    },
     emptyIconBadge: {
         width: 58,
         height: 58,
@@ -525,52 +578,6 @@ const styles = StyleSheet.create({
     exploreBtnText: {
         color: '#FFFFFF',
         fontSize: 14,
-        fontWeight: '700'
-    },
-    bottomBar: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: 75,
-        backgroundColor: 'rgba(255, 253, 249, 0.96)',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        alignItems: 'center',
-        borderTopWidth: 1,
-        borderTopColor: '#DDCBB5',
-        elevation: 10,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10
-    },
-    navItem: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 20
-    },
-    navItemActive: {
-        backgroundColor: 'rgba(169, 120, 69, 0.16)'
-    },
-    navIcon: {
-        fontSize: 18,
-        marginBottom: 2
-    },
-    navIconActive: {
-        transform: [{ scale: 1.1 }]
-    },
-    navLabel: {
-        fontSize: 11,
-        fontWeight: '500',
-        color: '#6F6255'
-    },
-    navLabelActive: {
-        color: '#B8895A',
         fontWeight: '700'
     }
 });

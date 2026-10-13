@@ -99,14 +99,6 @@ export function buildHairSvg(styleKey: keyof typeof HAIR_PATHS, colorHex: string
   return { uri: `data:image/svg+xml;utf8,${encodeURIComponent(svg.trim())}` };
 }
 
-export const HAIR_OVERLAYS: Record<string, any> = {
-  twoblock: buildHairSvg('twoblock'),
-  undercut: buildHairSvg('undercut'),
-  sidepart: buildHairSvg('sidepart'),
-  bob: buildHairSvg('bob'),
-  curly: buildHairSvg('curly')
-};
-
 export function resolveHairOverlaySource(
   hairstyle?: {
     name?: string;

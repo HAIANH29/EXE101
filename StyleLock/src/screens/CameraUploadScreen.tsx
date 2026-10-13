@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,14 +7,12 @@ import {
   SafeAreaView,
   ScrollView,
   Dimensions,
-  ImageBackground,
   ActivityIndicator,
   PanResponder
 } from 'react-native';
 import { LocalizedText as Text, LocalizedAlert as Alert } from '../i18n/LocalizedComponents';
 import * as ImagePicker from 'expo-image-picker';
 import { CameraView, useCameraPermissions, CameraType } from 'expo-camera';
-import { MOCK_HAIRSTYLES } from '../services/mockData';
 import { Hairstyle } from '../types';
 import { AppIcon } from '../components/AppIcon';
 import { BottomNavBar } from '../components/BottomNavBar';
@@ -28,17 +26,22 @@ interface CameraUploadScreenProps {
   route?: any;
 }
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const PHOTO_CANVAS_WIDTH = Math.min(SCREEN_WIDTH - 32, 380);
 const PHOTO_CANVAS_HEIGHT = Math.round(PHOTO_CANVAS_WIDTH * 1.25);
 
-const FILTER_STYLES = [
-  { id: 'twoblock', label: 'Two Block', recommended: true, hairIndex: 1, apiId: 1 },
-  { id: 'undercut', label: 'Undercut', recommended: true, hairIndex: 2, apiId: 2 },
-  { id: 'sidepart', label: 'Side Part', recommended: false, hairIndex: 3, apiId: 3 },
-  { id: 'bob', label: 'Bob Nữ', recommended: false, hairIndex: 7, apiId: 1 },
-  { id: 'curly', label: 'Curly Xoăn', recommended: true, hairIndex: 5, apiId: 2 },
-];
+const MAX_FILTER_STYLES = 8;
+
+// Placeholder khi catalog chưa tải xong; không có apiId nên không thể gửi lên AI.
+const LOADING_HAIRSTYLE: Hairstyle = {
+  id: 'loading',
+  name: 'Đang tải kiểu tóc...',
+  category: '',
+  gender: 'unisex',
+  imageUrl: '',
+  description: '',
+  suitableFace: ''
+};
 
 const HAIR_COLOR_PALETTE = [
   { id: 'natural', name: 'Đen Tự Nhiên', hex: '#1C1917', sampleImg: null },
@@ -64,8 +67,6 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
   const [cameraFacing, setCameraFacing] = useState<CameraType>('front');
   const [activeFilterIdx, setActiveFilterIdx] = useState<number>(0);
   const [selectedColorIdx, setSelectedColorIdx] = useState<number>(0);
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const [analysisComplete, setAnalysisComplete] = useState<boolean>(false);
   const [isCapturing, setIsCapturing] = useState<boolean>(false);
 
   // User Portrait Photo Transform States (phóng to, thu nhỏ, xoay ảnh, kéo ảnh)
@@ -79,9 +80,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
   // HairFastGAN Latent Space Try-On State
   const [isAiGenerating, setIsAiGenerating] = useState<boolean>(false);
   const [aiProgressStep, setAiProgressStep] = useState<string>('');
-  const [aiStepIndex, setAiStepIndex] = useState<number>(1);
   const [aiResultImageUrl, setAiResultImageUrl] = useState<string | null>(null);
-  const [aiRequestId, setAiRequestId] = useState<number | null>(null);
   const [showOriginalComparison, setShowOriginalComparison] = useState<boolean>(false);
 
   const resetPhotoTransform = () => {
@@ -138,21 +137,42 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
     }
   };
 
-  // Map filter styles to actual hairstyles from mock data
-  const filterHairstyles = FILTER_STYLES.map((f) => ({
-    ...f,
-    hairstyle: {
-      ...(MOCK_HAIRSTYLES[f.hairIndex] || MOCK_HAIRSTYLES[0]),
-      apiId: f.apiId
-    }
+  // Danh sách kiểu tóc lấy từ catalog backend
+  const [catalogHairstyles, setCatalogHairstyles] = useState<Hairstyle[]>([]);
+  const [catalogError, setCatalogError] = useState<string | undefined>();
+
+  useEffect(() => {
+    let isMounted = true;
+    backendApi
+      .getHairstyles()
+      .then((items) => {
+        if (isMounted) setCatalogHairstyles(items);
+      })
+      .catch((error) => {
+        if (isMounted) setCatalogError(error instanceof Error ? error.message : 'Không tải được kiểu tóc.');
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const filterHairstyles = catalogHairstyles.slice(0, MAX_FILTER_STYLES).map((hairstyle) => ({
+    id: hairstyle.id,
+    label: hairstyle.name,
+    apiId: hairstyle.apiId,
+    hairstyle
   }));
 
-  const activeHairstyle = preselectedHair || filterHairstyles[activeFilterIdx]?.hairstyle || MOCK_HAIRSTYLES[1];
+  const activeHairstyle: Hairstyle = preselectedHair || filterHairstyles[activeFilterIdx]?.hairstyle || LOADING_HAIRSTYLE;
   const activeColor = HAIR_COLOR_PALETTE[selectedColorIdx];
 
   const handleOpenTryOn = async (hair?: Hairstyle) => {
     if (!selectedPhoto) return;
     const targetHair = hair || activeHairstyle;
+    if (!targetHair.apiId) {
+      Alert.alert('Chưa có kiểu tóc', catalogError || 'Danh sách kiểu tóc đang tải, vui lòng thử lại sau giây lát.');
+      return;
+    }
 
     // Nếu ảnh có biến đổi (xoay, zoom, dời vị trí), bake ảnh chuẩn trước khi mở màn hình chỉnh sửa
     let photoToSend = selectedPhoto;
@@ -193,9 +213,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
         setSelectedPhoto(result.assets[0].uri);
         resetPhotoTransform();
         setAiResultImageUrl(null);
-        setAiRequestId(null);
         setShowOriginalComparison(false);
-        simulateAnalysis();
       }
     } catch (e) {
       console.log('Pick image error', e);
@@ -207,22 +225,11 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
       setSelectedPhoto(null);
       resetPhotoTransform();
       setAiResultImageUrl(null);
-      setAiRequestId(null);
       setShowOriginalComparison(false);
-      setAnalysisComplete(false);
       return;
     }
 
     setCameraFacing((current) => (current === 'front' ? 'back' : 'front'));
-  };
-
-  const simulateAnalysis = () => {
-    setIsProcessing(true);
-    setAnalysisComplete(false);
-    setTimeout(() => {
-      setIsProcessing(false);
-      setAnalysisComplete(true);
-    }, 1000);
   };
 
   const handleCapture = async () => {
@@ -253,9 +260,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
           setSelectedPhoto(photo.uri);
           resetPhotoTransform();
           setAiResultImageUrl(null);
-          setAiRequestId(null);
           setShowOriginalComparison(false);
-          simulateAnalysis();
         }
       } catch (e) {
         console.log('Camera capture error', e);
@@ -271,29 +276,28 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
     if (!selectedPhoto) return;
 
     const targetHair = activeHairstyle;
-    const hairstyleId = targetHair.apiId || (filterHairstyles[activeFilterIdx]?.apiId ?? 1);
+    const hairstyleId = targetHair.apiId;
+    if (!hairstyleId) {
+      Alert.alert('Chưa có kiểu tóc', catalogError || 'Danh sách kiểu tóc đang tải, vui lòng thử lại sau giây lát.');
+      return;
+    }
 
     setIsAiGenerating(true);
-    setAiStepIndex(1);
     setAiProgressStep('1/5: Mã hóa khuôn mặt vào StyleGAN2 Latent Space...');
 
     const stepTimer1 = setTimeout(() => {
-      setAiStepIndex(2);
       setAiProgressStep('2/5: Tách Shape Latent (Mẫu tóc) & Color Latent (Màu sắc)...');
     }, 1600);
 
     const stepTimer2 = setTimeout(() => {
-      setAiStepIndex(3);
       setAiProgressStep('3/5: Inpainting dọn sạch nền tóc cũ trên da đầu...');
     }, 3200);
 
     const stepTimer3 = setTimeout(() => {
-      setAiStepIndex(4);
       setAiProgressStep('4/5: Pose Alignment & Latent Space Blending...');
     }, 4800);
 
     const stepTimer4 = setTimeout(() => {
-      setAiStepIndex(5);
       setAiProgressStep('5/5: StyleGAN2 Generator kết xuất ảnh tóc mới siêu thực...');
     }, 6400);
 
@@ -324,7 +328,6 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
 
       if (response && response.resultImageUrl) {
         setAiResultImageUrl(response.resultImageUrl);
-        setAiRequestId(response.requestId);
         setShowOriginalComparison(false);
         Alert.alert(
           '✨ Hoàn tất HairFastGAN',
@@ -559,7 +562,6 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
             <TouchableOpacity
               style={styles.headerIconBtn}
               onPress={handleTakePhoto}
-              title="Đổi ảnh khác"
             >
               <AppIcon name="refresh" size={18} color="#B8895A" />
             </TouchableOpacity>
@@ -825,11 +827,6 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
                         {item.label}
                       </Text>
                     </View>
-                    {item.recommended && (
-                      <View style={styles.starBadge}>
-                        <AppIcon name="star" size={10} color="#FFFFFF" />
-                      </View>
-                    )}
                   </TouchableOpacity>
                 );
               })}
@@ -1162,11 +1159,6 @@ const styles = StyleSheet.create({
     height: 28,
     backgroundColor: '#EFE3D3'
   },
-  selectorSectionBlock: {
-    width: '100%',
-    maxWidth: 420,
-    marginBottom: 12
-  },
   bottomCameraCaptureArea: {
     position: 'absolute',
     bottom: 75,
@@ -1382,82 +1374,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)'
   },
-  quickActionIcon: {
-    fontSize: 18,
-    color: '#FFFFFF'
-  },
-  analysisOverlay: {
-    position: 'absolute',
-    top: 130,
-    left: 20,
-    zIndex: 15,
-    gap: 8
-  },
-  analysisCard: {
-    backgroundColor: 'rgba(255, 253, 249, 0.92)',
-    borderRadius: 10,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(221, 203, 181, 0.45)',
-    maxWidth: 180,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 4
-  },
-  analysisLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 2
-  },
-  analysisLabelIcon: {
-    fontSize: 14,
-    color: '#B8895A'
-  },
-  analysisLabelText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#6F6255',
-    letterSpacing: 0.8
-  },
-  analysisValue: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#241F1A'
-  },
-  confidenceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6
-  },
-  confidenceValue: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#B8895A'
-  },
-  confidenceBarBg: {
-    width: 60,
-    height: 8,
-    backgroundColor: '#F3E7D8',
-    borderRadius: 4,
-    overflow: 'hidden'
-  },
-  confidenceBarFill: {
-    width: '98%',
-    height: '100%',
-    backgroundColor: '#B8895A',
-    borderRadius: 4
-  },
-  bottomUIArea: {
-    position: 'absolute',
-    bottom: 75,
-    left: 0,
-    right: 0,
-    zIndex: 20,
-    paddingBottom: 16
-  },
   filterCarouselContent: {
     paddingHorizontal: 20,
     gap: 12,
@@ -1549,21 +1465,6 @@ const styles = StyleSheet.create({
   },
   filterLabelTextInactive: {
     color: '#4A3B2C'
-  },
-  starBadge: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: '#B8895A',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 3
-  },
-  starBadgeText: {
-    fontSize: 8
   },
   selectorSectionBlock: {
     width: '100%',
@@ -1831,55 +1732,6 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginBottom: 14
   },
-  pipelineStepsBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#E5D9CA'
-  },
-  pipelineStepItem: {
-    alignItems: 'center',
-    flex: 1
-  },
-  stepIndicatorDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#E5D9CA',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4
-  },
-  stepIndicatorDotActive: {
-    backgroundColor: '#B8895A'
-  },
-  stepIndicatorDotCurrent: {
-    backgroundColor: '#B8895A',
-    borderWidth: 2,
-    borderColor: '#FFD700',
-    transform: [{ scale: 1.15 }]
-  },
-  stepIndicatorNumber: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#6F6255'
-  },
-  stepIndicatorNumberActive: {
-    color: '#FFFFFF'
-  },
-  stepLabelText: {
-    fontSize: 8,
-    fontWeight: '600',
-    color: '#8C7E72',
-    textAlign: 'center'
-  },
-  stepLabelTextActive: {
-    color: '#241F1A',
-    fontWeight: '700'
-  },
   ganGuideBanner: {
     backgroundColor: 'rgba(36, 31, 26, 0.85)',
     paddingHorizontal: 14,
@@ -1948,58 +1800,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8
   },
-  captureIcon: {
-    fontSize: 28,
-    color: '#FFFFFF'
-  },
 
-  bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 75,
-    backgroundColor: 'rgba(255, 253, 249, 0.92)',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(221, 203, 181, 0.55)',
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    zIndex: 40
-  },
-  navItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20
-  },
-  navItemActive: {
-    backgroundColor: 'rgba(169, 120, 69, 0.16)'
-  },
-  navIcon: {
-    fontSize: 20,
-    marginBottom: 2
-  },
-  navIconActive: {
-    transform: [{ scale: 1.1 }]
-  },
-  navLabel: {
-    fontSize: 10,
-    fontWeight: '500',
-    color: '#6F6255'
-  },
-  navLabelActive: {
-    color: '#B8895A',
-    fontWeight: '700'
-  },
   photoViewport: {
     width: '100%',
     height: '100%',
@@ -2174,12 +1975,6 @@ const styles = StyleSheet.create({
     color: '#6F6255',
     fontSize: 11,
     fontWeight: '600'
-  },
-  photoAlignHelpText: {
-    fontSize: 10.5,
-    color: '#9E8873',
-    marginTop: 8,
-    lineHeight: 14
   }
 });
 

@@ -92,19 +92,6 @@ export interface ServiceItem {
   createdAt?: string;
 }
 
-export interface SubscriptionPlan {
-  id: 'free' | 'pro';
-  name: string;
-  badge?: string;
-  priceMonthlyVND: number;
-  description: string;
-  features: {
-    label: string;
-    included: boolean;
-    detail?: string;
-  }[];
-}
-
 export interface PageResponse<T> {
   content: T[];
   pageNumber: number;
@@ -121,4 +108,28 @@ export interface DashboardSnapshot {
   completedAppointments: number;
   activeServices: number;
   activeStylists: number;
+}
+
+export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED' | 'REFUND_PENDING' | 'REFUNDED';
+
+export interface PaymentInfo {
+  id: number;
+  bookingId?: number | null;
+  salonId?: number | null;
+  paymentType: 'BOOKING_CONNECTION' | 'SALON_PRO_SUBSCRIPTION';
+  serviceAmount?: number | string | null;
+  feeAmount?: number | string | null;
+  provider?: string;
+  transactionId?: string | null;
+  referenceCode: string;
+  amount: number | string;
+  status: PaymentStatus;
+  paymentUrl?: string | null;
+  paidAt?: string | null;
+  createdAt?: string;
+  refundAmount?: number | string | null;
+  refundReason?: string | null;
+  refundReference?: string | null;
+  refundRequestedAt?: string | null;
+  refundedAt?: string | null;
 }

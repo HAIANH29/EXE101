@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { LocalizedText as Text } from '../i18n/LocalizedComponents';
 import { backendApi } from '../services/backendApi';
+import { PaymentSummaryCard } from '../components/PaymentSummaryCard';
 import { bookingService } from '../services/bookingService';
 import { Booking, BookingStatus } from '../types';
 import { AppIcon, AppIconName } from '../components/AppIcon';
@@ -212,7 +213,7 @@ export const BookingStatusScreen: React.FC<BookingStatusScreenProps> = ({ naviga
         const merged = bookingService.upsertBooking(backendBooking);
         if (isMounted) setBooking({ ...merged });
       } catch {
-        // Keep not-found state when backend detail is unavailable.
+        // Giữ nguyên trạng thái hiện tại nếu API chi tiết tạm lỗi.
       }
     };
 
@@ -236,20 +237,6 @@ export const BookingStatusScreen: React.FC<BookingStatusScreenProps> = ({ naviga
       </SafeAreaView>
     );
   }
-
-  const handleSimulateApprove = () => {
-    const updated = bookingService.updateBookingStatus(booking.id, 'CONFIRMED');
-    if (updated) {
-      setBooking({ ...updated });
-    }
-  };
-
-  const handleSimulateComplete = () => {
-    const updated = bookingService.updateBookingStatus(booking.id, 'COMPLETED');
-    if (updated) {
-      setBooking({ ...updated });
-    }
-  };
 
   const statusInfo = getStatusVisual(booking.status);
   const hasPrice = typeof booking.totalPrice === 'number';
@@ -281,29 +268,7 @@ export const BookingStatusScreen: React.FC<BookingStatusScreenProps> = ({ naviga
           </View>
         </View>
 
-        {booking.status === 'PENDING' && !booking.apiId && (
-          <View style={styles.demoBox}>
-            <View style={styles.demoHeader}>
-              <IconBadge name="arrow" size="sm" color="#B8895A" bg="#F3E7D8" />
-              <Text style={styles.demoTitle}>Simulator cho demo</Text>
-            </View>
-            <TouchableOpacity style={styles.demoBtn} onPress={handleSimulateApprove}>
-              <Text style={styles.demoBtnText}>Giả lập salon xác nhận lịch hẹn</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {booking.status === 'CONFIRMED' && !booking.apiId && (
-          <View style={styles.demoBox}>
-            <View style={styles.demoHeader}>
-              <IconBadge name="arrow" size="sm" color="#8A7748" bg="#F4EAD8" />
-              <Text style={styles.demoTitle}>Simulator cho demo</Text>
-            </View>
-            <TouchableOpacity style={[styles.demoBtn, styles.demoBtnSuccess]} onPress={handleSimulateComplete}>
-              <Text style={styles.demoBtnText}>Giả lập quét mã và hoàn thành dịch vụ</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        <PaymentSummaryCard bookingId={booking.id} navigation={navigation} />
 
         <View style={styles.qrCard}>
           <View style={styles.sectionHeader}>
@@ -497,19 +462,6 @@ const styles = StyleSheet.create({
     height: 46,
     borderRadius: 23
   },
-  iconGlyph: {
-    fontSize: 17,
-    fontWeight: '900',
-    lineHeight: 19
-  },
-  iconGlyphSm: {
-    fontSize: 13,
-    lineHeight: 15
-  },
-  iconGlyphLg: {
-    fontSize: 24,
-    lineHeight: 26
-  },
   statusCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -531,39 +483,6 @@ const styles = StyleSheet.create({
     color: '#6F6255',
     fontSize: 13,
     lineHeight: 19
-  },
-  demoBox: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#DDCBB5'
-  },
-  demoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 10
-  },
-  demoTitle: {
-    color: '#B8895A',
-    fontSize: 13,
-    fontWeight: '900'
-  },
-  demoBtn: {
-    backgroundColor: '#B8895A',
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center'
-  },
-  demoBtnSuccess: {
-    backgroundColor: '#B8895A'
-  },
-  demoBtnText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '800'
   },
   qrCard: {
     backgroundColor: '#FFFFFF',
