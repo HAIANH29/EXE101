@@ -49,6 +49,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -63,11 +64,25 @@ public class AuthServiceImpl implements AuthService {
     private final VerificationTokenRepository verificationTokenRepository;
     private final EmailService emailService;
 
-    @Value("${app.password-reset.frontend-reset-url:http://localhost:8082/reset-password}")
-    private String passwordResetUrl;
+    private static final java.security.SecureRandom SECURE_RANDOM = new java.security.SecureRandom();
 
-    @Value("${app.password-reset.expiration-minutes:15}")
-    private long resetExpirationMinutes;
+    @Value("${app.password-reset.frontend-reset-url:http://localhost:8081/reset-password}")
+    private String passwordResetUrl = "http://localhost:8081/reset-password";
+
+    @Value("${app.password-reset.expiration-minutes:30}")
+    private long resetExpirationMinutes = 30;
+
+    @Value("${app.otp.expiration-minutes:5}")
+    private long otpExpirationMinutes = 5;
+
+    @Value("${app.otp.resend-cooldown-seconds:60}")
+    private long otpResendCooldownSeconds = 60;
+
+    @Value("${app.otp.max-sends-per-hour:5}")
+    private long otpMaxSendsPerHour = 5;
+
+    @Value("${app.otp.max-verify-attempts:5}")
+    private int otpMaxVerifyAttempts = 5;
 
     public AuthServiceImpl(UserRepository userRepository,
                            RoleRepository roleRepository,
@@ -92,39 +107,83 @@ public class AuthServiceImpl implements AuthService {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new BusinessException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
-        
-        String otp = String.format("%06d", new java.util.Random().nextInt(999999));
-        
+
+        // 1. Kiểm tra cooldown gửi lại OTP (vd 60s)
+        var latestTokenOpt = verificationTokenRepository
+                .findTopByEmailAndTypeOrderByCreatedAtDesc(request.getEmail(), VerificationTokenType.REGISTER_OTP);
+        if (latestTokenOpt.isPresent()) {
+            VerificationToken latest = latestTokenOpt.get();
+            if (latest.getCreatedAt().plusSeconds(otpResendCooldownSeconds).isAfter(Instant.now())) {
+                throw new BusinessException(
+                        ErrorCode.OTP_RATE_LIMITED,
+                        "Vui lòng đợi " + otpResendCooldownSeconds + " giây trước khi gửi lại mã OTP"
+                );
+            }
+        }
+
+        // 2. Kiểm tra giới hạn số lần gửi OTP trong 1 giờ
+        Instant oneHourAgo = Instant.now().minusSeconds(3600);
+        long sendsInLastHour = verificationTokenRepository
+                .countByEmailAndTypeAndCreatedAtAfter(request.getEmail(), VerificationTokenType.REGISTER_OTP, oneHourAgo);
+        if (sendsInLastHour >= otpMaxSendsPerHour) {
+            throw new BusinessException(
+                    ErrorCode.OTP_RATE_LIMITED,
+                    "Bạn đã yêu cầu gửi mã OTP quá số lần cho phép trong 1 giờ. Vui lòng thử lại sau."
+            );
+        }
+
+        // 3. Vô hiệu hóa toàn bộ OTP cũ chưa sử dụng của email này
+        verificationTokenRepository.invalidateActiveTokens(request.getEmail(), VerificationTokenType.REGISTER_OTP);
+
+        // 4. Sinh OTP ngẫu nhiên an toàn bằng SecureRandom (6 chữ số)
+        String otp = String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
+
         VerificationToken token = new VerificationToken();
         token.setEmail(request.getEmail());
         token.setToken(otp);
         token.setType(VerificationTokenType.REGISTER_OTP);
-        token.setExpiresAt(Instant.now().plusSeconds(5 * 60)); // 5 mins expiration
-        
+        token.setExpiresAt(Instant.now().plusSeconds(otpExpirationMinutes * 60));
+
         verificationTokenRepository.save(token);
-        
-        emailService.sendHtmlEmail(
+
+        // 5. Gửi email bất đồng bộ qua EmailService
+        emailService.sendHtmlEmailAsync(
                 request.getEmail(),
                 "Mã OTP đăng ký tài khoản StyleLock",
                 buildRegisterOtpEmail(otp),
-                "Mã OTP StyleLock của bạn là: " + otp + ". Mã có hiệu lực trong vòng 5 phút."
+                "Mã OTP StyleLock của bạn là: " + otp + ". Mã có hiệu lực trong vòng " + otpExpirationMinutes + " phút."
         );
     }
 
     @Override
     public void verifyRegisterOtp(VerifyOtpRequest request) {
         VerificationToken token = verificationTokenRepository
-            .findTopByEmailAndTypeOrderByCreatedAtDesc(request.getEmail(), VerificationTokenType.REGISTER_OTP)
-            .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_FAILED, "Không tìm thấy yêu cầu OTP cho email này"));
-            
+                .findTopByEmailAndTypeOrderByCreatedAtDesc(request.getEmail(), VerificationTokenType.REGISTER_OTP)
+                .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_FAILED, "Không tìm thấy yêu cầu OTP cho email này"));
+
+        if (token.isUsed()) {
+            throw new BusinessException(ErrorCode.OTP_EXPIRED, "Mã OTP đã hết hiệu lực hoặc đã được sử dụng");
+        }
+
+        if (token.getAttemptCount() >= otpMaxVerifyAttempts) {
+            throw new BusinessException(ErrorCode.OTP_TOO_MANY_ATTEMPTS);
+        }
+
         if (token.getExpiresAt().isBefore(Instant.now())) {
-            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Mã OTP đã hết hạn");
+            throw new BusinessException(ErrorCode.OTP_EXPIRED);
         }
-        
+
         if (!token.getToken().equals(request.getOtp())) {
-            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Mã OTP không chính xác");
+            token.setAttemptCount(token.getAttemptCount() + 1);
+            if (token.getAttemptCount() >= otpMaxVerifyAttempts) {
+                token.setUsed(true); // Vô hiệu hóa mã khi đã nhập sai quá số lần quy định
+                verificationTokenRepository.save(token);
+                throw new BusinessException(ErrorCode.OTP_TOO_MANY_ATTEMPTS);
+            }
+            verificationTokenRepository.save(token);
+            throw new BusinessException(ErrorCode.OTP_INVALID);
         }
-        
+
         token.setVerified(true);
         verificationTokenRepository.save(token);
     }
@@ -297,26 +356,35 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void forgotPassword(ForgotPasswordRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
-            .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_FAILED, "Email không tồn tại trong hệ thống"));
-            
+        // Chống email enumeration: nếu email không tồn tại hoặc tài khoản đã bị xóa/khóa,
+        // không ném lỗi ra ngoài mà kết thúc bình thường; client luôn nhận cùng thông báo thành công.
+        Optional<User> userOpt = userRepository.findByEmail(request.getEmail());
+        if (userOpt.isEmpty() || userOpt.get().isDeleted() || !userOpt.get().isEnabled()) {
+            return;
+        }
+
+        User user = userOpt.get();
+
+        // Vô hiệu hóa các reset token cũ chưa dùng
+        verificationTokenRepository.invalidateActiveTokens(user.getEmail(), VerificationTokenType.RESET_PASSWORD);
+
         String resetToken = java.util.UUID.randomUUID().toString();
-        
+
         VerificationToken token = new VerificationToken();
         token.setEmail(user.getEmail());
         token.setToken(resetToken);
         token.setType(VerificationTokenType.RESET_PASSWORD);
         token.setExpiresAt(Instant.now().plusSeconds(resetExpirationMinutes * 60));
-        
+
         verificationTokenRepository.save(token);
-        
+
         String resetLink = buildResetLink(resetToken);
-        
-        emailService.sendHtmlEmail(
+
+        emailService.sendHtmlEmailAsync(
                 user.getEmail(),
                 "Xác minh yêu cầu đặt lại mật khẩu StyleLock",
                 buildPasswordResetEmail(user.getFullName(), resetLink),
-                        "Vui lòng mở link sau để đặt lại mật khẩu StyleLock: "
+                "Vui lòng mở link sau để đặt lại mật khẩu StyleLock: "
                         + resetLink
                         + "\n\nĐường dẫn có hiệu lực trong vòng " + resetExpirationMinutes + " phút."
         );
@@ -325,23 +393,23 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void resetPassword(ResetPasswordRequest request) {
         VerificationToken token = verificationTokenRepository
-            .findByTokenAndType(request.getToken(), VerificationTokenType.RESET_PASSWORD)
-            .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_FAILED, "Token không hợp lệ hoặc không tồn tại"));
-            
+                .findByTokenAndType(request.getToken(), VerificationTokenType.RESET_PASSWORD)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_PASSWORD_RESET_TOKEN));
+
         if (token.getExpiresAt().isBefore(Instant.now())) {
-            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Token đã hết hạn");
+            throw new BusinessException(ErrorCode.INVALID_PASSWORD_RESET_TOKEN, "Link đặt lại mật khẩu đã hết hạn");
         }
-        
+
         if (token.isUsed()) {
-            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Token đã được sử dụng");
+            throw new BusinessException(ErrorCode.INVALID_PASSWORD_RESET_TOKEN, "Link đặt lại mật khẩu đã được sử dụng");
         }
-        
+
         User user = userRepository.findByEmail(token.getEmail())
-            .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_FAILED, "Người dùng không tồn tại"));
-            
+                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_PASSWORD_RESET_TOKEN, "Người dùng không tồn tại"));
+
         user.changePassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
-        
+
         token.setUsed(true);
         verificationTokenRepository.save(token);
     }
@@ -517,7 +585,7 @@ public class AuthServiceImpl implements AuthService {
                         + "</div>"
                         + "</div>"
                         + "<p style=\"margin:0;color:#8a857d;font-size:13px;line-height:21px;\">"
-                        + "Mã có hiệu lực trong 5 phút. Nếu bạn không yêu cầu đăng ký, vui lòng bỏ qua email này."
+                        + "Mã có hiệu lực trong " + otpExpirationMinutes + " phút. Nếu bạn không yêu cầu đăng ký, vui lòng bỏ qua email này."
                         + "</p>"
         );
     }

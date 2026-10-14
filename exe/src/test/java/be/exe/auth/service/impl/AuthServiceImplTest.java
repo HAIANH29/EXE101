@@ -48,12 +48,17 @@ public class AuthServiceImplTest {
         request.setEmail("test@gmail.com");
 
         when(userRepository.existsByEmail("test@gmail.com")).thenReturn(false);
+        when(tokenRepository.findTopByEmailAndTypeOrderByCreatedAtDesc("test@gmail.com", VerificationTokenType.REGISTER_OTP))
+                .thenReturn(Optional.empty());
+        when(tokenRepository.countByEmailAndTypeAndCreatedAtAfter(eq("test@gmail.com"), eq(VerificationTokenType.REGISTER_OTP), any()))
+                .thenReturn(0L);
         when(tokenRepository.save(any(VerificationToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         authService.sendRegisterOtp(request);
 
+        verify(tokenRepository, times(1)).invalidateActiveTokens("test@gmail.com", VerificationTokenType.REGISTER_OTP);
         verify(tokenRepository, times(1)).save(any(VerificationToken.class));
-        verify(emailService, times(1)).sendHtmlEmail(eq("test@gmail.com"), anyString(), anyString(), anyString());
+        verify(emailService, times(1)).sendHtmlEmailAsync(eq("test@gmail.com"), anyString(), anyString(), anyString());
     }
 
     @Test
@@ -69,6 +74,7 @@ public class AuthServiceImplTest {
         token.setExpiresAt(Instant.now().plusSeconds(300));
         token.setVerified(false);
         token.setUsed(false);
+        token.setAttemptCount(0);
 
         when(tokenRepository.findTopByEmailAndTypeOrderByCreatedAtDesc("test@gmail.com", VerificationTokenType.REGISTER_OTP))
                 .thenReturn(Optional.of(token));

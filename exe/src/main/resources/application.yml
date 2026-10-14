@@ -33,6 +33,10 @@ spring:
       mail:
         smtp:
           auth: true
+          # Timeout để request/thread không treo vô hạn khi cổng SMTP bị chặn (vd. Render free tier)
+          connectiontimeout: ${MAIL_CONNECTION_TIMEOUT_MS:10000}
+          timeout: ${MAIL_READ_TIMEOUT_MS:10000}
+          writetimeout: ${MAIL_WRITE_TIMEOUT_MS:10000}
           starttls:
             enable: true
 
@@ -96,9 +100,31 @@ app:
 
   password-reset:
     expiration-minutes: ${PASSWORD_RESET_EXPIRATION_MINUTES:30}
-    mail-enabled: ${PASSWORD_RESET_MAIL_ENABLED:false}
-    frontend-reset-url: ${APP_FRONTEND_RESET_URL:http://localhost:8082/reset-password}
-    mail-from: ${MAIL_FROM:${MAIL_USERNAME:}}
+    # PHẢI đặt thành địa chỉ thật của customer app khi deploy, vd. https://<ten-mien-app>/reset-password
+    frontend-reset-url: ${APP_FRONTEND_RESET_URL:http://localhost:8081/reset-password}
+
+  mail:
+    # smtp (Gmail, cổng 587) | brevo (HTTP API cổng 443 - dùng khi hosting chặn SMTP)
+    provider: ${MAIL_PROVIDER:smtp}
+    enabled: ${MAIL_ENABLED:${PASSWORD_RESET_MAIL_ENABLED:false}}
+    from: ${MAIL_FROM:${MAIL_USERNAME:}}
+    from-name: ${MAIL_FROM_NAME:StyleLock}
+    # HTTP API không hỗ trợ ảnh inline CID -> dùng URL công khai cho logo
+    logo-url: ${MAIL_LOGO_URL:${APP_PUBLIC_BASE_URL:http://localhost:8080}/email/stylelock-logo-transparent.png}
+    http-timeout-ms: ${MAIL_HTTP_TIMEOUT_MS:10000}
+    brevo:
+      api-key: ${BREVO_API_KEY:}
+      base-url: ${BREVO_BASE_URL:https://api.brevo.com/v3}
+    async:
+      core-pool-size: ${MAIL_ASYNC_CORE_POOL_SIZE:2}
+      max-pool-size: ${MAIL_ASYNC_MAX_POOL_SIZE:4}
+      queue-capacity: ${MAIL_ASYNC_QUEUE_CAPACITY:200}
+
+  otp:
+    expiration-minutes: ${OTP_EXPIRATION_MINUTES:5}
+    resend-cooldown-seconds: ${OTP_RESEND_COOLDOWN_SECONDS:60}
+    max-sends-per-hour: ${OTP_MAX_SENDS_PER_HOUR:5}
+    max-verify-attempts: ${OTP_MAX_VERIFY_ATTEMPTS:5}
 
   upload:
     root-dir: ${APP_UPLOAD_ROOT_DIR:uploads}

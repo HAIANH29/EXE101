@@ -10,7 +10,12 @@ public enum ErrorCode {
     RESOURCE_NOT_FOUND("COMMON_003", "Không tìm thấy dữ liệu", HttpStatus.NOT_FOUND),
     UNAUTHORIZED("COMMON_004", "Bạn chưa đăng nhập hoặc phiên đã hết hạn", HttpStatus.UNAUTHORIZED),
     FORBIDDEN("COMMON_005", "Bạn không có quyền thực hiện hành động này", HttpStatus.FORBIDDEN),
-    EMAIL_SEND_FAILED("COMMON_006", "Chưa gửi được email, vui lòng kiểm tra cấu hình SMTP", HttpStatus.SERVICE_UNAVAILABLE),
+
+    // ===== Mail =====
+    /** Gửi mail đang tắt hoặc thiếu cấu hình (MAIL_ENABLED, API key, SMTP user/pass...). */
+    MAIL_SERVICE_UNAVAILABLE("MAIL_001", "Dịch vụ gửi email đang tạm ngưng, vui lòng thử lại sau", HttpStatus.SERVICE_UNAVAILABLE),
+    /** Đã cố gửi nhưng nhà cung cấp mail trả lỗi / timeout (chỉ xảy ra ở luồng gửi đồng bộ). */
+    MAIL_SEND_FAILED("MAIL_002", "Không gửi được email, vui lòng thử lại sau", HttpStatus.SERVICE_UNAVAILABLE),
 
     // ===== Auth =====
     EMAIL_ALREADY_EXISTS("AUTH_001", "Email đã được sử dụng", HttpStatus.CONFLICT),
@@ -18,6 +23,10 @@ public enum ErrorCode {
     INVALID_REFRESH_TOKEN("AUTH_003", "Refresh token không hợp lệ hoặc đã hết hạn", HttpStatus.UNAUTHORIZED),
     ACCOUNT_DISABLED("AUTH_004", "Tài khoản đã bị khóa", HttpStatus.FORBIDDEN),
     INVALID_PASSWORD_RESET_TOKEN("AUTH_005", "Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn", HttpStatus.BAD_REQUEST),
+    OTP_INVALID("AUTH_006", "Mã OTP không chính xác", HttpStatus.BAD_REQUEST),
+    OTP_EXPIRED("AUTH_007", "Mã OTP đã hết hạn, vui lòng yêu cầu mã mới", HttpStatus.BAD_REQUEST),
+    OTP_RATE_LIMITED("AUTH_008", "Bạn yêu cầu mã OTP quá nhanh, vui lòng thử lại sau", HttpStatus.TOO_MANY_REQUESTS),
+    OTP_TOO_MANY_ATTEMPTS("AUTH_009", "Bạn đã nhập sai OTP quá nhiều lần, vui lòng yêu cầu mã mới", HttpStatus.TOO_MANY_REQUESTS),
 
     // ===== Booking =====
     BOOKING_SLOT_UNAVAILABLE("BOOKING_001", "Khung giờ này đã có người đặt", HttpStatus.CONFLICT),
