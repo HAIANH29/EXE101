@@ -50,6 +50,7 @@ export type AppIconName =
   | 'eyeOff'
   | 'settings'
   | 'trendingUp'
+  | 'arrowUp'
   | 'trash';
 
 const ICON_MAP: Record<AppIconName, FeatherName> = {
@@ -84,6 +85,7 @@ const ICON_MAP: Record<AppIconName, FeatherName> = {
   shield: 'shield',
   card: 'credit-card',
   arrowRight: 'arrow-right',
+  arrowUp: 'arrow-up',
   edit: 'edit-2',
   moon: 'moon',
   logout: 'log-out',

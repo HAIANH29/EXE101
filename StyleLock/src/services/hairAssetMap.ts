@@ -127,7 +127,9 @@ export function resolveHairOverlaySource(
     name.includes('two block') ||
     cat.includes('two block') ||
     name.includes('layer') ||
-    cat.includes('layer')
+    cat.includes('layer') ||
+    name.includes('comma') ||
+    name.includes('messy')
   ) {
     styleKey = 'twoblock';
   } else if (
@@ -135,7 +137,11 @@ export function resolveHairOverlaySource(
     cat.includes('undercut') ||
     name.includes('fade') ||
     name.includes('buzz') ||
-    name.includes('pompadour')
+    name.includes('pompadour') ||
+    name.includes('crop') ||
+    name.includes('quiff') ||
+    name.includes('slick back') ||
+    name.includes('ivy league')
   ) {
     styleKey = 'undercut';
   } else if (
@@ -143,7 +149,9 @@ export function resolveHairOverlaySource(
     cat.includes('side part') ||
     name.includes('7/3') ||
     name.includes('classic') ||
-    name.includes('rẽ ngôi')
+    name.includes('rẽ ngôi') ||
+    name.includes('middle part') ||
+    name.includes('curtain')
   ) {
     styleKey = 'sidepart';
   } else if (
@@ -159,6 +167,7 @@ export function resolveHairOverlaySource(
     cat.includes('curly') ||
     name.includes('xoăn') ||
     name.includes('mullet') ||
+    name.includes('wolf cut') ||
     name.includes('wave')
   ) {
     styleKey = 'curly';

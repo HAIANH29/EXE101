@@ -1,624 +1,528 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import {
   StyleSheet,
   View,
-  TouchableOpacity,
-  Image,
   SafeAreaView,
   ScrollView,
-  Modal
+  useWindowDimensions,
+  TouchableOpacity,
+  ActivityIndicator,
+  NativeSyntheticEvent,
+  NativeScrollEvent
 } from 'react-native';
-import { LocalizedText as Text, LocalizedTextInput as TextInput } from '../i18n/LocalizedComponents';
-import { DataState } from '../components/DataState';
+import { LocalizedText as Text } from '../i18n/LocalizedComponents';
 import { backendApi } from '../services/backendApi';
 import { Hairstyle } from '../types';
-import { AppIcon } from '../components/AppIcon';
 import { BottomNavBar } from '../components/BottomNavBar';
-import { NotificationBellButton } from '../components/NotificationBellButton';
 import { favoritesStore } from '../services/favoritesStore';
+import { AppIcon } from '../components/AppIcon';
+
+// Explore Modular Components
+import {
+  EXPLORE_THEME,
+  ExploreFilterState,
+  DEFAULT_FILTERS,
+  GenderFilter,
+  FALLBACK_30_HAIRSTYLES,
+  removeVietnameseTones,
+  inferHairLength,
+  inferHairTexture,
+  inferHairAesthetic,
+  TRENDING_HAIRSTYLE_NAMES
+} from '../components/explore/ExploreTypes';
+import { ExploreHeader } from '../components/explore/ExploreHeader';
+import { ExploreSearchBar } from '../components/explore/ExploreSearchBar';
+import { GenderTabs } from '../components/explore/GenderTabs';
+import { FilterChips } from '../components/explore/FilterChips';
+import { TrendingSection } from '../components/explore/TrendingSection';
+import { HairstyleCard } from '../components/explore/HairstyleCard';
+import { FilterPanelModal } from '../components/explore/FilterPanelModal';
 
 interface HairstyleSelectScreenProps {
   navigation: any;
   route?: any;
 }
 
-
-export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({ navigation, route }) => {
+export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({
+  navigation,
+  route
+}) => {
   const userPhotoUri = route?.params?.userPhotoUri;
+  const { width } = useWindowDimensions();
 
+  // Search & Filters State
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [filters, setFilters] = useState<ExploreFilterState>(DEFAULT_FILTERS);
   const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
-  const [selectedGender, setSelectedGender] = useState<string>('All');
-  const [selectedLength, setSelectedLength] = useState<string>('All');
-  const [selectedStyleFilter, setSelectedStyleFilter] = useState<string>('All');
-  const [, setFavVersion] = useState<number>(0);
-  const [hairstyles, setHairstyles] = useState<Hairstyle[]>([]);
+
+  // Data State
+  const [hairstyles, setHairstyles] = useState<Hairstyle[]>(FALLBACK_30_HAIRSTYLES);
   const [loading, setLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string | undefined>();
   const [reloadKey, setReloadKey] = useState<number>(0);
+  const [, setFavTick] = useState<number>(0);
 
+  // Load Hairstyles from Backend API with Fallback
   useEffect(() => {
     let isMounted = true;
 
-    const loadHairstyles = async () => {
+    const loadData = async () => {
       setLoading(true);
       setLoadError(undefined);
       try {
-        const apiHairstyles = await backendApi.getHairstyles();
-        if (isMounted) setHairstyles(apiHairstyles);
-      } catch (error) {
-        if (isMounted) setLoadError(error instanceof Error ? error.message : 'Không tải được danh sách kiểu tóc.');
+        const apiData = await backendApi.getHairstyles();
+        if (isMounted) {
+          if (apiData && apiData.length > 0) {
+            setHairstyles(apiData);
+          } else {
+            setHairstyles(FALLBACK_30_HAIRSTYLES);
+          }
+        }
+      } catch (err) {
+        if (isMounted) {
+          // If network error, still provide the curated 30 hairstyles so user experience is uninterrupted
+          setHairstyles(FALLBACK_30_HAIRSTYLES);
+          setLoadError('Không thể kết nối đến máy chủ. Đang hiển thị danh mục offline.');
+        }
       } finally {
         if (isMounted) setLoading(false);
       }
     };
 
-    loadHairstyles();
+    void loadData();
 
-    const unsubscribe = favoritesStore.subscribe(() => {
-      if (isMounted) setFavVersion((v) => v + 1);
+    const unsubFav = favoritesStore.subscribe(() => {
+      if (isMounted) setFavTick((t) => t + 1);
     });
 
     return () => {
       isMounted = false;
-      unsubscribe();
+      unsubFav();
     };
   }, [reloadKey]);
 
-  const toggleFavorite = (id: string) => {
-    favoritesStore.toggleFavorite(id);
-    setFavVersion((v) => v + 1);
-  };
+  // Gender Counts
+  const maleCount = useMemo(
+    () => hairstyles.filter((h) => h.gender === 'nam').length,
+    [hairstyles]
+  );
+  const femaleCount = useMemo(
+    () => hairstyles.filter((h) => h.gender === 'nu').length,
+    [hairstyles]
+  );
 
-  const filteredHairstyles = hairstyles.filter((hair) => {
-    // Search query filter
-    const matchesSearch =
-      hair.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      hair.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      hair.category.toLowerCase().includes(searchQuery.toLowerCase());
+  // Active filters count (for badge and reset button)
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filters.gender !== 'All') count += 1;
+    if (filters.length !== 'All') count += 1;
+    if (filters.styleType !== 'All') count += 1;
+    if (filters.texture !== 'All') count += 1;
+    if (filters.aesthetic !== 'All') count += 1;
+    if (filters.sort !== 'featured') count += 1;
+    if (searchQuery.trim().length > 0) count += 1;
+    return count;
+  }, [filters, searchQuery]);
 
-    // Gender filter
-    const matchesGender =
-      selectedGender === 'All'
-        ? true
-        : selectedGender === 'Women'
-        ? hair.gender === 'nu'
-        : hair.gender === 'nam';
+  // Filter & Search Logic
+  const filteredHairstyles = useMemo(() => {
+    const rawSearch = searchQuery.trim();
+    const cleanSearch = removeVietnameseTones(rawSearch);
 
-    // Length filter (mapped from category / description)
-    const matchesLength =
-      selectedLength === 'All'
-        ? true
-        : hair.category.toLowerCase().includes(selectedLength.toLowerCase()) ||
-          hair.description.toLowerCase().includes(selectedLength.toLowerCase());
+    return hairstyles
+      .filter((hair) => {
+        // 1. Gender Filter
+        if (filters.gender === 'Men' && hair.gender !== 'nam') return false;
+        if (filters.gender === 'Women' && hair.gender !== 'nu') return false;
 
-    // Style filter
-    const matchesStyle =
-      selectedStyleFilter === 'All'
-        ? true
-        : hair.category.toLowerCase().includes(selectedStyleFilter.toLowerCase()) ||
-          hair.description.toLowerCase().includes(selectedStyleFilter.toLowerCase());
+        // 2. Length Filter
+        if (filters.length !== 'All' && inferHairLength(hair) !== filters.length) {
+          return false;
+        }
 
-    return matchesSearch && matchesGender && matchesLength && matchesStyle;
-  });
+        // 3. Texture Filter
+        if (filters.texture !== 'All' && inferHairTexture(hair) !== filters.texture) {
+          return false;
+        }
 
-  const handleSelectHair = (hair: Hairstyle) => {
-    if (userPhotoUri) {
-      navigation.navigate('TryOnEditor', {
-        userPhotoUri,
-        hairstyle: hair
+        // 4. Aesthetic Filter
+        if (filters.aesthetic !== 'All' && inferHairAesthetic(hair) !== filters.aesthetic) {
+          return false;
+        }
+
+        // 5. Style Type Filter
+        if (filters.styleType !== 'All') {
+          const styleTarget = removeVietnameseTones(filters.styleType);
+          const hairText = removeVietnameseTones(
+            `${hair.name} ${hair.description} ${hair.category}`
+          );
+          if (!hairText.includes(styleTarget)) return false;
+        }
+
+        // 6. Search Query (Accent-insensitive)
+        if (cleanSearch.length > 0) {
+          const combined = removeVietnameseTones(
+            `${hair.name} ${hair.description} ${hair.category} ${hair.suitableFace}`
+          );
+          if (!combined.includes(cleanSearch)) return false;
+        }
+
+        return true;
+      })
+      .sort((a, b) => {
+        if (filters.sort === 'name_asc') {
+          return a.name.localeCompare(b.name, 'vi');
+        }
+        if (filters.sort === 'popular') {
+          const aTrend = TRENDING_HAIRSTYLE_NAMES.some((n) =>
+            a.name.toLowerCase().includes(n.toLowerCase())
+          );
+          const bTrend = TRENDING_HAIRSTYLE_NAMES.some((n) =>
+            b.name.toLowerCase().includes(n.toLowerCase())
+          );
+          if (aTrend && !bTrend) return -1;
+          if (!aTrend && bTrend) return 1;
+        }
+        return 0;
       });
-    } else {
-      navigation.navigate('CameraUpload', {
-        preselectedHair: hair
-      });
-    }
-  };
+  }, [hairstyles, filters, searchQuery]);
+
+  // Actions
+  const handleOpenDetail = useCallback(
+    (hair: Hairstyle) => {
+      navigation.navigate('HairstyleDetail', { hairstyle: hair });
+    },
+    [navigation]
+  );
+
+  const handleTryOn = useCallback(
+    (hair: Hairstyle) => {
+      if (userPhotoUri) {
+        navigation.navigate('TryOnEditor', {
+          userPhotoUri,
+          hairstyle: hair
+        });
+      } else {
+        navigation.navigate('CameraUpload', {
+          preselectedHair: hair
+        });
+      }
+    },
+    [navigation, userPhotoUri]
+  );
+
+  const handleClearAllFilters = useCallback(() => {
+    setFilters(DEFAULT_FILTERS);
+    setSearchQuery('');
+  }, []);
+
+  const handleSelectGender = useCallback((gender: GenderFilter) => {
+    setFilters((prev) => ({ ...prev, gender }));
+  }, []);
+
+  // Responsive Grid Calculations
+  const isTablet = width >= 768;
+  const isDesktop = width >= 1024;
+  const numColumns = isDesktop ? 4 : isTablet ? 3 : 2;
+  const gridGap = 12;
+  const totalHorizontalPadding = 40; // 20 each side
+  const availableWidth = width - totalHorizontalPadding - gridGap * (numColumns - 1);
+  const cardWidth = Math.floor(availableWidth / numColumns);
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Top App Bar */}
-      <View style={styles.topAppBar}>
-        <TouchableOpacity
-          style={styles.iconBtn}
-          onPress={() => {
-            if (navigation.canGoBack()) {
-              navigation.goBack();
-            } else {
-              navigation.navigate('Home');
-            }
-          }}
-        >
-          <AppIcon name="menu" size={22} color="#B8895A" />
-        </TouchableOpacity>
-
-        <Text style={styles.brandTitle}>StyleLock</Text>
-
-        <View style={styles.headerRightActions}>
-          <NotificationBellButton navigation={navigation} style={styles.headerIconBtn} />
-          <TouchableOpacity
-            style={styles.headerIconBtn}
-            onPress={() => navigation.navigate('Profile')}
-            activeOpacity={0.8}
-          >
-            <AppIcon name="user" size={20} color="#B8895A" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Sticky Search & Filter Header */}
-      <View style={styles.stickyHeader}>
-        <View style={styles.searchContainer}>
-          <AppIcon name="search" size={17} color="#6F6255" style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search hairstyles, colors, trends..."
-            placeholderTextColor="#9B8B7A"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
-
-        <TouchableOpacity
-          style={styles.filterBtn}
-          onPress={() => setShowFilterModal(true)}
-        >
-          <AppIcon name="settings" size={20} color="#B8895A" />
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Title & Subtitle Section */}
-        <View style={styles.titleSection}>
-          <Text style={styles.mainTitle}>Explore Styles</Text>
-          <Text style={styles.subTitle}>Trending Now</Text>
-        </View>
-
-        {/* Editorial Bento Grid Layout */}
-        <DataState
-          loading={loading}
-          error={loadError}
-          empty={!loading && !loadError && filteredHairstyles.length === 0}
-          emptyText="Không tìm thấy kiểu tóc phù hợp."
-          onRetry={() => setReloadKey((k) => k + 1)}
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        {/* Sticky Header Section */}
+        <ExploreHeader
+          navigation={navigation}
+          totalCount={hairstyles.length}
         />
-        <View style={styles.grid}>
-          {filteredHairstyles.map((hair) => {
-            const isFav = favoritesStore.isFavorite(hair.id);
-            return (
-              <View key={hair.id} style={styles.articleCard}>
-                {/* Large Image Aspect 4:5 - Click opens HairstyleDetail */}
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  style={styles.imgWrapper}
-                  onPress={() => navigation.navigate('HairstyleDetail', { hairstyle: hair })}
-                >
-                  <Image source={{ uri: hair.imageUrl }} style={styles.hairImg} />
 
-                  {/* Favorite Heart Button */}
-                  <TouchableOpacity
-                    style={styles.favBtn}
-                    onPress={() => toggleFavorite(hair.id)}
-                  >
-                    <AppIcon
-                      name={isFav ? "heartFilled" : "heart"}
-                      size={19}
-                      color={isFav ? "#B65A4B" : "#B8895A"}
-                    />
-                  </TouchableOpacity>
-                </TouchableOpacity>
+        {/* Search Bar with Filter Trigger */}
+        <ExploreSearchBar
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          onClear={() => setSearchQuery('')}
+          onOpenFilter={() => setShowFilterModal(true)}
+          activeFilterCount={activeFilterCount}
+        />
 
-                {/* Card Content & Details */}
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  style={styles.cardContent}
-                  onPress={() => navigation.navigate('HairstyleDetail', { hairstyle: hair })}
-                >
-                  <Text style={styles.cardTitle} numberOfLines={1}>{hair.name}</Text>
-                  <Text style={styles.cardDesc} numberOfLines={1}>
-                    {hair.description}
-                  </Text>
+        {/* Gender Segmented Tabs: Tất cả | Nam | Nữ */}
+        <GenderTabs
+          selectedGender={filters.gender}
+          onSelectGender={handleSelectGender}
+          maleCount={maleCount}
+          femaleCount={femaleCount}
+          totalCount={hairstyles.length}
+        />
 
-                  {/* Primary CTA Button: Try Now */}
-                  <TouchableOpacity
-                    style={styles.tryNowBtn}
-                    activeOpacity={0.85}
-                    onPress={() => handleSelectHair(hair)}
-                  >
-                    <Text style={styles.tryNowText}>Try Now</Text>
-                  </TouchableOpacity>
-                </TouchableOpacity>
-              </View>
-            );
-          })}
-        </View>
+        {/* Quick Filter Chips */}
+        <FilterChips
+          filters={filters}
+          onOpenFilterModal={() => setShowFilterModal(true)}
+          onClearFilters={handleClearAllFilters}
+          onSelectLength={(length) => setFilters((p) => ({ ...p, length }))}
+          onSelectTexture={(texture) => setFilters((p) => ({ ...p, texture }))}
+          onSelectSort={(sort) => setFilters((p) => ({ ...p, sort }))}
+          activeFilterCount={activeFilterCount}
+        />
 
-        <View style={{ height: 90 }} />
-      </ScrollView>
-
-      <BottomNavBar active="Explore" navigation={navigation} />
-
-      {/* FILTER BOTTOM SHEET MODAL */}
-      <Modal
-        visible={showFilterModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowFilterModal(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowFilterModal(false)}
+        {/* Main Scroll Content */}
+        <ScrollView
+          style={styles.scrollContainer}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
         >
-          <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
-            {/* Modal Handle */}
-            <View style={styles.modalHandleRow}>
-              <View style={styles.modalHandle} />
-            </View>
-
-            {/* Modal Header */}
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Filters</Text>
-              <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-                <AppIcon name="close" size={22} color="#6F6255" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.modalBody}>
-              {/* Filter 1: Gender */}
-              <Text style={styles.filterCategoryLabel}>GENDER</Text>
-              <View style={styles.pillRow}>
-                {['All', 'Women', 'Men'].map((g) => (
-                  <TouchableOpacity
-                    key={g}
-                    style={[styles.pill, selectedGender === g && styles.activePill]}
-                    onPress={() => setSelectedGender(g)}
-                  >
-                    <Text style={[styles.pillText, selectedGender === g && styles.activePillText]}>
-                      {g}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* Filter 2: Length */}
-              <Text style={styles.filterCategoryLabel}>LENGTH</Text>
-              <View style={styles.pillRow}>
-                {['All', 'Short', 'Medium', 'Long'].map((l) => (
-                  <TouchableOpacity
-                    key={l}
-                    style={[styles.pill, selectedLength === l && styles.activePill]}
-                    onPress={() => setSelectedLength(l)}
-                  >
-                    <Text style={[styles.pillText, selectedLength === l && styles.activePillText]}>
-                      {l}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* Filter 3: Style */}
-              <Text style={styles.filterCategoryLabel}>STYLE</Text>
-              <View style={styles.pillRow}>
-                {['All', 'Straight', 'Wavy', 'Curly', 'Layer', 'Bob'].map((s) => (
-                  <TouchableOpacity
-                    key={s}
-                    style={[styles.pill, selectedStyleFilter === s && styles.activePill]}
-                    onPress={() => setSelectedStyleFilter(s)}
-                  >
-                    <Text style={[styles.pillText, selectedStyleFilter === s && styles.activePillText]}>
-                      {s}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
-
-            {/* Modal Footer Buttons */}
-            <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={styles.clearBtn}
-                onPress={() => {
-                  setSelectedGender('All');
-                  setSelectedLength('All');
-                  setSelectedStyleFilter('All');
-                  setSearchQuery('');
+          {/* Trending Carousel Section (Hidden during search or specific filter to keep focus) */}
+          {searchQuery.trim().length === 0 &&
+            filters.length === 'All' &&
+            filters.styleType === 'All' &&
+            filters.texture === 'All' && (
+              <TrendingSection
+                hairstyles={hairstyles}
+                onSelectHair={handleTryOn}
+                onOpenDetail={handleOpenDetail}
+                onSeeAllTrending={() => {
+                  setFilters((prev) => ({ ...prev, sort: 'popular' }));
                 }}
-              >
-                <Text style={styles.clearBtnText}>Clear All</Text>
-              </TouchableOpacity>
+              />
+            )}
 
+          {/* All Hairstyles Section Title & Count */}
+          <View style={styles.galleryHeader}>
+            <View>
+              <Text style={styles.galleryTitle}>Tất cả kiểu tóc</Text>
+              <Text style={styles.gallerySubtitle}>
+                Hiển thị {filteredHairstyles.length} trên tổng {hairstyles.length} kiểu
+              </Text>
+            </View>
+
+            {activeFilterCount > 0 && (
               <TouchableOpacity
-                style={styles.applyBtn}
-                onPress={() => setShowFilterModal(false)}
+                onPress={handleClearAllFilters}
+                style={styles.resetInlineBtn}
+                activeOpacity={0.7}
               >
-                <Text style={styles.applyBtnText}>Apply Filters</Text>
+                <Text style={styles.resetInlineText}>Đặt lại bộ lọc</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Loading State */}
+          {loading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={EXPLORE_THEME.primary} />
+              <Text style={styles.loadingText}>Đang tải danh mục kiểu tóc...</Text>
+            </View>
+          )}
+
+          {/* Error State Banner */}
+          {loadError && (
+            <View style={styles.errorBanner}>
+              <AppIcon name="warning" size={18} color="#A84C62" />
+              <Text style={styles.errorText}>{loadError}</Text>
+              <TouchableOpacity
+                style={styles.retryBtn}
+                onPress={() => setReloadKey((k) => k + 1)}
+              >
+                <Text style={styles.retryBtnText}>Thử lại</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+          )}
+
+          {/* Empty State */}
+          {!loading && filteredHairstyles.length === 0 && (
+            <View style={styles.emptyContainer}>
+              <View style={styles.emptyIconBg}>
+                <AppIcon name="scissors" size={32} color={EXPLORE_THEME.primary} />
+              </View>
+              <Text style={styles.emptyTitle}>Không tìm thấy kiểu tóc phù hợp</Text>
+              <Text style={styles.emptyDesc}>
+                Hãy thử nới lỏng bộ lọc hoặc tìm kiếm với từ khóa khác (ví dụ: Layer, Two Block, Bob, Sóng lơi...)
+              </Text>
+              <TouchableOpacity
+                style={styles.emptyResetBtn}
+                onPress={handleClearAllFilters}
+                activeOpacity={0.85}
+              >
+                <AppIcon name="refresh" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={styles.emptyResetText}>Xóa tất cả bộ lọc</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Responsive Hairstyles Grid */}
+          {!loading && filteredHairstyles.length > 0 && (
+            <View style={styles.gridContainer}>
+              {filteredHairstyles.map((hair) => (
+                <HairstyleCard
+                  key={hair.id}
+                  hair={hair}
+                  onOpenDetail={handleOpenDetail}
+                  onTryOn={handleTryOn}
+                  cardWidth={cardWidth}
+                />
+              ))}
+            </View>
+          )}
+
+          {/* Bottom Spacing for BottomNavBar */}
+          <View style={{ height: 100 }} />
+        </ScrollView>
+
+        {/* Global Bottom Navigation Bar */}
+        <BottomNavBar active="Explore" navigation={navigation} />
+
+        {/* Advanced Filter Modal Bottom Sheet */}
+        <FilterPanelModal
+          visible={showFilterModal}
+          onClose={() => setShowFilterModal(false)}
+          filters={filters}
+          onApplyFilters={setFilters}
+          matchingCount={filteredHairstyles.length}
+        />
+      </View>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: EXPLORE_THEME.background
+  },
   container: {
     flex: 1,
-    backgroundColor: '#EFE6D8'
+    backgroundColor: EXPLORE_THEME.background
   },
-  topAppBar: {
-    height: 60,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    backgroundColor: 'rgba(255, 253, 249, 0.96)',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5D9CA',
-    zIndex: 10
-  },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  headerRightActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6
-  },
-  headerIconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F7EFE4'
-  },
-  brandTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#B8895A',
-    letterSpacing: -0.5
-  },
-  stickyHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    backgroundColor: 'rgba(255, 253, 249, 0.96)',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5D9CA',
-    gap: 12,
-    zIndex: 9
-  },
-  searchContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    height: 48,
-    borderWidth: 1,
-    borderColor: '#DDCBB5'
-  },
-  searchIcon: {
-    fontSize: 16,
-    marginRight: 8
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: '#241F1A'
-  },
-  filterBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#DDCBB5',
-    justifyContent: 'center',
-    alignItems: 'center'
+  scrollContainer: {
+    flex: 1
   },
   scrollContent: {
+    paddingBottom: 24
+  },
+  galleryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 16
+    paddingTop: 16,
+    paddingBottom: 10
   },
-  titleSection: {
-    marginBottom: 20
+  galleryTitle: {
+    fontSize: 19,
+    fontWeight: '800',
+    color: EXPLORE_THEME.text,
+    letterSpacing: -0.3
   },
-  mainTitle: {
-    fontSize: 28,
+  gallerySubtitle: {
+    fontSize: 12,
+    color: EXPLORE_THEME.textSecondary,
+    marginTop: 2
+  },
+  resetInlineBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 8
+  },
+  resetInlineText: {
+    fontSize: 13,
     fontWeight: '700',
-    color: '#241F1A',
-    letterSpacing: -0.5,
-    marginBottom: 4
+    color: EXPLORE_THEME.primary
   },
-  subTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#241F1A'
-  },
-  grid: {
+  gridContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    paddingHorizontal: 20,
     gap: 12
   },
-  articleCard: {
-    width: '48%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#E5D9CA',
-    elevation: 2,
-    shadowColor: '#241F1A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    marginBottom: 4
-  },
-  imgWrapper: {
-    width: '100%',
-    aspectRatio: 1,
-    position: 'relative',
-    backgroundColor: '#F3E7D8'
-  },
-  hairImg: {
-    width: '100%',
-    height: '100%'
-  },
-  favBtn: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+  loadingContainer: {
+    paddingVertical: 50,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center'
+    gap: 12
   },
-  cardContent: {
-    padding: 10
-  },
-  cardTitle: {
+  loadingText: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#241F1A',
-    marginBottom: 2
+    color: EXPLORE_THEME.textSecondary,
+    fontWeight: '600'
   },
-  cardDesc: {
-    fontSize: 11,
-    color: '#6F6255',
-    lineHeight: 14,
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FBF0EF',
+    borderWidth: 1,
+    borderColor: '#E8B9B3',
+    marginHorizontal: 20,
+    marginBottom: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    gap: 10
+  },
+  errorText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#8A2D3E',
+    fontWeight: '600'
+  },
+  retryBtn: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E8B9B3',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8
+  },
+  retryBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#8A2D3E'
+  },
+  emptyContainer: {
+    paddingVertical: 60,
+    paddingHorizontal: 30,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  emptyIconBg: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: EXPLORE_THEME.tagBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16
+  },
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: EXPLORE_THEME.text,
+    textAlign: 'center',
     marginBottom: 8
   },
-  tryNowBtn: {
-    height: 36,
-    backgroundColor: '#B8895A',
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  tryNowText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700'
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(18, 28, 42, 0.4)',
-    justifyContent: 'flex-end'
-  },
-  modalSheet: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    paddingHorizontal: 20,
-    paddingBottom: 30,
-    maxHeight: '80%'
-  },
-  modalHandleRow: {
-    alignItems: 'center',
-    paddingVertical: 10
-  },
-  modalHandle: {
-    width: 48,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: '#DDCBB5'
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5D9CA',
-    marginBottom: 16
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#241F1A'
-  },
-  modalBody: {
+  emptyDesc: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: EXPLORE_THEME.textSecondary,
+    textAlign: 'center',
     marginBottom: 20
   },
-  filterCategoryLabel: {
-    fontSize: 11,
+  emptyResetBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: EXPLORE_THEME.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 11,
+    borderRadius: 14,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2
+  },
+  emptyResetText: {
+    fontSize: 14,
     fontWeight: '700',
-    color: '#6F6255',
-    letterSpacing: 0.8,
-    marginBottom: 8,
-    marginTop: 8
-  },
-  pillRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16
-  },
-  pill: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#DDCBB5',
-    backgroundColor: '#FFFFFF'
-  },
-  activePill: {
-    backgroundColor: '#F3E7D8',
-    borderColor: '#B8895A'
-  },
-  pillText: {
-    fontSize: 13,
-    color: '#241F1A',
-    fontWeight: '500'
-  },
-  activePillText: {
-    color: '#B8895A',
-    fontWeight: '700'
-  },
-  modalFooter: {
-    flexDirection: 'row',
-    gap: 12
-  },
-  clearBtn: {
-    flex: 1,
-    height: 52,
-    backgroundColor: '#F7EFE4',
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  clearBtnText: {
-    color: '#6F6255',
-    fontSize: 14,
-    fontWeight: '600'
-  },
-  applyBtn: {
-    flex: 1,
-    height: 52,
-    backgroundColor: '#B8895A',
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  applyBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600'
+    color: '#FFFFFF'
   }
 });
-
