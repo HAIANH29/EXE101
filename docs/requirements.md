@@ -255,7 +255,7 @@ Mọi danh sách phân trang được trả về trong trường `data`:
 23. `PATCH /api/bookings/{bookingId}/complete`: [OWNER / STAFF / ADMIN] Hoàn tất lịch hẹn (`CONFIRMED -> COMPLETED`). Phát `BookingCompletedEvent`.
 
 ### 4.3 Salon & Stylist Module (11 Endpoints)
-24. `POST /api/salons`: [SALON_OWNER] Tạo salon mới ở trạng thái chờ duyệt PENDING. HTTP 201 Created.
+24. `POST /api/salons`: [Authenticated] Tạo salon mới ở trạng thái chờ duyệt PENDING_APPROVAL (mỗi user tối đa 1 đơn PENDING_APPROVAL). HTTP 201 Created.
 25. `PUT /api/salons/{salonId}`: [SALON_OWNER] Cập nhật thông tin salon.
 26. `PATCH /api/salons/{salonId}/status`: [ADMIN] Admin duyệt/khóa salon (`ACTIVE`, `INACTIVE`, `REJECTED`).
 27. `GET /api/salons/{salonId}`: [Public] Xem thông tin chi tiết salon.
@@ -342,6 +342,7 @@ Mọi danh sách phân trang được trả về trong trường `data`:
 - `V104__add_payment_refund_columns.sql`: Thêm các cột hoàn tiền vào `payments`.
 - `V105__add_billing_fields_and_payment_history.sql`: Cột `customer_id`, `salon_id`, `payment_type`, `service_amount`, `fee_amount` và cho phép `booking_id NULL`.
 - `V106__add_verification_token_attempts.sql`: Thêm cột `attempt_count INT NOT NULL DEFAULT 0` vào `verification_tokens` và index composite `(email, token_type, created_at)`.
+- `V107__add_salon_pending_unique_index.sql`: Index partial unique `uq_salons_owner_pending` chống spam và race condition khi tạo salon `PENDING_APPROVAL`.
 
 ### 5.2 Chi tiết Ràng buộc Đặc biệt (Database Constraints)
 1. **Chống trùng slot hẹn tuyệt đối (`excl_stylist_overlap`)**:

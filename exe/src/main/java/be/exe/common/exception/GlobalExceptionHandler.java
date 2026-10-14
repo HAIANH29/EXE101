@@ -109,6 +109,8 @@ public class GlobalExceptionHandler {
 
         if (errorMsg.contains("excl_stylist_overlap")) {
             message = "Stylist đã có lịch hẹn bận trong khoảng thời gian này. Vui lòng chọn khung giờ khác.";
+        } else if (errorMsg.contains("uq_salons_owner_pending")) {
+            message = "Bạn đang có một yêu cầu tạo salon chờ duyệt. Vui lòng chờ quản trị viên xử lý trước khi tạo yêu cầu mới.";
         } else if (errorMsg.contains("users_email_key")) {
             message = "Email này đã được sử dụng.";
         } else if (errorMsg.contains("users_phone_key")) {

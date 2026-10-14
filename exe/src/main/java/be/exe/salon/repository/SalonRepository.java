@@ -2,9 +2,15 @@ package be.exe.salon.repository;
 
 import be.exe.salon.domain.Salon;
 import be.exe.salon.domain.SalonStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.util.Optional;
 
 public interface SalonRepository extends JpaRepository<Salon, Long> {
 
@@ -13,4 +19,11 @@ public interface SalonRepository extends JpaRepository<Salon, Long> {
     Page<Salon> findByStatus(SalonStatus status, Pageable pageable);
 
     long countByStatus(SalonStatus status);
+
+    boolean existsByOwnerIdAndStatus(Long ownerId, SalonStatus status);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT s FROM Salon s WHERE s.id = :id")
+    Optional<Salon> findByIdForUpdate(@Param("id") Long id);
 }
+
