@@ -506,19 +506,19 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public UserResponse promoteToSalonOwner(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
-
-        if (user.isDeleted()) {
-            throw new BusinessException(
-                    ErrorCode.VALIDATION_FAILED,
-                    "Tài khoản đã bị xóa, không thể cấp quyền SALON_OWNER");
+    public UserResponse createSalonOwner(RegisterRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new BusinessException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
-
         Role salonOwnerRole = roleRepository.findByName(RoleName.SALON_OWNER)
                 .orElseThrow(() -> new IllegalStateException(
                         "Role SALON_OWNER chưa được seed trong DB - kiểm tra lại migration V1"));
+
+        User user = new User(
+                request.getEmail(),
+                passwordEncoder.encode(request.getPassword()),
+                request.getFullName());
+        user.setPhone(request.getPhone());
         user.addRole(salonOwnerRole);
         userRepository.save(user);
 

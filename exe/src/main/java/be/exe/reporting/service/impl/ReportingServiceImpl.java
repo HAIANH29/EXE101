@@ -5,6 +5,10 @@ import be.exe.booking.service.BookingService;
 import be.exe.reporting.dto.response.BookingStatisticsResponse;
 import be.exe.reporting.dto.response.DashboardOverviewResponse;
 import be.exe.reporting.dto.response.RevenueReportResponse;
+import be.exe.reporting.dto.response.SalonDashboardResponse;
+import be.exe.salon.service.SalonService;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import be.exe.reporting.service.ReportingService;
 import be.exe.salon.domain.SalonStatus;
 import be.exe.salon.service.SalonService;
@@ -79,6 +83,30 @@ public class ReportingServiceImpl implements ReportingService {
         return new BookingStatisticsResponse(
                 pending, confirmed, completed, cancelled,
                 pending + confirmed + completed + cancelled);
+    }
+
+    @Override
+    public SalonDashboardResponse getSalonDashboard(Long salonId, Long ownerId) {
+        salonService.verifyOwner(salonId, ownerId);
+
+        Instant now = Instant.now();
+        Instant monthStart = currentMonthStart();
+        Instant todayStart = LocalDate.now(VN_ZONE).atStartOfDay(VN_ZONE).toInstant();
+        Instant tomorrowStart = LocalDate.now(VN_ZONE).plusDays(1)
+                .atStartOfDay(VN_ZONE).toInstant();
+
+        return new SalonDashboardResponse(
+                salonId,
+                bookingService.countSalonBookingsBetween(salonId, monthStart, now),
+                bookingService.countSalonScheduledBookingsBetween(salonId, todayStart, tomorrowStart),
+                bookingService.countUpcomingSalonBookings(salonId, now),
+                bookingService.countSalonBookingsByStatus(salonId, "PENDING"),
+                bookingService.countSalonBookingsByStatus(salonId, "CONFIRMED"),
+                bookingService.countSalonBookingsByStatus(salonId, "COMPLETED"),
+                bookingService.countSalonBookingsByStatus(salonId, "CANCELLED"),
+                bookingService.getSalonRevenueBetween(salonId, monthStart, now),
+                salonService.countActiveStylists(salonId)
+        );
     }
 
     /** Thời điểm đầu tháng hiện tại theo giờ Việt Nam. */

@@ -50,4 +50,8 @@ public interface SalonService {
     long countSalonsByStatus(SalonStatus status);
 
     long countAllSalons();
+
+    void verifyOwner(Long salonId, Long ownerId);
+
+    long countActiveStylists(Long salonId);
 }

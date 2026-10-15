@@ -17,7 +17,7 @@ public interface AdminService {
 
     UserResponse updateUserStatus(Long userId, String status);
 
-    UserResponse promoteToSalonOwner(Long userId);
+    UserResponse createSalonOwner(be.exe.admin.dto.request.CreateSalonOwnerRequest request);
 
     void deleteUser(Long adminUserId, Long userId);
 

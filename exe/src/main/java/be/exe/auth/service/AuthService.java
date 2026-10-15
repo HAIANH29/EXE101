@@ -49,7 +49,7 @@ public interface AuthService {
     /** Khóa/mở khóa tài khoản. status: ACTIVE / INACTIVE / BANNED */
     UserResponse updateUserStatus(Long userId, String status);
 
-    UserResponse promoteToSalonOwner(Long userId);
+    UserResponse createSalonOwner(be.exe.auth.dto.request.RegisterRequest request);
 
     Page<UserResponse> getUsers(String statusFilter, Pageable pageable);
 

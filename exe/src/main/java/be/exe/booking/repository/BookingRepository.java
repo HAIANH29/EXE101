@@ -18,6 +18,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     Page<Booking> findBySalonId(Long salonId, Pageable pageable);
 
+    Page<Booking> findBySalonIdAndStartAtGreaterThanEqualAndStatusNotOrderByStartAtAsc(
+            Long salonId, Instant from, BookingStatus status, Pageable pageable);
+
     Page<Booking> findByStylistId(Long stylistId, Pageable pageable);
 
         List<Booking> findByStylistIdAndStartAtLessThanAndEndAtGreaterThanAndStatusNot(
@@ -61,6 +64,31 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     long countByStatus(BookingStatus status);
 
     long countByCreatedAtBetween(Instant from, Instant to);
+
+    long countBySalonIdAndStatus(Long salonId, BookingStatus status);
+
+    long countBySalonIdAndCreatedAtBetween(Long salonId, Instant from, Instant to);
+
+    long countBySalonIdAndStartAtBetween(Long salonId, Instant from, Instant to);
+
+    @Query("""
+            SELECT COUNT(b) FROM Booking b
+            WHERE b.salonId = :salonId
+              AND b.startAt >= :from
+              AND b.status <> be.exe.booking.domain.BookingStatus.CANCELLED
+            """)
+    long countUpcomingBySalonId(@Param("salonId") Long salonId,
+                                @Param("from") Instant from);
+
+    @Query("""
+            SELECT COALESCE(SUM(b.totalAmount), 0) FROM Booking b
+            WHERE b.salonId = :salonId
+              AND b.status = be.exe.booking.domain.BookingStatus.COMPLETED
+              AND b.createdAt BETWEEN :from AND :to
+            """)
+    BigDecimal sumRevenueBySalonIdBetween(@Param("salonId") Long salonId,
+                                           @Param("from") Instant from,
+                                           @Param("to") Instant to);
 
     /** Tổng doanh thu từ các booking đã hoàn tất trong khoảng thời gian. */
     @Query("""
