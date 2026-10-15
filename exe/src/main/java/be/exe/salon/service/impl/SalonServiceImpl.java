@@ -14,6 +14,8 @@ import be.exe.salon.mapper.SalonMapper;
 import be.exe.salon.repository.SalonBusinessHourRepository;
 import be.exe.salon.repository.SalonRepository;
 import be.exe.salon.service.SalonService;
+import be.exe.common.exception.BusinessException;
+import be.exe.common.exception.ErrorCode;
 import be.exe.common.exception.ForbiddenException;
 import be.exe.common.exception.ResourceNotFoundException;
 import org.springframework.data.domain.Page;
@@ -46,11 +48,18 @@ public class SalonServiceImpl implements SalonService {
 
     @Override
     public SalonResponse createSalon(Long ownerId, CreateSalonRequest request) {
+        if (salonRepository.existsByOwnerIdAndStatus(ownerId, SalonStatus.PENDING_APPROVAL)) {
+            throw new BusinessException(
+                    ErrorCode.VALIDATION_FAILED,
+                    "Bạn đang có một yêu cầu tạo salon chờ duyệt. Vui lòng chờ quản trị viên xử lý trước khi tạo yêu cầu mới."
+            );
+        }
+
         Salon salon = new Salon(ownerId, request.getName());
         salon.updateInfo(request.getName(), request.getPhone(), request.getAddress(),
                 request.getDescription(), request.getImageUrl());
         // Salon mới tạo luôn ở trạng thái chờ duyệt, admin phải approve mới ACTIVE được
-        salonRepository.save(salon);
+        salon = salonRepository.saveAndFlush(salon);
         return SalonMapper.toResponse(salon);
     }
 
@@ -72,6 +81,38 @@ public class SalonServiceImpl implements SalonService {
     public SalonResponse updateSalonStatus(Long salonId, SalonStatus status) {
         Salon salon = findOrThrow(salonId);
         salon.changeStatus(status);
+        return SalonMapper.toResponse(salon);
+    }
+
+    @Override
+    public SalonResponse approveSalon(Long salonId) {
+        Salon salon = salonRepository.findByIdForUpdate(salonId)
+                .orElseThrow(() -> new ResourceNotFoundException("Salon", salonId));
+
+        if (salon.getStatus() != SalonStatus.PENDING_APPROVAL) {
+            throw new BusinessException(
+                    ErrorCode.VALIDATION_FAILED,
+                    "Chỉ có thể phê duyệt salon đang ở trạng thái chờ duyệt (PENDING_APPROVAL). Trạng thái hiện tại: " + salon.getStatus()
+            );
+        }
+
+        salon.changeStatus(SalonStatus.ACTIVE);
+        return SalonMapper.toResponse(salon);
+    }
+
+    @Override
+    public SalonResponse rejectSalon(Long salonId) {
+        Salon salon = salonRepository.findByIdForUpdate(salonId)
+                .orElseThrow(() -> new ResourceNotFoundException("Salon", salonId));
+
+        if (salon.getStatus() != SalonStatus.PENDING_APPROVAL) {
+            throw new BusinessException(
+                    ErrorCode.VALIDATION_FAILED,
+                    "Chỉ có thể từ chối salon đang ở trạng thái chờ duyệt (PENDING_APPROVAL). Trạng thái hiện tại: " + salon.getStatus()
+            );
+        }
+
+        salon.changeStatus(SalonStatus.INACTIVE);
         return SalonMapper.toResponse(salon);
     }
 

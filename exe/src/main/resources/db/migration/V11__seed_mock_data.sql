@@ -12,9 +12,9 @@ VALUES
 (2, 'owner.ironcap@gmail.com', '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRps.9cGLcZEiGDMVr5yUP1KUOYTa', 'Lê Văn Chủ', '0911223344', null, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 (3, 'admin.hethong@gmail.com', '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRps.9cGLcZEiGDMVr5yUP1KUOYTa', 'Quản Trị Viên', '0999888777', null, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 (4, 'baduser@gmail.com', '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRps.9cGLcZEiGDMVr5yUP1KUOYTa', 'Khách Hay Bom Hàng', '0944556677', null, 'LOCKED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(5, 'tu.master@gmail.com', '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRps.9cGLcZEiGDMVr5yUP1KUOYTa', 'Vũ Anh Tú (Tú Master)', '0988111222', 'https://images.unsplash.com/photo-1618077360395-f3068be8e001?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(6, 'hai.barber@gmail.com', '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRps.9cGLcZEiGDMVr5yUP1KUOYTa', 'Hoàng Hải (Hải Baber)', '0988222333', 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(7, 'tuan.phong@gmail.com', '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRps.9cGLcZEiGDMVr5yUP1KUOYTa', 'Lê Tuấn Phong', '0988333444', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&auto=format&fit=crop&w=256&q=80', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+(5, 'stylist.tu@gmail.com', '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRps.9cGLcZEiGDMVr5yUP1KUOYTa', 'Vũ Anh Tú', null, null, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(6, 'stylist.hai@gmail.com', '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRps.9cGLcZEiGDMVr5yUP1KUOYTa', 'Hoàng Hải', null, null, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(7, 'stylist.phong@gmail.com', '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRps.9cGLcZEiGDMVr5yUP1KUOYTa', 'Lê Tuấn Phong', null, null, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 ON CONFLICT (id) DO NOTHING;
 
 -- Map roles cho users
@@ -23,10 +23,7 @@ VALUES
 (1, (SELECT id FROM roles WHERE name = 'CUSTOMER')),
 (2, (SELECT id FROM roles WHERE name = 'SALON_OWNER')),
 (3, (SELECT id FROM roles WHERE name = 'ADMIN')),
-(4, (SELECT id FROM roles WHERE name = 'CUSTOMER')),
-(5, (SELECT id FROM roles WHERE name = 'STAFF')),
-(6, (SELECT id FROM roles WHERE name = 'STAFF')),
-(7, (SELECT id FROM roles WHERE name = 'STAFF'))
+(4, (SELECT id FROM roles WHERE name = 'CUSTOMER'))
 ON CONFLICT (user_id, role_id) DO NOTHING;
 
 -- 3. Insert Salons
@@ -41,15 +38,15 @@ INSERT INTO stylists (id, user_id, salon_id, bio, experience_years, status, crea
 VALUES 
 (1, 5, 1, 'Hơn 7 năm kinh nghiệm với Classic và Skin Fade.', 7, 'ACTIVE', '2024-02-16 09:00:00'),
 (2, 6, 1, 'Chuyên gia uốn Pre-styling.', 5, 'ACTIVE', '2024-03-01 09:30:00'),
-(3, 7, 2, 'Kinh nghiệm phục hồi tóc, tẩy nhuộm.', 4, 'ACTIVE', '2024-06-10 10:00:00')
+(3, 7, 2, 'Kinh nghiệm phục hồi tóc, tẩy nhuộm.', 6, 'ACTIVE', '2024-06-10 10:00:00')
 ON CONFLICT (id) DO NOTHING;
 
 -- 5. Insert Services
-INSERT INTO services (id, salon_id, name, description, price, duration_minutes, status, created_at, updated_at)
+INSERT INTO services (id, salon_id, name, description, price, duration_minutes, status)
 VALUES 
-(1, 1, 'Cắt Sấy Tạo Kiểu Premium', 'Tư vấn kiểu tóc, cắt xả, gội massage.', 120000, 45, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(2, 1, 'Cạo Khăn Nóng Hơi Nước', 'Dịch vụ cạo râu thư giãn.', 80000, 30, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(3, 2, 'Uốn Tóc Hàn Quốc', 'Sử dụng thuốc uốn hữu cơ cao cấp.', 350000, 90, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+(1, 1, 'Cắt Sấy Tạo Kiểu Premium', 'Tư vấn kiểu tóc, cắt xả, gội massage.', 120000, 45, 'ACTIVE'),
+(2, 1, 'Cạo Khăn Nóng Hơi Nước', 'Dịch vụ cạo râu thư giãn.', 80000, 30, 'ACTIVE'),
+(3, 2, 'Uốn Tóc Hàn Quốc', 'Sử dụng thuốc uốn hữu cơ cao cấp.', 350000, 90, 'ACTIVE')
 ON CONFLICT (id) DO NOTHING;
 
 -- 6. Insert Categories & Hairstyles
@@ -74,4 +71,3 @@ SELECT setval('stylists_id_seq', (SELECT MAX(id) FROM stylists));
 SELECT setval('services_id_seq', (SELECT MAX(id) FROM services));
 SELECT setval('hairstyle_categories_id_seq', (SELECT MAX(id) FROM hairstyle_categories));
 SELECT setval('hairstyles_id_seq', (SELECT MAX(id) FROM hairstyles));
-

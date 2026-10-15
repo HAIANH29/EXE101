@@ -64,13 +64,21 @@ For local development, reset email delivery is disabled by default and the backe
 To send real Gmail SMTP email, set these values in `.env`:
 
 ```properties
-PASSWORD_RESET_MAIL_ENABLED=true
-APP_FRONTEND_RESET_URL=http://localhost:8082/reset-password
+MAIL_ENABLED=true
+APP_FRONTEND_RESET_URL=http://localhost:8081/reset-password
+MAIL_FROM=your-email@example.com
+
+# Cách 1: Gửi qua Brevo HTTP API (khuyên dùng khi deploy Render gói miễn phí)
+MAIL_PROVIDER=brevo
+BREVO_API_KEY=your-brevo-api-key
+
+# Cách 2: Gửi qua Gmail SMTP (cổng 587 - dùng khi chạy local hoặc hosting mở cổng SMTP)
+MAIL_PROVIDER=smtp
 MAIL_HOST=smtp.gmail.com
 MAIL_PORT=587
 MAIL_USERNAME=your-gmail@gmail.com
 MAIL_PASSWORD=your-gmail-app-password
-MAIL_FROM=your-gmail@gmail.com
 ```
 
-Use a Gmail App Password, not the normal Gmail account password.
+Lưu ý: Nếu dùng Gmail SMTP, phải sử dụng App Password, không dùng mật khẩu Gmail thông thường. Nếu deploy lên Render free tier gặp lỗi chặn port SMTP, hãy chuyển sang `MAIL_PROVIDER=brevo`.
+

@@ -2,6 +2,8 @@ package be.exe.payment.service.impl;
 
 import be.exe.booking.dto.response.BookingSummaryResponse;
 import be.exe.booking.service.BookingService;
+import be.exe.common.exception.BusinessException;
+import be.exe.common.exception.ErrorCode;
 import be.exe.common.exception.ForbiddenException;
 import be.exe.common.exception.ResourceNotFoundException;
 import be.exe.payment.domain.Payment;
@@ -79,6 +81,12 @@ public class PaymentServiceImpl implements PaymentService {
         var salon = salonService.getSalonOrThrow(salonId);
         if (!salon.ownerId().equals(ownerId)) {
             throw new ForbiddenException("Bạn không phải chủ sở hữu salon này");
+        }
+        if (!salon.isActive()) {
+            throw new BusinessException(
+                    ErrorCode.VALIDATION_FAILED,
+                    "Chỉ có thể đăng ký gói Salon Pro cho salon đang hoạt động (ACTIVE)"
+            );
         }
         var activeStatuses = java.util.List.of(PaymentStatus.PENDING, PaymentStatus.PAID);
         var existing = paymentRepository.findFirstByCustomerIdAndSalonIdAndPaymentTypeAndStatusIn(

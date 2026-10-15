@@ -51,6 +51,11 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
+    public UserResponse promoteToSalonOwner(Long userId) {
+        return authService.promoteToSalonOwner(userId);
+    }
+
+    @Override
     public void deleteUser(Long adminUserId, Long userId) {
         if (adminUserId != null && adminUserId.equals(userId)) {
             throw new BusinessException(
@@ -72,13 +77,17 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public SalonResponse approveSalon(Long salonId) {
-        return salonService.updateSalonStatus(salonId, SalonStatus.ACTIVE);
+        SalonResponse response = salonService.approveSalon(salonId);
+        authService.promoteToSalonOwner(response.ownerId());
+        return response;
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public SalonResponse rejectSalon(Long salonId) {
-        return salonService.updateSalonStatus(salonId, SalonStatus.INACTIVE);
+        return salonService.rejectSalon(salonId);
     }
 
     // ===== Quản lý thanh toán =====

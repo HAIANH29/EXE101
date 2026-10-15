@@ -17,6 +17,8 @@ public interface AdminService {
 
     UserResponse updateUserStatus(Long userId, String status);
 
+    UserResponse promoteToSalonOwner(Long userId);
+
     void deleteUser(Long adminUserId, Long userId);
 
     // ===== Quản lý salon =====

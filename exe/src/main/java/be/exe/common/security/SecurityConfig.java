@@ -64,7 +64,8 @@ public class SecurityConfig {
                                 "/api-docs/**",
                                 "/v3/api-docs/**",
                                 "/uploads/**",
-                                "/images/**"
+                                "/images/**",
+                                "/email/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.POST,
                                 "/api/auth/register",

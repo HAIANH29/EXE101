@@ -34,6 +34,10 @@ public class VerificationToken {
     @Column(nullable = false)
     private boolean used = false;
 
+    /** Số lần nhập sai OTP; đạt ngưỡng app.otp.max-verify-attempts thì mã bị vô hiệu. */
+    @Column(name = "attempt_count", nullable = false)
+    private int attemptCount = 0;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 }

@@ -51,6 +51,14 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success("Đã cập nhật trạng thái tài khoản", response));
     }
 
+    @PatchMapping("/users/{userId}/salon-owner")
+    public ResponseEntity<ApiResponse<UserResponse>> promoteToSalonOwner(
+            @PathVariable Long userId) {
+        UserResponse response = adminService.promoteToSalonOwner(userId);
+        return ResponseEntity.ok(ApiResponse.success(
+                "Đã cấp quyền chủ salon cho tài khoản", response));
+    }
+
     @DeleteMapping("/users/{userId}")
     public ResponseEntity<ApiResponse<Void>> deleteUser(
             @AuthenticationPrincipal CustomUserDetails principal,

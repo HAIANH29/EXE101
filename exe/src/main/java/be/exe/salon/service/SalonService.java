@@ -32,6 +32,10 @@ public interface SalonService {
 
     SalonResponse updateSalonStatus(Long salonId, SalonStatus status);
 
+    SalonResponse approveSalon(Long salonId);
+
+    SalonResponse rejectSalon(Long salonId);
+
     SalonDetailResponse getSalonDetail(Long salonId);
 
     Page<SalonResponse> getSalons(SalonStatus statusFilter, Pageable pageable);
