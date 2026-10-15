@@ -221,7 +221,7 @@ public class PaymentServiceImpl implements PaymentService {
                 payment.getReferenceCode(),
                 payment.getAmount(),
                 payment.getStatus().name(),
-                payment.getPaymentUrl(),
+                qrGenerator.buildQrUrl(payment.getAmount(), payment.getReferenceCode()),
                 payment.getPaidAt(),
                 payment.getCreatedAt(),
                 payment.getRefundAmount(),
