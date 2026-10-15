@@ -3,6 +3,7 @@ package be.exe.reporting.service;
 import be.exe.reporting.dto.response.BookingStatisticsResponse;
 import be.exe.reporting.dto.response.DashboardOverviewResponse;
 import be.exe.reporting.dto.response.RevenueReportResponse;
+import be.exe.reporting.dto.response.SalonDashboardResponse;
 
 import java.time.Instant;
 
@@ -17,4 +18,6 @@ public interface ReportingService {
     RevenueReportResponse getRevenueReport(Instant from, Instant to);
 
     BookingStatisticsResponse getBookingStatistics();
+
+    SalonDashboardResponse getSalonDashboard(Long salonId, Long ownerId);
 }

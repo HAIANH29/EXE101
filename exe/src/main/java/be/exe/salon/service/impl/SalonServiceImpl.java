@@ -14,6 +14,7 @@ import be.exe.salon.mapper.SalonMapper;
 import be.exe.salon.repository.SalonBusinessHourRepository;
 import be.exe.salon.repository.SalonRepository;
 import be.exe.salon.service.SalonService;
+import be.exe.salon.repository.StylistRepository;
 import be.exe.common.exception.BusinessException;
 import be.exe.common.exception.ErrorCode;
 import be.exe.common.exception.ForbiddenException;
@@ -32,11 +33,14 @@ public class SalonServiceImpl implements SalonService {
 
     private final SalonRepository salonRepository;
     private final SalonBusinessHourRepository businessHourRepository;
+    private final StylistRepository stylistRepository;
 
     public SalonServiceImpl(SalonRepository salonRepository,
-                             SalonBusinessHourRepository businessHourRepository) {
+                             SalonBusinessHourRepository businessHourRepository,
+                             StylistRepository stylistRepository) {
         this.salonRepository = salonRepository;
         this.businessHourRepository = businessHourRepository;
+        this.stylistRepository = stylistRepository;
     }
 
     @Override
@@ -179,6 +183,22 @@ public class SalonServiceImpl implements SalonService {
     @Transactional(readOnly = true)
     public long countAllSalons() {
         return salonRepository.count();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public void verifyOwner(Long salonId, Long ownerId) {
+        Salon salon = findOrThrow(salonId);
+        if (!salon.isOwnedBy(ownerId)) {
+            throw new ForbiddenException("Bạn không phải chủ sở hữu salon này");
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countActiveStylists(Long salonId) {
+        return stylistRepository.countBySalonIdAndStatus(
+                salonId, be.exe.salon.domain.StylistStatus.ACTIVE);
     }
 
     private Salon findOrThrow(Long salonId) {

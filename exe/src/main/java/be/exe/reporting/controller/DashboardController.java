@@ -52,4 +52,5 @@ public class DashboardController {
     public ResponseEntity<ApiResponse<BookingStatisticsResponse>> getBookingStatistics() {
         return ResponseEntity.ok(ApiResponse.success(reportingService.getBookingStatistics()));
     }
+
 }

@@ -297,6 +297,20 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional(readOnly = true)
+    public Page<BookingResponse> getUpcomingSalonBookings(
+            Long salonId, Long ownerId, Pageable pageable) {
+        SalonSummaryResponse salon = salonService.getSalonOrThrow(salonId);
+        if (!salon.ownerId().equals(ownerId)) {
+            throw new ForbiddenException("Bạn không phải chủ sở hữu salon này");
+        }
+        return bookingRepository
+                .findBySalonIdAndStartAtGreaterThanEqualAndStatusNotOrderByStartAtAsc(
+                        salonId, Instant.now(), BookingStatus.CANCELLED, pageable)
+                .map(this::toEnrichedResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Page<BookingResponse> getStylistBookings(Long stylistId, Pageable pageable) {
         return bookingRepository.findByStylistId(stylistId, pageable).map(this::toEnrichedResponse);
     }
@@ -346,6 +360,36 @@ public class BookingServiceImpl implements BookingService {
     @Transactional(readOnly = true)
     public BigDecimal getRevenueBetween(Instant from, Instant to) {
         return bookingRepository.sumRevenueBetween(from, to);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countSalonBookingsByStatus(Long salonId, String status) {
+        return bookingRepository.countBySalonIdAndStatus(salonId, BookingStatus.valueOf(status));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countSalonBookingsBetween(Long salonId, Instant from, Instant to) {
+        return bookingRepository.countBySalonIdAndCreatedAtBetween(salonId, from, to);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countSalonScheduledBookingsBetween(Long salonId, Instant from, Instant to) {
+        return bookingRepository.countBySalonIdAndStartAtBetween(salonId, from, to);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countUpcomingSalonBookings(Long salonId, Instant from) {
+        return bookingRepository.countUpcomingBySalonId(salonId, from);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal getSalonRevenueBetween(Long salonId, Instant from, Instant to) {
+        return bookingRepository.sumRevenueBySalonIdBetween(salonId, from, to);
     }
 
     private Booking findOrThrow(Long bookingId) {

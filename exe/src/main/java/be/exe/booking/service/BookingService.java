@@ -42,6 +42,8 @@ public interface BookingService {
      */
     Page<BookingResponse> getSalonBookings(Long salonId, Long ownerId, Pageable pageable);
 
+    Page<BookingResponse> getUpcomingSalonBookings(Long salonId, Long ownerId, Pageable pageable);
+
     Page<BookingResponse> getStylistBookings(Long stylistId, Pageable pageable);
 
     AvailabilityResponse getAvailability(Long salonId, Long stylistId, LocalDate date);
@@ -53,4 +55,14 @@ public interface BookingService {
     long countBookingsBetween(Instant from, Instant to);
 
     BigDecimal getRevenueBetween(Instant from, Instant to);
+
+    long countSalonBookingsByStatus(Long salonId, String status);
+
+    long countSalonBookingsBetween(Long salonId, Instant from, Instant to);
+
+    long countSalonScheduledBookingsBetween(Long salonId, Instant from, Instant to);
+
+    long countUpcomingSalonBookings(Long salonId, Instant from);
+
+    BigDecimal getSalonRevenueBetween(Long salonId, Instant from, Instant to);
 }

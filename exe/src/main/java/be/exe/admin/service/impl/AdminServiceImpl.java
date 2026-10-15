@@ -51,8 +51,14 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public UserResponse promoteToSalonOwner(Long userId) {
-        return authService.promoteToSalonOwner(userId);
+    public UserResponse createSalonOwner(
+            be.exe.admin.dto.request.CreateSalonOwnerRequest request) {
+        var authRequest = new be.exe.auth.dto.request.RegisterRequest();
+        authRequest.setEmail(request.getEmail());
+        authRequest.setPassword(request.getPassword());
+        authRequest.setFullName(request.getFullName());
+        authRequest.setPhone(request.getPhone());
+        return authService.createSalonOwner(authRequest);
     }
 
     @Override
@@ -79,9 +85,7 @@ public class AdminServiceImpl implements AdminService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public SalonResponse approveSalon(Long salonId) {
-        SalonResponse response = salonService.approveSalon(salonId);
-        authService.promoteToSalonOwner(response.ownerId());
-        return response;
+        return salonService.approveSalon(salonId);
     }
 
     @Override

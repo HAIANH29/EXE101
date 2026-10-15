@@ -1,7 +1,6 @@
 package be.exe.salon.service.impl;
 
 import be.exe.admin.service.impl.AdminServiceImpl;
-import be.exe.auth.dto.response.UserResponse;
 import be.exe.auth.service.AuthService;
 import be.exe.common.exception.BusinessException;
 import be.exe.common.exception.ErrorCode;
@@ -95,7 +94,7 @@ public class SalonApprovalFlowTest {
     }
 
     @Test
-    void testAdminApproveSalon_Success_TransitionsToActiveAndPromotesRole() {
+    void testAdminApproveSalon_Success_TransitionsToActive() {
         Long salonId = 10L;
         Long ownerId = 100L;
         Salon salon = new Salon(ownerId, "Pending Salon");
@@ -103,15 +102,12 @@ public class SalonApprovalFlowTest {
         ReflectionTestUtils.setField(salon, "status", SalonStatus.PENDING_APPROVAL);
 
         when(salonRepository.findByIdForUpdate(salonId)).thenReturn(Optional.of(salon));
-        when(authService.promoteToSalonOwner(ownerId)).thenReturn(mock(UserResponse.class));
-
         SalonResponse response = adminService.approveSalon(salonId);
 
         assertNotNull(response);
         assertEquals("ACTIVE", response.status());
         assertEquals(SalonStatus.ACTIVE, salon.getStatus());
         verify(salonRepository, times(1)).findByIdForUpdate(salonId);
-        verify(authService, times(1)).promoteToSalonOwner(ownerId);
     }
 
     @Test
@@ -130,7 +126,6 @@ public class SalonApprovalFlowTest {
 
         assertEquals(ErrorCode.VALIDATION_FAILED, ex.getErrorCode());
         assertTrue(ex.getMessage().contains("PENDING_APPROVAL"));
-        verify(authService, never()).promoteToSalonOwner(anyLong());
     }
 
     @Test
@@ -149,6 +144,5 @@ public class SalonApprovalFlowTest {
         assertEquals("INACTIVE", response.status());
         assertEquals(SalonStatus.INACTIVE, salon.getStatus());
         verify(salonRepository, times(1)).findByIdForUpdate(salonId);
-        verify(authService, never()).promoteToSalonOwner(anyLong());
     }
 }

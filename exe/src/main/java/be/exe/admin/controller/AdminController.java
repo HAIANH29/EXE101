@@ -1,6 +1,7 @@
 package be.exe.admin.controller;
 
 import be.exe.admin.dto.request.UpdateUserStatusRequest;
+import be.exe.admin.dto.request.CreateSalonOwnerRequest;
 import be.exe.admin.service.AdminService;
 import be.exe.auth.dto.response.UserResponse;
 import be.exe.common.response.ApiResponse;
@@ -51,12 +52,12 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success("Đã cập nhật trạng thái tài khoản", response));
     }
 
-    @PatchMapping("/users/{userId}/salon-owner")
-    public ResponseEntity<ApiResponse<UserResponse>> promoteToSalonOwner(
-            @PathVariable Long userId) {
-        UserResponse response = adminService.promoteToSalonOwner(userId);
+    @PostMapping("/users/salon-owner")
+    public ResponseEntity<ApiResponse<UserResponse>> createSalonOwner(
+            @Valid @RequestBody CreateSalonOwnerRequest request) {
+        UserResponse response = adminService.createSalonOwner(request);
         return ResponseEntity.ok(ApiResponse.success(
-                "Đã cấp quyền chủ salon cho tài khoản", response));
+                "Đã tạo tài khoản chủ salon", response));
     }
 
     @DeleteMapping("/users/{userId}")
