@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 public class SePayQrGenerator {
 
     private static final String QR_BASE_URL = "https://qr.sepay.vn/img";
+    private static final String TRANSFER_DESCRIPTION_PREFIX = "SEVQR";
 
     private final SePayProperties properties;
 
@@ -21,7 +22,7 @@ public class SePayQrGenerator {
                 .queryParam("acc", properties.getAccountNumber())
                 .queryParam("bank", properties.getBankCode())
                 .queryParam("amount", amount.toBigInteger())
-                .queryParam("des", referenceCode)
+                .queryParam("des", TRANSFER_DESCRIPTION_PREFIX + " " + referenceCode)
                 .toUriString();
     }
 }
