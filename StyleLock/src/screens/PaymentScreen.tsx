@@ -236,7 +236,12 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({ navigation, route 
                   <InfoRow label="Số tài khoản" value={payment.bankAccount} copyValue={payment.bankAccount} />
                 ) : null}
                 <InfoRow label="Số tiền" value={formatVnd(payment.amount)} copyValue={String(Math.round(payment.amount))} />
-                <InfoRow label="Nội dung chuyển khoản" value={payment.referenceCode} copyValue={payment.referenceCode} strong />
+                <InfoRow
+                  label="Nội dung chuyển khoản"
+                  value={payment.transferContent || payment.referenceCode}
+                  copyValue={payment.transferContent || payment.referenceCode}
+                  strong
+                />
 
                 <View style={styles.warnBox}>
                   <AppIcon name="info" size={16} color="#8A6A2F" />

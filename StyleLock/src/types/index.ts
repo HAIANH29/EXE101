@@ -104,6 +104,7 @@ export interface Payment {
   qrUrl?: string;
   bankCode?: string;
   bankAccount?: string;
+  transferContent?: string;
   transactionId?: string;
   paidAt?: string;
   createdAt: string;

@@ -318,7 +318,7 @@ function mapBooking(item: BackendBooking, context: BookingContext = {}): Booking
 function readQueryParam(url: string | undefined, name: string) {
   if (!url) return undefined;
   const match = url.match(new RegExp(`[?&]${name}=([^&]*)`));
-  return match ? decodeURIComponent(match[1]) : undefined;
+  return match ? decodeURIComponent(match[1].replace(/\+/g, ' ')) : undefined;
 }
 
 function optionalMoney(value: number | string | undefined | null) {
@@ -339,6 +339,7 @@ function mapPayment(item: BackendPayment): Payment {
     qrUrl: item.paymentUrl || undefined,
     bankCode: readQueryParam(item.paymentUrl, 'bank'),
     bankAccount: readQueryParam(item.paymentUrl, 'acc'),
+    transferContent: readQueryParam(item.paymentUrl, 'des'),
     transactionId: item.transactionId || undefined,
     paidAt: item.paidAt || undefined,
     createdAt: item.createdAt || '',
