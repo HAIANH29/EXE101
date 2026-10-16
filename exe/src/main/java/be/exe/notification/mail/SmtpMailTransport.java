@@ -16,11 +16,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Gửi qua SMTP (mặc định Gmail, cổng 587). Timeout được cấu hình ở
+ * Gửi qua SMTP (Brevo, cổng 587). Timeout được cấu hình ở
  * spring.mail.properties.mail.smtp.*timeout để không treo thread khi cổng bị chặn.
  *
- * LƯU Ý: Render free tier có thể chặn SMTP outbound. Nếu log báo "Connection timed out"
- * khi gửi, chuyển sang MAIL_PROVIDER=brevo.
+ * Brevo SMTP dùng SMTP login và SMTP key riêng; không dùng BREVO_API_KEY.
  */
 @Component
 @ConditionalOnProperty(name = "app.mail.provider", havingValue = "smtp", matchIfMissing = true)
@@ -49,7 +48,7 @@ public class SmtpMailTransport implements MailTransport {
     public List<String> missingConfiguration() {
         List<String> missing = new ArrayList<>();
         if (!StringUtils.hasText(username)) missing.add("MAIL_USERNAME");
-        if (!StringUtils.hasText(password)) missing.add("MAIL_PASSWORD (Gmail cần App Password)");
+        if (!StringUtils.hasText(password)) missing.add("MAIL_PASSWORD (Brevo SMTP key)");
         return missing;
     }
 

@@ -25,7 +25,7 @@ spring:
     locations: classpath:db/migration
 
   mail:
-    host: ${MAIL_HOST:smtp.gmail.com}
+    host: ${MAIL_HOST:smtp-relay.brevo.com}
     port: ${MAIL_PORT:587}
     username: ${MAIL_USERNAME:}
     password: ${MAIL_PASSWORD:}
@@ -104,7 +104,7 @@ app:
     frontend-reset-url: ${APP_FRONTEND_RESET_URL:http://localhost:8081/reset-password}
 
   mail:
-    # smtp (Gmail, cổng 587) | brevo (HTTP API cổng 443 - dùng khi hosting chặn SMTP)
+    # smtp (Brevo SMTP cổng 587) | brevo (Brevo HTTP API cổng 443)
     provider: ${MAIL_PROVIDER:smtp}
     enabled: ${MAIL_ENABLED:${PASSWORD_RESET_MAIL_ENABLED:false}}
     from: ${MAIL_FROM:${MAIL_USERNAME:}}
