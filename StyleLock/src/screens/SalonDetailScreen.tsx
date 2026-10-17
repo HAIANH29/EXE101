@@ -529,10 +529,10 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   headerBrandTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '800',
     color: '#B8895A',
-    letterSpacing: -0.3
+    letterSpacing: -0.5
   },
   headerActionsRight: {
     flexDirection: 'row',

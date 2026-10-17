@@ -159,19 +159,6 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
         <SafeAreaView style={styles.container}>
             {/* Top App Bar */}
             <View style={styles.topAppBar}>
-                <TouchableOpacity
-                    style={styles.iconBtn}
-                    onPress={() => {
-                        if (navigation.canGoBack()) {
-                            navigation.goBack();
-                        } else {
-                            navigation.navigate('Home');
-                        }
-                    }}
-                >
-                    <AppIcon name="menu" size={22} color="#B8895A" />
-                </TouchableOpacity>
-
                 <Text style={styles.brandTitle}>StyleLock</Text>
 
                 <View style={styles.headerRightActions}>
@@ -342,13 +329,6 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: '#E5D9CA',
         zIndex: 10
-    },
-    iconBtn: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        justifyContent: 'center',
-        alignItems: 'center'
     },
     headerRightActions: {
         flexDirection: 'row',

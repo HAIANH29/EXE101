@@ -15,21 +15,6 @@ export const ExploreHeader: React.FC<ExploreHeaderProps> = ({ navigation, totalC
     <View style={styles.headerContainer}>
       {/* Top App Bar */}
       <View style={styles.topBar}>
-        <TouchableOpacity
-          style={styles.iconBtn}
-          activeOpacity={0.7}
-          onPress={() => {
-            if (navigation.canGoBack()) {
-              navigation.goBack();
-            } else {
-              navigation.navigate('Home');
-            }
-          }}
-          accessibilityLabel="Trang chủ"
-        >
-          <AppIcon name="menu" size={22} color={EXPLORE_THEME.primary} />
-        </TouchableOpacity>
-
         <Text style={styles.brandTitle}>StyleLock</Text>
 
         <View style={styles.topRightActions}>

@@ -941,19 +941,6 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
     <SafeAreaView style={styles.container}>
       {/* Top App Bar */}
       <View style={styles.topAppBar}>
-        <TouchableOpacity
-          style={styles.topBtn}
-          onPress={() => {
-            if (navigation.canGoBack()) {
-              navigation.goBack();
-            } else {
-              navigation.navigate('Home');
-            }
-          }}
-        >
-          <AppIcon name="menu" size={22} color="#B8895A" />
-        </TouchableOpacity>
-
         <Text style={styles.brandTitle}>StyleLock AI</Text>
 
         <View style={styles.headerRightActions}>

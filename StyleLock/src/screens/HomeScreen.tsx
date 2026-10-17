@@ -110,13 +110,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       {/* Top App Bar */}
       <View style={styles.topAppBar}>
-        <TouchableOpacity
-          style={styles.iconBtn}
-          onPress={() => navigation.navigate('AdminDashboard')}
-        >
-          <AppIcon name="menu" size={22} color="#B8895A" />
-        </TouchableOpacity>
-
         <Text style={styles.brandTitle}>StyleLock</Text>
 
         <View style={styles.headerRightActions}>
@@ -326,13 +319,6 @@ const styles = StyleSheet.create({
     borderBottomColor: '#DDCBB5',
     zIndex: 10
   },
-  iconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
   headerRightActions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -346,10 +332,10 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   brandTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '800',
     color: '#B8895A',
-    letterSpacing: -0.3
+    letterSpacing: -0.5
   },
   scrollContent: {
     paddingHorizontal: 20,

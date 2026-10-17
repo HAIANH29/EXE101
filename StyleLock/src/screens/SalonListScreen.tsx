@@ -90,19 +90,6 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
     <SafeAreaView style={styles.container}>
       {/* Top App Bar */}
       <View style={styles.topAppBar}>
-        <TouchableOpacity
-          style={styles.iconBtn}
-          onPress={() => {
-            if (navigation.canGoBack()) {
-              navigation.goBack();
-            } else {
-              navigation.navigate('Home');
-            }
-          }}
-        >
-          <AppIcon name="menu" size={22} color="#B8895A" />
-        </TouchableOpacity>
-
         <Text style={styles.brandTitle}>StyleLock</Text>
 
         <View style={styles.headerRightActions}>
@@ -324,13 +311,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     backgroundColor: '#EFE6D8'
   },
-  iconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
   headerRightActions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -344,10 +324,10 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   brandTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '800',
     color: '#B8895A',
-    letterSpacing: -0.3
+    letterSpacing: -0.5
   },
   scrollContent: {
     paddingHorizontal: 20,

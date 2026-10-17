@@ -85,18 +85,18 @@ button {
   height: 42px;
   object-fit: contain;
   flex: 0 0 auto;
-  padding: 5px;
-  border-radius: 12px;
-  background: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow: 0 10px 24px rgba(31, 23, 19, 0.14);
+  background: transparent;
 }
 
 .brand-logo.large {
   width: 168px;
   height: 104px;
-  padding: 10px;
-  border-radius: 22px;
+}
+
+/* Logo gốc màu đen/xám, trong suốt: đổi sang trắng khi nằm trên nền tối. */
+.sidebar .brand-logo,
+.login-hero .brand-logo {
+  filter: brightness(0) invert(1);
 }
 
 .brand-block h1 {
