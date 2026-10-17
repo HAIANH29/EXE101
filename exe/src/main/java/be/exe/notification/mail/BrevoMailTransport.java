@@ -21,7 +21,7 @@ import java.util.Map;
  * (chỉ cần xác minh địa chỉ người gửi MAIL_FROM trong dashboard Brevo).
  *
  * HTTP API không hỗ trợ ảnh inline CID, nên "cid:stylelock-logo" được thay bằng URL công khai
- * (MAIL_LOGO_URL, mặc định ${APP_PUBLIC_BASE_URL}/email/stylelock-logo-updated.png).
+ * (MAIL_LOGO_URL, mặc định ${APP_PUBLIC_BASE_URL}/email/stylelock-logo-transparent.png).
  */
 @Component
 @ConditionalOnProperty(name = "app.mail.provider", havingValue = "brevo")

@@ -25,7 +25,7 @@ import java.util.List;
 @ConditionalOnProperty(name = "app.mail.provider", havingValue = "smtp", matchIfMissing = true)
 public class SmtpMailTransport implements MailTransport {
 
-    private static final String LOGO_RESOURCE = "static/email/stylelock-logo-updated.png";
+    private static final String LOGO_RESOURCE = "static/email/stylelock-logo-transparent.png";
 
     private final JavaMailSender mailSender;
     private final String username;

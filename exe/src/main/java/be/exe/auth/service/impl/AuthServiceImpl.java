@@ -629,7 +629,7 @@ public class AuthServiceImpl implements AuthService {
                 + "<tr><td align=\"center\">"
                 + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" border=\"0\" style=\"max-width:520px;background:#ffffff;border-radius:26px;overflow:hidden;border:1px solid #e5d9ca;box-shadow:0 18px 48px rgba(47,35,24,0.12);\">"
                 + "<tr>"
-                + "<td style=\"padding:28px 28px 18px;background:#ffffff;text-align:center;\">"
+                + "<td style=\"padding:28px 28px 18px;background:#efe6d8;text-align:center;\">"
                 + "<img src=\"cid:stylelock-logo\" alt=\"StyleLock\" width=\"180\" "
                 + "style=\"display:block;margin:0 auto 14px;width:180px;max-width:78%;height:auto;\"/>"
                 + "<div style=\"font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#9a7652;font-weight:800;margin-bottom:8px;\">"

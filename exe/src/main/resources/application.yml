@@ -110,7 +110,7 @@ app:
     from: ${MAIL_FROM:${MAIL_USERNAME:}}
     from-name: ${MAIL_FROM_NAME:StyleLock}
     # HTTP API không hỗ trợ ảnh inline CID -> dùng URL công khai cho logo
-    logo-url: ${MAIL_LOGO_URL:${APP_PUBLIC_BASE_URL:http://localhost:8080}/email/stylelock-logo-updated.png}
+    logo-url: ${MAIL_LOGO_URL:${APP_PUBLIC_BASE_URL:http://localhost:8080}/email/stylelock-logo-transparent.png}
     http-timeout-ms: ${MAIL_HTTP_TIMEOUT_MS:10000}
     brevo:
       api-key: ${BREVO_API_KEY:}
