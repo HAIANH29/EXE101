@@ -4,7 +4,10 @@ info:
   version: 0.0.1
   description: Historical contract reconstructed from an earlier source snapshot. The current 73-endpoint contract, including availability, reschedule, try-on result routes, password reset, profile patch, refund, and 201 creation responses, is documented in docs/requirements.md.
 servers:
+  - url: https://exe101-cb0b.onrender.com
+    description: Production (Render)
   - url: http://localhost:8080
+    description: Local
 security:
   - bearerAuth: []
 tags:
