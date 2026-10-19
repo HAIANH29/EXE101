@@ -7,6 +7,8 @@ export interface Hairstyle {
   category: string;
   gender: GenderCategory;
   imageUrl: string;
+  /** Gallery từ backend (tối đa 5 ảnh, ảnh đầu là ảnh bìa = imageUrl). */
+  imageUrls?: string[];
   description: string;
   suitableFace: string;
   tag?: string;

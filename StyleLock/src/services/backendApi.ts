@@ -64,6 +64,7 @@ type BackendHairstyle = {
   name: string;
   description?: string;
   imageUrl?: string;
+  imageUrls?: string[];
   gender?: string;
   status?: string;
 };
@@ -233,6 +234,7 @@ function mapHairstyle(item: BackendHairstyle, categories: Map<number, string> = 
     category: (item.categoryId && categories.get(item.categoryId)) || 'StyleLock',
     gender: mapGender(item.gender),
     imageUrl: item.imageUrl || FALLBACK_IMAGE,
+    imageUrls: item.imageUrls?.length ? item.imageUrls : item.imageUrl ? [item.imageUrl] : undefined,
     description: item.description || '',
     suitableFace: 'Tư vấn trực tiếp tại salon'
   };
