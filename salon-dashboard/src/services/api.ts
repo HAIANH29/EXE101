@@ -56,7 +56,8 @@ export async function request<T>(path: string, options: RequestOptions = {}) {
     ...(fetchOptions.headers as Record<string, string> | undefined)
   };
 
-  if (fetchOptions.body && !headers['Content-Type']) {
+  // FormData (upload file) phải để trình duyệt tự gắn Content-Type kèm boundary
+  if (fetchOptions.body && !(fetchOptions.body instanceof FormData) && !headers['Content-Type']) {
     headers['Content-Type'] = 'application/json';
   }
 

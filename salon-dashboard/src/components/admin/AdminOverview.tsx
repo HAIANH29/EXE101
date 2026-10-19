@@ -104,13 +104,6 @@ export function AdminOverview({ onNavigate }: AdminOverviewProps) {
               tone="success"
             />
             <Metric
-              title={at('ovPendingSalons')}
-              value={overview.pendingApprovalSalons}
-              note={overview.pendingApprovalSalons > 0 ? at('ovReviewNow') : at('ovNoPending')}
-              icon="pending_actions"
-              tone={overview.pendingApprovalSalons > 0 ? 'warning' : ''}
-            />
-            <Metric
               title={at('ovBookingsMonth')}
               value={overview.totalBookingsThisMonth}
               note={`${at('ovPendingBookings')}: ${overview.pendingBookings}`}
@@ -125,17 +118,6 @@ export function AdminOverview({ onNavigate }: AdminOverviewProps) {
             />
           </div>
 
-          {overview.pendingApprovalSalons > 0 && (
-            <section className="panel admin-callout">
-              <div>
-                <h3>{at('ovPendingSalons')}: {overview.pendingApprovalSalons}</h3>
-                <p>{at('slDesc')}</p>
-              </div>
-              <button className="solid-button" onClick={() => onNavigate('Salons')}>
-                {at('ovReviewNow')}
-              </button>
-            </section>
-          )}
         </>
       )}
 
