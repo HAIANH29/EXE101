@@ -62,12 +62,9 @@ const HairstyleDetailContent: React.FC<{ navigation: any; hair: Hairstyle }> = (
     }
   };
 
-  // Gallery thumbnails (main image + 2 alternate views)
-  const galleryImages = [
-    hair.imageUrl,
-    'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=600',
-    'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=600'
-  ];
+  // Gallery lấy đúng ảnh admin đã đăng cho kiểu tóc này (ảnh đầu là ảnh bìa)
+  const galleryImages = hair.imageUrls?.length ? hair.imageUrls : [hair.imageUrl];
+  const heroImage = galleryImages[selectedGalleryIdx] || galleryImages[0];
 
   const handleTryOn = () => {
     navigation.navigate('CameraUpload', { preselectedHair: hair });
@@ -99,7 +96,7 @@ const HairstyleDetailContent: React.FC<{ navigation: any; hair: Hairstyle }> = (
         {/* Style Gallery Card */}
         <View style={styles.heroGalleryWrapper}>
           <Image
-            source={{ uri: galleryImages[selectedGalleryIdx] }}
+            source={{ uri: heroImage }}
             style={styles.heroImage}
             resizeMode="cover"
           />
@@ -118,6 +115,7 @@ const HairstyleDetailContent: React.FC<{ navigation: any; hair: Hairstyle }> = (
           </TouchableOpacity>
 
           {/* Gallery Thumbnails Overlay */}
+          {galleryImages.length > 1 && (
           <View style={styles.galleryViewsOverlay}>
             {galleryImages.map((imgUri, idx) => (
               <TouchableOpacity
@@ -133,6 +131,7 @@ const HairstyleDetailContent: React.FC<{ navigation: any; hair: Hairstyle }> = (
               </TouchableOpacity>
             ))}
           </View>
+          )}
         </View>
 
         {/* Style Overview */}
