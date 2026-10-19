@@ -2,10 +2,12 @@ package be.exe.catalog.service;
 
 import be.exe.catalog.dto.request.CreateHairstyleRequest;
 import be.exe.catalog.dto.request.UpdateHairstyleRequest;
+import be.exe.catalog.dto.response.HairstyleImageUploadResponse;
 import be.exe.catalog.dto.response.HairstyleResponse;
 import be.exe.catalog.dto.response.HairstyleSummaryResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -21,6 +23,12 @@ public interface HairstyleService {
     HairstyleResponse updateHairstyle(Long hairstyleId, UpdateHairstyleRequest request);
 
     HairstyleResponse getHairstyle(Long hairstyleId);
+
+    /**
+     * Admin upload 1 file ảnh (jpg/png/webp, tối đa 5MB) lên storage, trả về URL.
+     * URL này sau đó được gửi lại trong imageUrls khi tạo/sửa kiểu tóc (tối đa 5 ảnh/kiểu tóc).
+     */
+    HairstyleImageUploadResponse uploadImage(MultipartFile file);
 
     Page<HairstyleResponse> getHairstyles(Long categoryId, Pageable pageable);
 

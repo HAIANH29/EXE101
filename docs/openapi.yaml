@@ -199,6 +199,12 @@ paths:
       tags: [Catalog]
       parameters: [{ name: categoryId, in: query, required: false, schema: { type: integer, format: int64 } }, { $ref: '#/components/parameters/page' }, { $ref: '#/components/parameters/size' }]
       responses: { '200': { $ref: '#/components/responses/PageSuccess' } }
+  /api/catalog/hairstyles/images:
+    post:
+      tags: [Catalog]
+      summary: Admin upload 1 ảnh kiểu tóc (JPG/PNG/WEBP, tối đa 5MB), trả về URL để đưa vào imageUrls
+      requestBody: { required: true, content: { multipart/form-data: { schema: { type: object, required: [file], properties: { file: { type: string, format: binary } } } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '400': { $ref: '#/components/responses/ValidationError' } }
   /api/catalog/hairstyles/{hairstyleId}:
     get:
       tags: [Catalog]
@@ -355,7 +361,7 @@ components:
     ServiceRequest: { type: object, required: [name, price, durationMinutes], properties: { name: { type: string }, description: { type: string }, price: { type: number, format: double, minimum: 0 }, durationMinutes: { type: integer, minimum: 1 } } }
     ServiceUpdateRequest: { allOf: [{ $ref: '#/components/schemas/ServiceRequest' }, { type: object, properties: { status: { type: string } } }] }
     CategoryRequest: { type: object, required: [name], properties: { name: { type: string }, description: { type: string } } }
-    HairstyleRequest: { type: object, required: [name, imageUrl], properties: { name: { type: string }, description: { type: string }, imageUrl: { type: string }, categoryId: { type: integer, format: int64 }, gender: { type: string } } }
+    HairstyleRequest: { type: object, required: [name, imageUrl], properties: { name: { type: string }, description: { type: string }, imageUrl: { type: string, description: Ảnh bìa; bị ghi đè bằng imageUrls[0] nếu có imageUrls }, imageUrls: { type: array, maxItems: 5, items: { type: string }, description: Gallery tối đa 5 ảnh http(s), ảnh đầu là ảnh bìa; thay thế toàn bộ gallery cũ }, categoryId: { type: integer, format: int64 }, gender: { type: string } } }
     HairstyleUpdateRequest: { allOf: [{ $ref: '#/components/schemas/HairstyleRequest' }, { type: object, properties: { status: { type: string } } }] }
     CreateReviewRequest: { type: object, required: [bookingId, rating], properties: { bookingId: { type: integer, format: int64 }, rating: { type: integer, format: int32, minimum: 1, maximum: 5 }, comment: { type: string, maxLength: 2000 } } }
     UpdateReviewRequest: { type: object, required: [rating], properties: { rating: { type: integer, minimum: 1, maximum: 5 }, comment: { type: string, maxLength: 2000 } } }
