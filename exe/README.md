@@ -61,24 +61,22 @@ POST /api/auth/reset-password
 ```
 
 For local development, reset email delivery is disabled by default and the backend logs the reset link.
-To send real Gmail SMTP email, set these values in `.env`:
+To send real Brevo SMTP email, create an SMTP key in Brevo Dashboard > SMTP & API, verify
+the sender address, then set these values in `.env`:
 
 ```properties
 MAIL_ENABLED=true
 APP_FRONTEND_RESET_URL=http://localhost:8081/reset-password
 MAIL_FROM=your-email@example.com
 
-# Cách 1: Gửi qua Brevo HTTP API (khuyên dùng khi deploy Render gói miễn phí)
-MAIL_PROVIDER=brevo
-BREVO_API_KEY=your-brevo-api-key
-
-# Cách 2: Gửi qua Gmail SMTP (cổng 587 - dùng khi chạy local hoặc hosting mở cổng SMTP)
+# Brevo SMTP (cổng 587)
 MAIL_PROVIDER=smtp
-MAIL_HOST=smtp.gmail.com
+MAIL_HOST=smtp-relay.brevo.com
 MAIL_PORT=587
-MAIL_USERNAME=your-gmail@gmail.com
-MAIL_PASSWORD=your-gmail-app-password
+MAIL_USERNAME=your-brevo-smtp-login
+MAIL_PASSWORD=your-brevo-smtp-key
 ```
 
-Lưu ý: Nếu dùng Gmail SMTP, phải sử dụng App Password, không dùng mật khẩu Gmail thông thường. Nếu deploy lên Render free tier gặp lỗi chặn port SMTP, hãy chuyển sang `MAIL_PROVIDER=brevo`.
-
+`MAIL_USERNAME` là SMTP login do Brevo cấp, còn `MAIL_PASSWORD` là SMTP key,
+không phải API key. Nếu hosting chặn cổng SMTP, có thể dùng `MAIL_PROVIDER=brevo`
+và `BREVO_API_KEY` để chuyển sang Brevo HTTP API.
