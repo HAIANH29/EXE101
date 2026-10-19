@@ -2,6 +2,8 @@ package be.exe.catalog.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 
+import java.util.List;
+
 public class CreateHairstyleRequest {
 
     @NotBlank(message = "Tên kiểu tóc không được để trống")
@@ -11,6 +13,9 @@ public class CreateHairstyleRequest {
 
     @NotBlank(message = "Ảnh minh họa không được để trống")
     private String imageUrl;
+
+    /** Gallery ảnh (tối đa 5). Nếu có, ảnh đầu tiên được dùng làm ảnh bìa thay cho imageUrl. */
+    private List<String> imageUrls;
 
     private Long categoryId;
 
@@ -38,6 +43,14 @@ public class CreateHairstyleRequest {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public List<String> getImageUrls() {
+        return imageUrls;
+    }
+
+    public void setImageUrls(List<String> imageUrls) {
+        this.imageUrls = imageUrls;
     }
 
     public Long getCategoryId() {

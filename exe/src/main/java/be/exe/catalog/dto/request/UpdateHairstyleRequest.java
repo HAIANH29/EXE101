@@ -2,6 +2,8 @@ package be.exe.catalog.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 
+import java.util.List;
+
 public class UpdateHairstyleRequest {
 
     @NotBlank
@@ -12,8 +14,13 @@ public class UpdateHairstyleRequest {
     @NotBlank
     private String imageUrl;
 
+    /** Gallery ảnh (tối đa 5), thay thế toàn bộ gallery cũ. Ảnh đầu tiên là ảnh bìa. */
+    private List<String> imageUrls;
+
     private Long categoryId;
+
     private String gender;
+
     private String status; // ACTIVE / INACTIVE
 
     public String getName() {
@@ -38,6 +45,14 @@ public class UpdateHairstyleRequest {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public List<String> getImageUrls() {
+        return imageUrls;
+    }
+
+    public void setImageUrls(List<String> imageUrls) {
+        this.imageUrls = imageUrls;
     }
 
     public Long getCategoryId() {
