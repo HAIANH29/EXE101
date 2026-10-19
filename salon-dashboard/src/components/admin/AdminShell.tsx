@@ -16,7 +16,6 @@ type AdminShellProps = {
 
 const navItems: { tab: AdminTab; icon: string; labelKey: string; hintKey: string; pay?: boolean }[] = [
   { tab: 'Overview', icon: 'dashboard', labelKey: 'tabOverview', hintKey: 'hintOverview' },
-  { tab: 'Salons', icon: 'storefront', labelKey: 'tabSalons', hintKey: 'hintSalons' },
   { tab: 'Users', icon: 'group', labelKey: 'tabUsers', hintKey: 'hintUsers' },
   { tab: 'Catalog', icon: 'content_cut', labelKey: 'tabCatalog', hintKey: 'hintCatalog' },
   { tab: 'Payments', icon: 'payments', labelKey: 'adTabPayments', hintKey: 'adHintPayments', pay: true }

@@ -2,7 +2,6 @@ import { PageResponse, PaymentInfo, Salon, UserAccount } from '../types/salon';
 import {
   AdminBookingStats,
   AdminOverview,
-  AdminSalonStatus,
   AdminUserStatus,
   CreateSalonOwnerInput,
   Hairstyle,
@@ -44,20 +43,6 @@ export const adminApi = {
     return request<void>(`/api/admin/users/${userId}`, { method: 'DELETE' });
   },
 
-  getSalons(status: AdminSalonStatus | '', page: number, size = 10) {
-    const query = new URLSearchParams({ page: String(page), size: String(size) });
-    if (status) query.set('status', status);
-    return request<PageResponse<Salon>>(`/api/admin/salons?${query}`);
-  },
-
-  approveSalon(salonId: number) {
-    return request<Salon>(`/api/admin/salons/${salonId}/approve`, { method: 'PATCH' });
-  },
-
-  rejectSalon(salonId: number) {
-    return request<Salon>(`/api/admin/salons/${salonId}/reject`, { method: 'PATCH' });
-  },
-
   refundPayment(paymentId: number, input: { refundAmount: number; refundReference: string; note?: string }) {
     return request<PaymentInfo>(`/api/admin/payments/${paymentId}/refund`, {
       method: 'PATCH',
@@ -66,8 +51,24 @@ export const adminApi = {
   },
 
   async getHairstyles() {
-    const result = await request<PageResponse<Hairstyle>>('/api/catalog/hairstyles?size=100');
-    return result.content || [];
+    // BE giới hạn size tối đa 100/trang và chỉ trả kiểu tóc ACTIVE -> lấy hết các trang
+    const all: Hairstyle[] = [];
+    let page = 0;
+    let totalPages = 1;
+    while (page < totalPages) {
+      const result = await request<PageResponse<Hairstyle>>(`/api/catalog/hairstyles?size=100&page=${page}`);
+      all.push(...(result.content || []));
+      totalPages = result.totalPages || 1;
+      page += 1;
+    }
+    return all;
+  },
+
+  async uploadHairstyleImage(file: File) {
+    const body = new FormData();
+    body.append('file', file);
+    const result = await request<{ url: string }>('/api/catalog/hairstyles/images', { method: 'POST', body });
+    return result.url;
   },
 
   getCategories() {

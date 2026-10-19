@@ -1,4 +1,4 @@
-export type AdminTab = 'Overview' | 'Salons' | 'Users' | 'Catalog' | 'Payments';
+export type AdminTab = 'Overview' | 'Users' | 'Catalog' | 'Payments';
 
 export interface AdminOverview {
   totalUsers: number;
@@ -37,6 +37,7 @@ export interface Hairstyle {
   name: string;
   description?: string;
   imageUrl?: string;
+  imageUrls?: string[];
   gender?: HairstyleGender;
   status?: string;
 }
@@ -45,6 +46,7 @@ export interface HairstyleFormInput {
   name: string;
   description?: string;
   imageUrl: string;
+  imageUrls?: string[];
   categoryId?: number;
   gender?: HairstyleGender;
   status?: string;
