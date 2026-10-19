@@ -6,18 +6,21 @@ import be.exe.catalog.dto.response.HairstyleCategoryResponse;
 import be.exe.catalog.dto.response.HairstyleResponse;
 import be.exe.catalog.dto.response.HairstyleSummaryResponse;
 
+import java.util.List;
+
 public final class HairstyleMapper {
 
     private HairstyleMapper() {
     }
 
-    public static HairstyleResponse toResponse(Hairstyle entity) {
+    public static HairstyleResponse toResponse(Hairstyle entity, List<String> imageUrls) {
         return new HairstyleResponse(
                 entity.getId(),
                 entity.getCategoryId(),
                 entity.getName(),
                 entity.getDescription(),
                 entity.getImageUrl(),
+                imageUrls,
                 entity.getGender() != null ? entity.getGender().name() : null,
                 entity.getStatus().name(),
                 entity.getCreatedAt()
