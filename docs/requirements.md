@@ -336,13 +336,13 @@ Mọi danh sách phân trang được trả về trong trường `data`:
 - `V8__create_indexes.sql`: Các chỉ mục tối ưu hiệu năng truy vấn.
 - `V11__seed_mock_data.sql`: Dữ liệu mẫu chuẩn hóa môi trường test (hợp nhất từ V100 cũ).
 - `V12__create_otp_token.sql`: Bảng `verification_tokens` phục vụ xác thực OTP đăng ký.
-- `V101__create_password_reset_tokens.sql`: Bảng `password_reset_tokens`.
-- `V102__add_payment_transaction_id_unique_index.sql`: Index chống trùng lặp `transaction_id`.
-- `V103__add_booking_reminded_and_audit_log.sql`: Thêm cờ `reminded` vào `bookings` và bảng `audit_logs`.
-- `V104__add_payment_refund_columns.sql`: Thêm các cột hoàn tiền vào `payments`.
-- `V105__add_billing_fields_and_payment_history.sql`: Cột `customer_id`, `salon_id`, `payment_type`, `service_amount`, `fee_amount` và cho phép `booking_id NULL`.
-- `V106__add_verification_token_attempts.sql`: Thêm cột `attempt_count INT NOT NULL DEFAULT 0` vào `verification_tokens` và index composite `(email, token_type, created_at)`.
-- `V107__add_salon_pending_unique_index.sql`: Index partial unique `uq_salons_owner_pending` chống spam và race condition khi tạo salon `PENDING_APPROVAL`.
+- `V13__create_password_reset_tokens.sql`: Bảng `password_reset_tokens`.
+- `V14__add_payment_transaction_id_unique_index.sql`: Index chống trùng lặp `transaction_id`.
+- `V15__add_booking_reminded_and_audit_log.sql`: Thêm cờ `reminded` vào `bookings` và bảng `audit_logs`.
+- `V16__add_payment_refund_columns.sql`: Thêm các cột hoàn tiền vào `payments`.
+- `V17__add_billing_fields_and_payment_history.sql`: Cột `customer_id`, `salon_id`, `payment_type`, `service_amount`, `fee_amount` và cho phép `booking_id NULL`.
+- `V18__add_verification_token_attempts.sql`: Thêm cột `attempt_count INT NOT NULL DEFAULT 0` vào `verification_tokens` và index composite `(email, token_type, created_at)`.
+- `V19__add_salon_pending_unique_index.sql`: Index partial unique `uq_salons_owner_pending` chống spam và race condition khi tạo salon `PENDING_APPROVAL`.
 
 ### 5.2 Chi tiết Ràng buộc Đặc biệt (Database Constraints)
 1. **Chống trùng slot hẹn tuyệt đối (`excl_stylist_overlap`)**:
