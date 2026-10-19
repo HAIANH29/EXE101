@@ -49,3 +49,11 @@ export interface HairstyleFormInput {
   gender?: HairstyleGender;
   status?: string;
 }
+
+export interface CreateSalonOwnerInput {
+  email: string;
+  password: string;
+  fullName: string;
+  phone?: string;
+}
+

@@ -4,6 +4,7 @@ import {
   AdminOverview,
   AdminSalonStatus,
   AdminUserStatus,
+  CreateSalonOwnerInput,
   Hairstyle,
   HairstyleCategory,
   HairstyleFormInput
@@ -23,6 +24,13 @@ export const adminApi = {
     const query = new URLSearchParams({ page: String(page), size: String(size) });
     if (status) query.set('status', status);
     return request<PageResponse<UserAccount>>(`/api/admin/users?${query}`);
+  },
+
+  createSalonOwner(input: CreateSalonOwnerInput) {
+    return request<UserAccount>('/api/admin/users/salon-owner', {
+      method: 'POST',
+      body: JSON.stringify(input)
+    });
   },
 
   updateUserStatus(userId: number, status: AdminUserStatus) {
