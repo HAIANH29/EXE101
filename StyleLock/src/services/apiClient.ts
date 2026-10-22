@@ -33,12 +33,8 @@ type AuthSessionEvent =
   | { type: 'clear'; reason: AuthSessionClearReason };
 type AuthSessionListener = (event: AuthSessionEvent) => void;
 
-const runtimeEnv =
-  typeof globalThis !== 'undefined'
-    ? ((globalThis as unknown as { process?: { env?: Record<string, string | undefined> } }).process?.env || {})
-    : {};
-
-export const API_BASE_URL = runtimeEnv.EXPO_PUBLIC_API_URL || 'http://localhost:8080';
+// Phải viết đúng nguyên văn `process.env.EXPO_PUBLIC_*` để Expo inline lúc build (APK).
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080';
 const AUTH_STORAGE_KEY = 'stylelock.auth.session';
 
 let authSession: StoredAuthSession | null = readStoredSession();
