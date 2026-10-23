@@ -1,3 +1,4 @@
+import { File as FileSystemFile } from 'expo-file-system';
 import { Platform } from 'react-native';
 import { Booking,BookingStatus, GenderCategory, Hairstyle, NotificationItem, Payment, PaymentStatus, PaymentType, Salon, ServiceItem, StylistItem } from '../types';
 import { ApiError, apiRequest, authSessionStore } from './apiClient';
@@ -412,35 +413,22 @@ async function appendImageToFormData(
   // `window` cũng tồn tại trên React Native nên phải dùng Platform
   const isWeb = Platform.OS === 'web';
 
-  try {
-    // fetch toàn cục của Expo (expo/fetch) không nhận part {uri,name,type} -> phải gửi Blob/File.
-    // Native đọc file:// bằng XMLHttpRequest vì expo/fetch không đọc được URI cục bộ.
-    const blob: Blob = isWeb
-      ? await (await fetch(uri)).blob()
-      : await new Promise<Blob>((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          xhr.onload = () => resolve(xhr.response as Blob);
-          xhr.onerror = () => reject(new Error('Không đọc được ảnh từ thiết bị'));
-          xhr.responseType = 'blob';
-          xhr.open('GET', uri, true);
-          xhr.send(null);
-        });
-    if (typeof File !== 'undefined') {
-      const file = new File([blob], fileName, { type: mimeType || blob.type || 'image/jpeg' });
-      formData.append(fieldName, file);
-    } else {
-      formData.append(fieldName, blob, fileName);
-    }
+  if (isWeb) {
+    const blob = await (await fetch(uri)).blob();
+    const file = new File([blob], fileName, { type: mimeType || blob.type || 'image/jpeg' });
+    formData.append(fieldName, file);
     return;
-  } catch (err) {
-    console.warn('Could not convert URI to File for FormData:', err);
   }
 
-  // Dự phòng cho FormData gốc của React Native
+  // fetch toàn cục của Expo (expo/fetch) không nhận part {uri,name,type} của React Native:
+  // nó chỉ nhận chuỗi, Blob hoặc object có bytes() -> tự đọc byte rồi đưa part dạng đó.
+  const bytes = /^(https?|data):/i.test(uri)
+    ? new Uint8Array(await (await fetch(uri)).arrayBuffer())
+    : await new FileSystemFile(uri).bytes();
   formData.append(fieldName, {
-    uri,
     name: fileName,
-    type: mimeType
+    type: mimeType,
+    bytes: async () => bytes
   } as unknown as Blob);
 }
 
