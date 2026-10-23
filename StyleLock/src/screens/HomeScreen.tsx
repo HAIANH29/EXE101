@@ -172,7 +172,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           </ImageBackground>
         </TouchableOpacity>
 
-        {/* Quick Actions (3 Cards) */}
+        {/* Quick Actions (2 Cards) */}
         <View style={styles.quickActionsRow}>
           {/* Card 1: Try Hairstyle */}
           <TouchableOpacity
@@ -194,17 +194,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               <AppIcon name="salon" size={22} color="#B8895A" />
             </View>
             <Text style={styles.quickActionText}>Book Salon</Text>
-          </TouchableOpacity>
-
-          {/* Card 3: AI Consult / Salon Dashboard */}
-          <TouchableOpacity
-            style={styles.quickActionCard}
-            onPress={() => navigation.navigate('SalonDashboard')}
-          >
-            <View style={styles.quickIconCircle}>
-              <AppIcon name="bot" size={22} color="#B8895A" />
-            </View>
-            <Text style={styles.quickActionText}>AI Consult</Text>
           </TouchableOpacity>
         </View>
 
