@@ -14,7 +14,8 @@ VALUES
 (4, 'baduser@gmail.com', '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRps.9cGLcZEiGDMVr5yUP1KUOYTa', 'Khách Hay Bom Hàng', '0944556677', null, 'LOCKED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 (5, 'stylist.tu@gmail.com', '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRps.9cGLcZEiGDMVr5yUP1KUOYTa', 'Vũ Anh Tú', null, null, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 (6, 'stylist.hai@gmail.com', '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRps.9cGLcZEiGDMVr5yUP1KUOYTa', 'Hoàng Hải', null, null, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-(7, 'stylist.phong@gmail.com', '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRps.9cGLcZEiGDMVr5yUP1KUOYTa', 'Lê Tuấn Phong', null, null, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+(7, 'stylist.phong@gmail.com', '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRps.9cGLcZEiGDMVr5yUP1KUOYTa', 'Lê Tuấn Phong', null, null, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(8, 'admin@stylelock.test', '$2a$10$50TD2f75vVTbEGGx2t2eTuOrh4CMAKpJfmmzYxpXnDgwAb7OckF..', 'StyleLock Admin', '0909001005', null, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 ON CONFLICT (id) DO NOTHING;
 
 -- Map roles cho users
@@ -23,7 +24,8 @@ VALUES
 (1, (SELECT id FROM roles WHERE name = 'CUSTOMER')),
 (2, (SELECT id FROM roles WHERE name = 'SALON_OWNER')),
 (3, (SELECT id FROM roles WHERE name = 'ADMIN')),
-(4, (SELECT id FROM roles WHERE name = 'CUSTOMER'))
+(4, (SELECT id FROM roles WHERE name = 'CUSTOMER')),
+(8, (SELECT id FROM roles WHERE name = 'ADMIN'))
 ON CONFLICT (user_id, role_id) DO NOTHING;
 
 -- 3. Insert Salons

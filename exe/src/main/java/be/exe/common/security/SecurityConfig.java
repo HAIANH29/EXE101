@@ -58,6 +58,7 @@ public class SecurityConfig {
                         // Public - không cần đăng nhập
                         .requestMatchers(
                                 "/api/public/**",
+                                "/reset-password",
                                 "/api/payment/webhook/**",
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
