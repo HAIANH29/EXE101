@@ -1,4 +1,5 @@
-import { Booking, BookingStatus, GenderCategory, Hairstyle, NotificationItem, Payment, PaymentStatus, PaymentType, Salon, ServiceItem, StylistItem } from '../types';
+import { Platform } from 'react-native';
+import { Booking,BookingStatus, GenderCategory, Hairstyle, NotificationItem, Payment, PaymentStatus, PaymentType, Salon, ServiceItem, StylistItem } from '../types';
 import { ApiError, apiRequest, authSessionStore } from './apiClient';
 
 type PageResponse<T> = {
@@ -408,10 +409,10 @@ async function appendImageToFormData(
   fileName: string,
   mimeType: string
 ) {
-  const isWeb = typeof window !== 'undefined';
-  const isUrlLike = uri.startsWith('blob:') || uri.startsWith('data:') || uri.startsWith('http://') || uri.startsWith('https://');
+  // `window` cũng tồn tại trên React Native nên phải dùng Platform; FormData native không nhận Blob/File
+  const isWeb = Platform.OS === 'web';
 
-  if (isWeb || isUrlLike) {
+  if (isWeb) {
     try {
       const response = await fetch(uri);
       const blob = await response.blob();
