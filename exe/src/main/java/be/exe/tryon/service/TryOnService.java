@@ -1,5 +1,7 @@
 package be.exe.tryon.service;
 
+import be.exe.common.exception.BusinessException;
+import be.exe.common.exception.ErrorCode;
 import be.exe.common.exception.ResourceNotFoundException;
 import be.exe.common.storage.StorageService;
 import be.exe.tryon.client.AiTryOnClient;
@@ -43,9 +45,25 @@ public class TryOnService {
      * Upload ảnh khách + chọn mẫu tóc -> AI sinh thẳng ảnh kết quả, lưu luôn.
      */
     public TryOnResponseDto process(MultipartFile file, Long hairstyleId, Long userId) {
-        validator.validate(file);
+        return process(file, null, hairstyleId, userId, null, null);
+    }
 
-        String inputUrl = storageService.upload(file, "tryon/originals");
+    public TryOnResponseDto process(MultipartFile file, Long hairstyleId, Long userId,
+                                    String hairImageUrl, String colorImageUrl) {
+        return process(file, null, hairstyleId, userId, hairImageUrl, colorImageUrl);
+    }
+
+    public TryOnResponseDto process(MultipartFile file, String imageUrl, Long hairstyleId, Long userId,
+                                    String hairImageUrl, String colorImageUrl) {
+        String inputUrl;
+        if (file != null && !file.isEmpty()) {
+            validator.validate(file);
+            inputUrl = storageService.upload(file, "tryon/originals");
+        } else if (imageUrl != null && !imageUrl.isBlank()) {
+            inputUrl = imageUrl;
+        } else {
+            throw new BusinessException(ErrorCode.TRYON_INVALID_FILE, "Vui lòng chọn hoặc chụp ảnh khuôn mặt");
+        }
 
         TryOnRequest request = new TryOnRequest();
         request.setUserId(userId);
@@ -55,7 +73,15 @@ public class TryOnService {
         request.setCreatedAt(OffsetDateTime.now());
         requestRepository.save(request);
 
-        String resultUrl = aiTryOnClient.process(inputUrl, hairstyleId);
+        String resultUrl;
+        try {
+            resultUrl = aiTryOnClient.process(inputUrl, hairstyleId, hairImageUrl, colorImageUrl);
+        } catch (RuntimeException e) {
+            request.setStatus("FAILED");
+            request.setCompletedAt(OffsetDateTime.now());
+            requestRepository.save(request);
+            throw e;
+        }
 
         TryOnResult result = new TryOnResult();
         result.setRequestId(request.getId());
