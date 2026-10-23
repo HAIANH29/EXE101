@@ -39,4 +39,18 @@ public class CloudinaryStorageService implements StorageService {
             throw new BusinessException(ErrorCode.INTERNAL_ERROR, "Upload ảnh thất bại");
         }
     }
+
+    @Override
+    public String uploadFromUrl(String sourceUrl, String folder) {
+        try {
+            // Cloudinary tự tải ảnh từ URL nguồn, backend không cần download bytes.
+            Map<?, ?> result = cloudinary.uploader().upload(
+                    sourceUrl,
+                    ObjectUtils.asMap("folder", folder, "resource_type", "image")
+            );
+            return (String) result.get("secure_url");
+        } catch (IOException e) {
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "Upload ảnh kết quả thất bại");
+        }
+    }
 }

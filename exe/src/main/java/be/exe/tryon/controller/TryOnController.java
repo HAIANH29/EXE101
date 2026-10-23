@@ -1,11 +1,13 @@
 package be.exe.tryon.controller;
 
+import be.exe.common.exception.BusinessException;
+import be.exe.common.exception.ErrorCode;
 import be.exe.common.response.ApiResponse;
+import be.exe.common.security.CustomUserDetails;
 import be.exe.tryon.dto.TryOnResponseDto;
 import be.exe.tryon.service.TryOnService;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,14 +30,20 @@ public class TryOnController {
      */
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<TryOnResponseDto> tryOn(
-            @RequestParam("image") MultipartFile image,
+            @RequestParam(value = "image", required = false) MultipartFile image,
+            @RequestParam(value = "imageUrl", required = false) String imageUrl,
             @RequestParam("hairstyleId") Long hairstyleId,
-            @AuthenticationPrincipal UserDetails user) {
+            @RequestParam(value = "hairImageUrl", required = false) String hairImageUrl,
+            @RequestParam(value = "colorImageUrl", required = false) String colorImageUrl,
+            @AuthenticationPrincipal CustomUserDetails principal) {
 
-        // TODO: thay bằng cách lấy userId thật từ UserPrincipal của bạn
-        Long userId = null;
+        // tryon_requests.user_id NOT NULL + FK users(id) -> bắt buộc phải có user đăng nhập
+        if (principal == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+        Long userId = principal.getUserId();
 
-        TryOnResponseDto response = tryOnService.process(image, hairstyleId, userId);
+        TryOnResponseDto response = tryOnService.process(image, imageUrl, hairstyleId, userId, hairImageUrl, colorImageUrl);
         return ApiResponse.success("Thử tóc thành công", response);
     }
 
