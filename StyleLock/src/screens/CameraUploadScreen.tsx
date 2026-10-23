@@ -20,6 +20,7 @@ import { NotificationBellButton } from '../components/NotificationBellButton';
 import { resolveHairOverlaySource } from '../services/hairAssetMap';
 import { backendApi } from '../services/backendApi';
 import { applyTransformToImage } from '../utils/imageTransform';
+import { describeTryOnError } from '../utils/tryOnError';
 
 interface CameraUploadScreenProps {
   navigation: any;
@@ -345,7 +346,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
 
       Alert.alert(
         'Thử tóc với HairFastGAN',
-        error?.message || 'Không thể kết nối dịch vụ AI Model lúc này. Bạn có thể thử ghép tóc thủ công ngay.',
+        describeTryOnError(error),
         [
           { text: 'Thử thủ công', onPress: () => handleOpenTryOn() },
           { text: 'Đóng', style: 'cancel' }

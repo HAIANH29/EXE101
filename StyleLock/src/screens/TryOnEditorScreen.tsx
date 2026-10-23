@@ -15,6 +15,7 @@ import { AppIcon } from '../components/AppIcon';
 import { backendApi } from '../services/backendApi';
 import { HAIR_COLORS } from '../services/hairAssetMap';
 import { applyTransformToImage } from '../utils/imageTransform';
+import { describeTryOnError } from '../utils/tryOnError';
 
 interface TryOnEditorScreenProps {
   navigation: any;
@@ -136,7 +137,7 @@ const TryOnEditorContent: React.FC<TryOnEditorScreenProps> = ({ navigation, rout
     } catch (err: any) {
       Alert.alert(
         'Thử tóc bằng AI',
-        err?.message || 'Không thể gọi dịch vụ AI lúc này. Bạn có thể tiếp tục chỉnh sửa bằng thanh công cụ thủ công.',
+        describeTryOnError(err),
         [{ text: 'Đóng', style: 'cancel' }]
       );
     } finally {
