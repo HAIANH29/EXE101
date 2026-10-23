@@ -409,26 +409,34 @@ async function appendImageToFormData(
   fileName: string,
   mimeType: string
 ) {
-  // `window` cũng tồn tại trên React Native nên phải dùng Platform; FormData native không nhận Blob/File
+  // `window` cũng tồn tại trên React Native nên phải dùng Platform
   const isWeb = Platform.OS === 'web';
 
-  if (isWeb) {
-    try {
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      if (typeof File !== 'undefined') {
-        const file = new File([blob], fileName, { type: mimeType || blob.type || 'image/jpeg' });
-        formData.append(fieldName, file);
-      } else {
-        formData.append(fieldName, blob, fileName);
-      }
-      return;
-    } catch (err) {
-      console.warn('Could not convert URI to File for FormData:', err);
+  try {
+    // fetch toàn cục của Expo (expo/fetch) không nhận part {uri,name,type} -> phải gửi Blob/File.
+    // Native đọc file:// bằng XMLHttpRequest vì expo/fetch không đọc được URI cục bộ.
+    const blob: Blob = isWeb
+      ? await (await fetch(uri)).blob()
+      : await new Promise<Blob>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.onload = () => resolve(xhr.response as Blob);
+          xhr.onerror = () => reject(new Error('Không đọc được ảnh từ thiết bị'));
+          xhr.responseType = 'blob';
+          xhr.open('GET', uri, true);
+          xhr.send(null);
+        });
+    if (typeof File !== 'undefined') {
+      const file = new File([blob], fileName, { type: mimeType || blob.type || 'image/jpeg' });
+      formData.append(fieldName, file);
+    } else {
+      formData.append(fieldName, blob, fileName);
     }
+    return;
+  } catch (err) {
+    console.warn('Could not convert URI to File for FormData:', err);
   }
 
-  // React Native Native (iOS / Android)
+  // Dự phòng cho FormData gốc của React Native
   formData.append(fieldName, {
     uri,
     name: fileName,
