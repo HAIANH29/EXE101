@@ -8,7 +8,8 @@ import {
   ScrollView,
   Dimensions,
   ActivityIndicator,
-  PanResponder
+  PanResponder,
+  Modal
 } from 'react-native';
 import { LocalizedText as Text, LocalizedAlert as Alert } from '../i18n/LocalizedComponents';
 import * as ImagePicker from 'expo-image-picker';
@@ -21,17 +22,20 @@ import { resolveHairOverlaySource } from '../services/hairAssetMap';
 import { backendApi } from '../services/backendApi';
 import { applyTransformToImage } from '../utils/imageTransform';
 import { describeTryOnError } from '../utils/tryOnError';
+import { FALLBACK_30_HAIRSTYLES } from '../components/explore/ExploreTypes';
 
 interface CameraUploadScreenProps {
   navigation: any;
   route?: any;
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const PHOTO_CANVAS_WIDTH = Math.min(SCREEN_WIDTH - 32, 380);
-const PHOTO_CANVAS_HEIGHT = Math.round(PHOTO_CANVAS_WIDTH * 1.25);
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const PHOTO_CANVAS_WIDTH = Math.min(SCREEN_WIDTH - 32, 360);
+const PHOTO_CANVAS_HEIGHT = Math.min(Math.round(PHOTO_CANVAS_WIDTH * 1.18), Math.round(SCREEN_HEIGHT * 0.44));
 
-const MAX_FILTER_STYLES = 8;
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600';
+
+const MAX_FILTER_STYLES = 15;
 
 // Placeholder khi catalog chưa tải xong; không có apiId nên không thể gửi lên AI.
 const LOADING_HAIRSTYLE: Hairstyle = {
@@ -77,6 +81,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
   const [photoOffsetY, setPhotoOffsetY] = useState<number>(0);
   const [isPhotoFlipped, setIsPhotoFlipped] = useState<boolean>(false);
   const [showFaceGuide, setShowFaceGuide] = useState<boolean>(true);
+  const [showAdjustPanel, setShowAdjustPanel] = useState<boolean>(false);
 
   // HairFastGAN Latent Space Try-On State
   const [isAiGenerating, setIsAiGenerating] = useState<boolean>(false);
@@ -109,8 +114,9 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
   const photoDragStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const photoPanResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        Math.abs(gestureState.dx) > 3 || Math.abs(gestureState.dy) > 3,
       onPanResponderGrant: () => {
         photoDragStartRef.current = {
           x: livePhotoStateRef.current.photoOffsetX,
@@ -138,8 +144,8 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
     }
   };
 
-  // Danh sách kiểu tóc lấy từ catalog backend
-  const [catalogHairstyles, setCatalogHairstyles] = useState<Hairstyle[]>([]);
+  // Danh sách kiểu tóc khởi tạo ngay bằng FALLBACK_30_HAIRSTYLES để không bị treo 'Đang tải...'
+  const [catalogHairstyles, setCatalogHairstyles] = useState<Hairstyle[]>(FALLBACK_30_HAIRSTYLES);
   const [catalogError, setCatalogError] = useState<string | undefined>();
 
   useEffect(() => {
@@ -147,10 +153,13 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
     backendApi
       .getHairstyles()
       .then((items) => {
-        if (isMounted) setCatalogHairstyles(items);
+        if (isMounted && items && items.length > 0) setCatalogHairstyles(items);
       })
       .catch((error) => {
-        if (isMounted) setCatalogError(error instanceof Error ? error.message : 'Không tải được kiểu tóc.');
+        if (isMounted) {
+          setCatalogHairstyles(FALLBACK_30_HAIRSTYLES);
+          setCatalogError(error instanceof Error ? error.message : undefined);
+        }
       });
     return () => {
       isMounted = false;
@@ -164,7 +173,11 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
     hairstyle
   }));
 
-  const activeHairstyle: Hairstyle = preselectedHair || filterHairstyles[activeFilterIdx]?.hairstyle || LOADING_HAIRSTYLE;
+  const activeHairstyle: Hairstyle =
+    preselectedHair ||
+    filterHairstyles[activeFilterIdx]?.hairstyle ||
+    catalogHairstyles[0] ||
+    LOADING_HAIRSTYLE;
   const activeColor = HAIR_COLOR_PALETTE[selectedColorIdx];
 
   const handleOpenTryOn = async (hair?: Hairstyle) => {
@@ -467,18 +480,15 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
           )}
 
           {aiResultImageUrl && (
-            <View style={styles.aiBadgeTopContainer}>
-              <View style={styles.aiResultPill}>
-                <AppIcon name="sparkle" size={14} color="#FFD700" />
-                <Text style={styles.aiResultPillText}>AI MODEL MỚI ĐÃ TẠO</Text>
-              </View>
+            <View style={styles.aiBadgeFloatContainer}>
               <TouchableOpacity
                 style={styles.toggleCompareBtn}
                 onPress={() => setShowOriginalComparison(!showOriginalComparison)}
                 activeOpacity={0.8}
               >
+                <AppIcon name={showOriginalComparison ? 'sparkle' : 'camera'} size={14} color="#B8895A" />
                 <Text style={styles.toggleCompareText}>
-                  {showOriginalComparison ? '👁️ Xem kết quả AI' : '📷 Xem ảnh gốc'}
+                  {showOriginalComparison ? 'Xem ảnh AI' : 'Xem ảnh gốc'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -504,6 +514,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
     if (!cameraPermission) {
       return (
         <View style={styles.permissionSurface}>
+          <ActivityIndicator size="large" color="#B8895A" />
           <Text style={styles.permissionTitle}>Đang kiểm tra camera...</Text>
         </View>
       );
@@ -512,10 +523,29 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
     if (!cameraPermission.granted) {
       return (
         <View style={styles.permissionSurface}>
+          <View style={styles.permissionIconCircle}>
+            <AppIcon name="camera" size={38} color="#B8895A" />
+          </View>
           <Text style={styles.permissionTitle}>StyleLock cần quyền camera</Text>
-          <Text style={styles.permissionBody}>Cho phép camera để xem preview trực tiếp và chụp ảnh khuôn mặt.</Text>
-          <TouchableOpacity style={styles.permissionBtn} onPress={requestCameraPermission}>
+          <Text style={styles.permissionBody}>
+            Cho phép camera để xem preview trực tiếp và chụp ảnh khuôn mặt.
+          </Text>
+          <TouchableOpacity
+            style={styles.permissionBtn}
+            onPress={requestCameraPermission}
+            activeOpacity={0.8}
+          >
+            <AppIcon name="camera" size={18} color="#FFFFFF" />
             <Text style={styles.permissionBtnText}>Cho phép Camera</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.permissionGalleryBtn}
+            onPress={handlePickFromGallery}
+            activeOpacity={0.8}
+          >
+            <AppIcon name="upload" size={16} color="#B8895A" />
+            <Text style={styles.permissionGalleryBtnText}>Tải ảnh từ thư viện</Text>
           </TouchableOpacity>
         </View>
       );
@@ -537,36 +567,31 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
   if (selectedPhoto) {
     return (
       <SafeAreaView style={styles.previewContainer}>
-        {/* Top App Bar */}
+        {/* A. Header */}
         <View style={styles.previewTopBar}>
           <TouchableOpacity
-            style={styles.topBtn}
+            style={styles.headerActionBtn}
             onPress={() => {
               setSelectedPhoto(null);
               resetPhotoTransform();
               setAiResultImageUrl(null);
             }}
+            activeOpacity={0.7}
+            accessibilityLabel="Quay lại"
           >
-            <AppIcon name="arrowLeft" size={20} color="#B8895A" />
+            <AppIcon name="arrowLeft" size={20} color="#2C2219" />
           </TouchableOpacity>
 
-          <View style={styles.previewHeaderTitleBox}>
-            <Text style={styles.previewBrandTitle}>
-              {aiResultImageUrl ? 'Kết Quả Thử Tóc AI' : 'Căn Chỉnh & Chọn Kiểu Tóc'}
-            </Text>
-            <Text style={styles.previewSubTitle}>
-              {aiResultImageUrl ? `Mẫu: ${activeHairstyle.name} • ${activeColor.name}` : 'Model AI: google/nano-banana-2'}
-            </Text>
-          </View>
+          <Text style={styles.headerTitle}>Thử kiểu tóc</Text>
 
-          <View style={styles.headerRightActions}>
-            <TouchableOpacity
-              style={styles.headerIconBtn}
-              onPress={handleTakePhoto}
-            >
-              <AppIcon name="refresh" size={18} color="#B8895A" />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={styles.headerActionBtn}
+            onPress={resetPhotoTransform}
+            activeOpacity={0.7}
+            accessibilityLabel="Đặt lại căn chỉnh"
+          >
+            <AppIcon name="refresh" size={18} color="#B8895A" />
+          </TouchableOpacity>
         </View>
 
         {/* Scrollable Content Body */}
@@ -575,20 +600,22 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
           contentContainerStyle={styles.previewScrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* 1. KHUNG ẢNH VIEWPORT (CANVAS ĐỘC LẬP - RÕ RÀNG 100%, KHÔNG BỊ ĐÈ CHỒNG) */}
-          <View style={styles.studioCanvasCard}>
+          {/* B. Vùng xem trước kiểu tóc (Visual Focus) */}
+          <View style={styles.studioCanvasWrapper}>
             <View
               style={styles.studioCanvas}
               {...photoPanResponder.panHandlers}
               // @ts-ignore Web wheel zoom
               onWheel={handlePhotoWheel}
             >
-              {/* Photo Content with transform */}
+              {/* User photo with transforms */}
               <View style={styles.photoViewport}>
                 <View
                   style={[
                     styles.photoTransformBox,
                     {
+                      width: PHOTO_CANVAS_WIDTH,
+                      height: PHOTO_CANVAS_HEIGHT,
                       transform: [
                         { translateX: photoOffsetX },
                         { translateY: photoOffsetY },
@@ -607,7 +634,18 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
                 </View>
               </View>
 
-              {/* Face Guide Oval (chỉ hiện khi chưa sinh AI và bật guide) */}
+              {/* Lớp tóc thử nghiệm trực tiếp trên ảnh khuôn mặt (khi chưa tạo AI) */}
+              {!aiResultImageUrl && activeHairstyle?.id !== 'loading' && (
+                <View style={styles.hairOverlayWrapper} pointerEvents="none">
+                  <Image
+                    source={resolveHairOverlaySource(activeHairstyle, activeColor.hex)}
+                    style={styles.hairOverlayImage}
+                    resizeMode="contain"
+                  />
+                </View>
+              )}
+
+              {/* Semi-transparent Face Guide Mask Overlay */}
               {showFaceGuide && !aiResultImageUrl && (
                 <View style={styles.cameraFaceGuideOverlay} pointerEvents="none">
                   <View style={styles.cameraFaceGuideOval} />
@@ -616,182 +654,55 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
                 </View>
               )}
 
-              {/* Floating Quick Action Toolbar (Nút xoay 90° & zoom) */}
-              {!aiResultImageUrl && (
-                <View style={styles.floatingAdjustToolbar}>
-                  <TouchableOpacity
-                    style={[styles.floatingActionBtn, styles.floatingRotateBtn]}
-                    onPress={() => setPhotoRotation((r) => (r + 90) % 360)}
-                    activeOpacity={0.8}
-                  >
-                    <AppIcon name="refresh" size={13} color="#FFFFFF" />
-                    <Text style={styles.floatingActionBtnLabel}>90°</Text>
-                  </TouchableOpacity>
+              {/* Caption nhỏ gọn hiển thị tên kiểu tóc & màu tóc đã chọn */}
+              <View style={styles.compactCaptionPill} pointerEvents="none">
+                <View style={[styles.captionColorDot, { backgroundColor: activeColor.hex }]} />
+                <Text style={styles.compactCaptionText} numberOfLines={1}>
+                  {activeHairstyle.name} • {activeColor.name}
+                </Text>
+              </View>
 
-                  <TouchableOpacity
-                    style={styles.floatingActionBtn}
-                    onPress={() => setPhotoScale((s) => Math.max(0.5, Number((s - 0.15).toFixed(2))))}
-                    activeOpacity={0.8}
-                  >
-                    <AppIcon name="zoomOut" size={13} color="#FFFFFF" />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.floatingActionBtn}
-                    onPress={() => setPhotoScale((s) => Math.min(3.0, Number((s + 0.15).toFixed(2))))}
-                    activeOpacity={0.8}
-                  >
-                    <AppIcon name="zoomIn" size={13} color="#FFFFFF" />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.floatingActionBtn, isPhotoFlipped && styles.floatingActionBtnActive]}
-                    onPress={() => setIsPhotoFlipped((f) => !f)}
-                    activeOpacity={0.8}
-                  >
-                    <AppIcon name="rotateLeft" size={13} color="#FFFFFF" />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.floatingActionBtn, showFaceGuide && styles.floatingActionBtnActive]}
-                    onPress={() => setShowFaceGuide((g) => !g)}
-                    activeOpacity={0.8}
-                  >
-                    <AppIcon name="user" size={13} color="#FFFFFF" />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.floatingActionBtn, styles.floatingResetBtn]}
-                    onPress={resetPhotoTransform}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.floatingResetBtnText}>Căn giữa</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              {/* Badge & Toggle khi có AI Result */}
+              {/* Compare Button khi đã tạo AI */}
               {aiResultImageUrl && (
-                <View style={styles.aiBadgeTopContainer}>
-                  <View style={styles.aiResultPill}>
-                    <AppIcon name="sparkle" size={14} color="#FFD700" />
-                    <Text style={styles.aiResultPillText}>AI MODEL ĐÃ TẠO</Text>
-                  </View>
+                <View style={styles.aiBadgeFloatContainer}>
                   <TouchableOpacity
                     style={styles.toggleCompareBtn}
                     onPress={() => setShowOriginalComparison(!showOriginalComparison)}
                     activeOpacity={0.8}
                   >
+                    <AppIcon name={showOriginalComparison ? 'sparkle' : 'camera'} size={14} color="#B8895A" />
                     <Text style={styles.toggleCompareText}>
-                      {showOriginalComparison ? '👁️ Xem ảnh AI' : '📷 Xem ảnh gốc'}
+                      {showOriginalComparison ? 'Xem ảnh AI' : 'Xem ảnh gốc'}
                     </Text>
                   </TouchableOpacity>
                 </View>
               )}
 
-              {/* Bottom Live Hint Banner */}
-              <View style={styles.studioCanvasBottomBadge}>
-                <Text style={styles.studioCanvasBottomBadgeText}>
-                  {aiResultImageUrl
-                    ? (showOriginalComparison ? '📷 Đang xem ảnh gốc' : `✨ ${activeHairstyle.name} • ${activeColor.name}`)
-                    : '💡 Kéo thả chuột để dời mặt, lăn chuột để zoom'}
-                </Text>
-              </View>
+              {/* C. Nút "Căn chỉnh" gọn gàng ở góc dưới preview */}
+              {!aiResultImageUrl && (
+                <TouchableOpacity
+                  style={styles.adjustTriggerBtn}
+                  onPress={() => setShowAdjustPanel(true)}
+                  activeOpacity={0.85}
+                >
+                  <AppIcon name="tool" size={13} color="#FFFFFF" />
+                  <Text style={styles.adjustTriggerText}>Căn chỉnh</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
 
-          {/* 2. THẺ THÔNG TIN PHÂN TÍCH (GỌN GÀNG, KHÔNG ĐÈ LÊN ẢNH) */}
-          <View style={styles.infoMetaCard}>
-            <View style={styles.infoMetaItem}>
-              <AppIcon name="user" size={15} color="#B8895A" />
-              <View>
-                <Text style={styles.infoMetaLabel}>DÁNG MẶT PHÂN TÍCH</Text>
-                <Text style={styles.infoMetaVal}>Oval • 98% Độ tin cậy</Text>
-              </View>
-            </View>
-            <View style={styles.infoMetaDivider} />
-            <View style={styles.infoMetaItem}>
-              <AppIcon name="sparkle" size={15} color="#B8895A" />
-              <View>
-                <Text style={styles.infoMetaLabel}>AI ENGINE</Text>
-                <Text style={styles.infoMetaVal}>google/nano-banana-2</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* 3. BỘ CĂN CHỈNH ẢNH MẶT CHI TIẾT (Nếu chưa có kết quả AI) */}
-          {!aiResultImageUrl && (
-            <View style={styles.photoAlignControlCard}>
-              <View style={styles.photoAlignHeaderRow}>
-                <View style={styles.photoAlignTitleRow}>
-                  <AppIcon name="tool" size={14} color="#B8895A" />
-                  <Text style={styles.photoAlignTitleText}>Căn chỉnh ảnh khuôn mặt</Text>
-                </View>
-                <Text style={styles.photoAlignMetricsText}>
-                  Zoom: <Text style={styles.metricBold}>{Math.round(photoScale * 100)}%</Text> • Xoay: <Text style={styles.metricBold}>{photoRotation}°</Text>
-                </Text>
-              </View>
-
-              <View style={styles.photoAlignButtonsRow}>
-                <TouchableOpacity
-                  style={[styles.alignToolBtn, styles.alignToolBtnPrimary]}
-                  onPress={() => setPhotoRotation((r) => (r + 90) % 360)}
-                  activeOpacity={0.8}
-                >
-                  <AppIcon name="refresh" size={14} color="#FFFFFF" />
-                  <Text style={styles.alignToolBtnPrimaryText}>Xoay 90°</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.alignToolBtn}
-                  onPress={() => setPhotoRotation((r) => r - 5)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.alignToolBtnText}>-5°</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.alignToolBtn}
-                  onPress={() => setPhotoRotation((r) => r + 5)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.alignToolBtnText}>+5°</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.alignToolBtn}
-                  onPress={() => setPhotoScale((s) => Math.max(0.5, Number((s - 0.15).toFixed(2))))}
-                  activeOpacity={0.8}
-                >
-                  <AppIcon name="zoomOut" size={14} color="#B8895A" />
-                  <Text style={styles.alignToolBtnText}>-15%</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.alignToolBtn}
-                  onPress={() => setPhotoScale((s) => Math.min(3.0, Number((s + 0.15).toFixed(2))))}
-                  activeOpacity={0.8}
-                >
-                  <AppIcon name="zoomIn" size={14} color="#B8895A" />
-                  <Text style={styles.alignToolBtnText}>+15%</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.alignToolBtn, styles.alignResetBtn]}
-                  onPress={resetPhotoTransform}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.alignResetBtnText}>Căn giữa</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-
-          {/* 4. CHỌN DÁNG TÓC (SHAPE LATENT) */}
+          {/* D. Bộ chọn kiểu tóc */}
           <View style={styles.selectorSectionBlock}>
-            <View style={styles.selectorLabelRow}>
-              <Text style={styles.selectorSectionTitle}>1. CHỌN DÁNG TÓC (SHAPE)</Text>
-              <Text style={styles.selectedHairNameText}>{activeHairstyle.name}</Text>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>Kiểu tóc</Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('HairstyleSelect', { userPhotoUri: selectedPhoto })}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={styles.seeAllLink}>Xem tất cả</Text>
+              </TouchableOpacity>
             </View>
 
             <ScrollView
@@ -802,10 +713,16 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
               {filterHairstyles.map((item, idx) => {
                 const isActive = activeFilterIdx === idx;
                 const hairOverlay = resolveHairOverlaySource(item.hairstyle);
+                const hairImgUri = item.hairstyle.imageUrl;
+                const imageSource = hairImgUri
+                  ? { uri: hairImgUri }
+                  : (hairOverlay && typeof hairOverlay === 'object' && hairOverlay.uri && !hairOverlay.uri.startsWith('data:image/svg')
+                      ? hairOverlay
+                      : { uri: FALLBACK_IMAGE });
                 return (
                   <TouchableOpacity
                     key={item.id}
-                    style={[styles.filterThumb, isActive && styles.filterThumbActive]}
+                    style={[styles.hairCard, isActive && styles.hairCardActive]}
                     onPress={() => {
                       setActiveFilterIdx(idx);
                       if (aiResultImageUrl) {
@@ -814,17 +731,16 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
                     }}
                     activeOpacity={0.8}
                   >
-                    <View style={styles.filterThumbHairBg}>
-                      <Image
-                        source={hairOverlay}
-                        style={[styles.filterThumbImg, !isActive && styles.filterThumbImgInactive]}
-                        resizeMode="contain"
-                      />
-                    </View>
-                    {isActive && <View style={styles.filterActiveOverlay} />}
-                    {!isActive && <View style={styles.filterInactiveOverlay} />}
-                    <View style={[styles.filterLabel, isActive ? styles.filterLabelActive : styles.filterLabelInactive]}>
-                      <Text style={[styles.filterLabelText, isActive ? styles.filterLabelTextActive : styles.filterLabelTextInactive]}>
+                    <Image
+                      source={imageSource}
+                      style={styles.hairCardImage}
+                      resizeMode="cover"
+                    />
+                    <View style={[styles.hairCardLabelBox, isActive && styles.hairCardLabelBoxActive]}>
+                      <Text
+                        style={[styles.hairCardLabelText, isActive && styles.hairCardLabelTextActive]}
+                        numberOfLines={1}
+                      >
                         {item.label}
                       </Text>
                     </View>
@@ -834,16 +750,20 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
             </ScrollView>
           </View>
 
-          {/* 5. MÀU SẮC (COLOR LATENT) */}
-          <View style={styles.colorSelectorContainer}>
-            <Text style={styles.selectorSectionTitle}>2. MÀU SẮC (COLOR LATENT)</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.colorSwatchesScroll}>
+          {/* E. Bộ chọn màu tóc */}
+          <View style={styles.selectorSectionBlock}>
+            <Text style={styles.sectionTitle}>Màu tóc</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.colorPaletteScroll}
+            >
               {HAIR_COLOR_PALETTE.map((colorItem, cIdx) => {
                 const isColorActive = selectedColorIdx === cIdx;
                 return (
                   <TouchableOpacity
                     key={colorItem.id}
-                    style={[styles.colorChip, isColorActive && styles.colorChipActive]}
+                    style={styles.colorSwatchItem}
                     onPress={() => {
                       setSelectedColorIdx(cIdx);
                       if (aiResultImageUrl) {
@@ -852,8 +772,29 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
                     }}
                     activeOpacity={0.8}
                   >
-                    <View style={[styles.colorCircle, { backgroundColor: colorItem.hex }]} />
-                    <Text style={[styles.colorChipText, isColorActive && styles.colorChipTextActive]}>
+                    <View
+                      style={[
+                        styles.colorCircleOuter,
+                        isColorActive && styles.colorCircleOuterActive
+                      ]}
+                    >
+                      <View style={[styles.colorCircleInner, { backgroundColor: colorItem.hex }]}>
+                        {isColorActive && (
+                          <AppIcon
+                            name="check"
+                            size={14}
+                            color={colorItem.id === 'platinum' ? '#2C2219' : '#FFFFFF'}
+                          />
+                        )}
+                      </View>
+                    </View>
+                    <Text
+                      style={[
+                        styles.colorSwatchLabel,
+                        isColorActive && styles.colorSwatchLabelActive
+                      ]}
+                      numberOfLines={1}
+                    >
                       {colorItem.name}
                     </Text>
                   </TouchableOpacity>
@@ -862,19 +803,15 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
             </ScrollView>
           </View>
 
-          {/* 6. HÀNG NÚT HÀNH ĐỘNG */}
-          <View style={styles.postCaptureActionsRow}>
-            <TouchableOpacity
-              style={styles.retakeBtn}
-              onPress={handleTakePhoto}
-              activeOpacity={0.8}
-            >
-              <AppIcon name="refresh" size={15} color="#5C4431" />
-              <Text style={styles.retakeBtnText}>Đổi ảnh</Text>
-            </TouchableOpacity>
+          {/* Spacing cho sticky CTA bar */}
+          <View style={{ height: 85 }} />
+        </ScrollView>
 
+        {/* F. Nút CTA chính (Sticky bottom bar) */}
+        <View style={styles.stickyBottomBar}>
+          {!aiResultImageUrl ? (
             <TouchableOpacity
-              style={styles.primaryAiBtn}
+              style={[styles.primaryCtaBtn, isAiGenerating && styles.primaryCtaBtnDisabled]}
               onPress={handleGenerateAiTryOn}
               activeOpacity={0.85}
               disabled={isAiGenerating}
@@ -884,42 +821,151 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
               ) : (
                 <AppIcon name="sparkle" size={18} color="#FFFFFF" />
               )}
-              <Text style={styles.primaryAiBtnText}>
-                {isAiGenerating
-                  ? 'Đang tạo tóc...'
-                  : aiResultImageUrl
-                  ? 'Tạo lại với AI'
-                  : 'Tạo ảnh AI Model'}
+              <Text style={styles.primaryCtaBtnText}>
+                {isAiGenerating ? 'Đang tạo tóc...' : 'Tạo ảnh AI Model'}
               </Text>
             </TouchableOpacity>
+          ) : (
+            <View style={styles.resultCtaGroup}>
+              <TouchableOpacity
+                style={styles.primaryCtaBtn}
+                onPress={handleBookThisHairstyle}
+                activeOpacity={0.85}
+              >
+                <AppIcon name="calendar" size={18} color="#FFFFFF" />
+                <Text style={styles.primaryCtaBtnText}>Đặt lịch với kiểu tóc này</Text>
+              </TouchableOpacity>
 
+              <TouchableOpacity
+                style={styles.secondaryCtaBtn}
+                onPress={() => setAiResultImageUrl(null)}
+                activeOpacity={0.8}
+              >
+                <AppIcon name="refresh" size={16} color="#B8895A" />
+                <Text style={styles.secondaryCtaBtnText}>Thử kiểu khác</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* C. Panel Căn chỉnh (Bottom Sheet Modal) */}
+        <Modal
+          visible={showAdjustPanel}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowAdjustPanel(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setShowAdjustPanel(false)}
+          >
             <TouchableOpacity
-              style={styles.manualTryOnBtn}
-              onPress={() => handleOpenTryOn()}
-              activeOpacity={0.8}
+              activeOpacity={1}
+              style={styles.adjustPanelSheet}
+              onPress={(e) => e.stopPropagation()}
             >
-              <AppIcon name="scissors" size={15} color="#B8895A" />
-              <Text style={styles.manualTryOnBtnText}>Chỉnh tay</Text>
-            </TouchableOpacity>
-          </View>
+              {/* Panel drag handle */}
+              <View style={styles.panelHandle} />
 
-          {/* 7. NÚT ĐẶT LỊCH SALON */}
-          <View style={styles.ctaContainer}>
-            <TouchableOpacity
-              style={styles.bookCtaBtn}
-              activeOpacity={0.85}
-              onPress={handleBookThisHairstyle}
-            >
-              <Text style={styles.bookCtaText}>
-                {aiResultImageUrl ? 'Đặt lịch với kiểu tóc AI này' : 'Đặt lịch làm kiểu tóc này'}
-              </Text>
-              <AppIcon name="arrowRight" size={18} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
+              {/* Panel Header */}
+              <View style={styles.panelHeader}>
+                <View>
+                  <Text style={styles.panelTitle}>Căn chỉnh khuôn mặt</Text>
+                  <Text style={styles.panelMetricsText}>
+                    Zoom: <Text style={styles.panelMetricVal}>{Math.round(photoScale * 100)}%</Text> • Xoay: <Text style={styles.panelMetricVal}>{photoRotation}°</Text>
+                  </Text>
+                </View>
 
-          {/* Đệm đáy để BottomNavBar không che */}
-          <View style={{ height: 95 }} />
-        </ScrollView>
+                <TouchableOpacity
+                  style={styles.panelCloseBtn}
+                  onPress={() => setShowAdjustPanel(false)}
+                  activeOpacity={0.7}
+                >
+                  <AppIcon name="close" size={18} color="#2C2219" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Tools Grid */}
+              <View style={styles.panelToolsGrid}>
+                <TouchableOpacity
+                  style={styles.panelToolItem}
+                  onPress={() => setPhotoRotation((r) => (r + 90) % 360)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.panelToolIconBox}>
+                    <AppIcon name="refresh" size={18} color="#B8895A" />
+                  </View>
+                  <Text style={styles.panelToolLabel}>Xoay 90°</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.panelToolItem}
+                  onPress={() => setPhotoScale((s) => Math.max(0.5, Number((s - 0.15).toFixed(2))))}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.panelToolIconBox}>
+                    <AppIcon name="zoomOut" size={18} color="#B8895A" />
+                  </View>
+                  <Text style={styles.panelToolLabel}>Thu nhỏ (-15%)</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.panelToolItem}
+                  onPress={() => setPhotoScale((s) => Math.min(3.0, Number((s + 0.15).toFixed(2))))}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.panelToolIconBox}>
+                    <AppIcon name="zoomIn" size={18} color="#B8895A" />
+                  </View>
+                  <Text style={styles.panelToolLabel}>Phóng to (+15%)</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.panelToolItem}
+                  onPress={() => setIsPhotoFlipped((f) => !f)}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.panelToolIconBox, isPhotoFlipped && styles.panelToolIconBoxActive]}>
+                    <AppIcon name="rotateLeft" size={18} color={isPhotoFlipped ? '#FFFFFF' : '#B8895A'} />
+                  </View>
+                  <Text style={styles.panelToolLabel}>Lật gương</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.panelToolItem}
+                  onPress={resetPhotoTransform}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.panelToolIconBox}>
+                    <AppIcon name="tool" size={18} color="#B8895A" />
+                  </View>
+                  <Text style={styles.panelToolLabel}>Căn giữa</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.panelToolItem}
+                  onPress={() => setShowFaceGuide((g) => !g)}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.panelToolIconBox, showFaceGuide && styles.panelToolIconBoxActive]}>
+                    <AppIcon name="user" size={18} color={showFaceGuide ? '#FFFFFF' : '#B8895A'} />
+                  </View>
+                  <Text style={styles.panelToolLabel}>{showFaceGuide ? 'Khung mặt: Bật' : 'Khung mặt: Tắt'}</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Done button */}
+              <TouchableOpacity
+                style={styles.panelDoneBtn}
+                onPress={() => setShowAdjustPanel(false)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.panelDoneBtnText}>Xong</Text>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
 
         {/* Loading Overlay nếu đang sinh AI */}
         {isAiGenerating && (
@@ -931,8 +977,6 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
             </View>
           </View>
         )}
-
-        <BottomNavBar active="AICamera" navigation={navigation} />
       </SafeAreaView>
     );
   }
@@ -960,61 +1004,65 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
       <View style={styles.cameraCanvas}>
         {renderCameraSurface()}
 
-        {/* Vignette Gradient Overlay */}
-        <View style={styles.vignetteTop} />
-        <View style={styles.vignetteBottom} />
+        {cameraPermission?.granted && (
+          <>
+            {/* Vignette Gradient Overlay */}
+            <View style={styles.vignetteTop} pointerEvents="none" />
+            <View style={styles.vignetteBottom} pointerEvents="none" />
 
-        {/* Face Tracking Mesh Overlay */}
-        <View style={styles.faceMeshOverlay}>
-          <View style={styles.ganGuideBanner}>
-            <Text style={styles.ganGuideBannerText}>
-              💡 Đặt mặt thẳng, cắt khung gần để AI căn chỉnh chuẩn nhất
-            </Text>
-          </View>
-          <View style={styles.faceMeshOval}>
-            <View style={styles.meshLine1} />
-            <View style={styles.meshLine2} />
-            <View style={styles.faceAlignmentCrosshair} />
-          </View>
-        </View>
-
-        {/* Top Controls Overlay */}
-        <View style={styles.topControlsOverlay}>
-          <View style={styles.statusBadge}>
-            <View style={styles.statusDot} />
-            <Text style={styles.statusText}>LIVE FACE CAMERA</Text>
-          </View>
-
-          <View style={styles.quickActions}>
-            <TouchableOpacity style={styles.quickActionBtn} onPress={handleTakePhoto}>
-              <AppIcon name="refresh" size={18} color="#FFFFFF" />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.quickActionBtn} onPress={handlePickFromGallery}>
-              <AppIcon name="upload" size={18} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Bottom Camera Capture UI */}
-        <View style={styles.bottomCameraCaptureArea}>
-          <View style={styles.captureArea}>
-            <View style={styles.captureLine} />
-            <TouchableOpacity
-              style={[styles.captureBtn, isCapturing && styles.captureBtnDisabled]}
-              onPress={handleCapture}
-              activeOpacity={0.85}
-              disabled={isCapturing}
-            >
-              <View style={styles.captureRing}>
-                <View style={styles.captureInner}>
-                  <AppIcon name="camera" size={28} color="#FFFFFF" />
-                </View>
+            {/* Face Tracking Mesh Overlay */}
+            <View style={styles.faceMeshOverlay} pointerEvents="none">
+              <View style={styles.ganGuideBanner}>
+                <Text style={styles.ganGuideBannerText}>
+                  💡 Đặt mặt thẳng, cắt khung gần để AI căn chỉnh chuẩn nhất
+                </Text>
               </View>
-            </TouchableOpacity>
-            <View style={styles.captureLine} />
-          </View>
-        </View>
+              <View style={styles.faceMeshOval}>
+                <View style={styles.meshLine1} />
+                <View style={styles.meshLine2} />
+                <View style={styles.faceAlignmentCrosshair} />
+              </View>
+            </View>
+
+            {/* Top Controls Overlay */}
+            <View style={styles.topControlsOverlay}>
+              <View style={styles.statusBadge}>
+                <View style={styles.statusDot} />
+                <Text style={styles.statusText}>LIVE FACE CAMERA</Text>
+              </View>
+
+              <View style={styles.quickActions}>
+                <TouchableOpacity style={styles.quickActionBtn} onPress={handleTakePhoto}>
+                  <AppIcon name="refresh" size={18} color="#FFFFFF" />
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.quickActionBtn} onPress={handlePickFromGallery}>
+                  <AppIcon name="upload" size={18} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Bottom Camera Capture UI */}
+            <View style={styles.bottomCameraCaptureArea}>
+              <View style={styles.captureArea}>
+                <View style={styles.captureLine} />
+                <TouchableOpacity
+                  style={[styles.captureBtn, isCapturing && styles.captureBtnDisabled]}
+                  onPress={handleCapture}
+                  activeOpacity={0.85}
+                  disabled={isCapturing}
+                >
+                  <View style={styles.captureRing}>
+                    <View style={styles.captureInner}>
+                      <AppIcon name="camera" size={28} color="#FFFFFF" />
+                    </View>
+                  </View>
+                </TouchableOpacity>
+                <View style={styles.captureLine} />
+              </View>
+            </View>
+          </>
+        )}
       </View>
 
       <BottomNavBar active="AICamera" navigation={navigation} />
@@ -1033,29 +1081,28 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAF6F0'
   },
   previewTopBar: {
-    height: 60,
+    height: 52,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5D9CA',
+    borderBottomColor: '#EFE3D3',
     zIndex: 30
   },
-  previewHeaderTitleBox: {
-    alignItems: 'center'
-  },
-  previewBrandTitle: {
-    fontSize: 16,
-    fontWeight: '800',
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: '700',
     color: '#2C2219'
   },
-  previewSubTitle: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#B8895A',
-    marginTop: 1
+  headerActionBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FAF6F0'
   },
   previewScrollView: {
     flex: 1,
@@ -1066,11 +1113,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16
   },
-  studioCanvasCard: {
+  studioCanvasWrapper: {
     width: '100%',
     maxWidth: 420,
     alignItems: 'center',
-    marginBottom: 14
+    marginBottom: 16
   },
   studioCanvas: {
     width: PHOTO_CANVAS_WIDTH,
@@ -1079,73 +1126,354 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#1E1A17',
     position: 'relative',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#B8895A',
-    cursor: 'grab' as any,
     shadowColor: '#B8895A',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.16,
-    shadowRadius: 14,
-    elevation: 6
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.14,
+    shadowRadius: 10,
+    elevation: 4
   },
-  studioCanvasBottomBadge: {
+  compactCaptionPill: {
     position: 'absolute',
-    bottom: 10,
+    bottom: 12,
     left: 12,
-    right: 12,
-    backgroundColor: 'rgba(20, 18, 16, 0.85)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(28, 22, 17, 0.88)',
     paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)'
+    borderColor: 'rgba(184, 137, 90, 0.4)',
+    zIndex: 10,
+    maxWidth: '65%'
   },
-  studioCanvasBottomBadgeText: {
-    color: '#F0E6D8',
-    fontSize: 11,
+  captionColorDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)'
+  },
+  compactCaptionText: {
+    color: '#FFFFFF',
+    fontSize: 12,
     fontWeight: '600'
   },
-  infoMetaCard: {
-    width: '100%',
-    maxWidth: 420,
+  adjustTriggerBtn: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    gap: 6,
+    backgroundColor: 'rgba(28, 22, 17, 0.92)',
+    paddingVertical: 7,
+    paddingHorizontal: 13,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#B8895A',
+    zIndex: 15,
+    elevation: 4
+  },
+  adjustTriggerText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700'
+  },
+  aiBadgeFloatContainer: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    zIndex: 15
+  },
+  toggleCompareBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 253, 249, 0.95)',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#EFE3D3',
-    marginBottom: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 1
+    elevation: 3
   },
-  infoMetaItem: {
+  selectorSectionBlock: {
+    width: '100%',
+    maxWidth: 420,
+    marginBottom: 16
+  },
+  sectionHeaderRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 8
+    marginBottom: 10,
+    paddingHorizontal: 4
   },
-  infoMetaLabel: {
-    fontSize: 9.5,
-    fontWeight: '700',
-    color: '#8D7B68',
-    letterSpacing: 0.6
-  },
-  infoMetaVal: {
-    fontSize: 13,
+  sectionTitle: {
+    fontSize: 14,
     fontWeight: '700',
     color: '#2C2219'
   },
-  infoMetaDivider: {
-    width: 1,
-    height: 28,
-    backgroundColor: '#EFE3D3'
+  seeAllLink: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#B8895A'
+  },
+  filterCarouselContent: {
+    gap: 10,
+    paddingHorizontal: 2,
+    paddingVertical: 4
+  },
+  hairCard: {
+    width: 76,
+    height: 96,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#EFE3D3',
+    position: 'relative'
+  },
+  hairCardActive: {
+    borderColor: '#B8895A',
+    borderWidth: 2,
+    backgroundColor: '#FFF8F0',
+    shadowColor: '#B8895A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3
+  },
+  hairCardImage: {
+    width: '100%',
+    height: 68,
+    backgroundColor: '#F5ECE1'
+  },
+  hairCardLabelBox: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    backgroundColor: '#FFFFFF'
+  },
+  hairCardLabelBoxActive: {
+    backgroundColor: '#FFF8F0'
+  },
+  hairCardLabelText: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: '#8D7B68',
+    textAlign: 'center'
+  },
+  hairCardLabelTextActive: {
+    color: '#B8895A',
+    fontWeight: '700'
+  },
+  colorPaletteScroll: {
+    paddingVertical: 4,
+    gap: 14,
+    paddingHorizontal: 4
+  },
+  colorSwatchItem: {
+    alignItems: 'center',
+    gap: 6
+  },
+  colorCircleOuter: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent'
+  },
+  colorCircleOuterActive: {
+    borderColor: '#B8895A'
+  },
+  colorCircleInner: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)'
+  },
+  colorSwatchLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#8D7B68'
+  },
+  colorSwatchLabelActive: {
+    color: '#2C2219',
+    fontWeight: '700'
+  },
+  stickyBottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    borderTopWidth: 1,
+    borderTopColor: '#EFE3D3',
+    zIndex: 40
+  },
+  primaryCtaBtn: {
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: '#B8895A',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    shadowColor: '#B8895A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3
+  },
+  primaryCtaBtnDisabled: {
+    opacity: 0.7
+  },
+  primaryCtaBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700'
+  },
+  resultCtaGroup: {
+    gap: 8
+  },
+  secondaryCtaBtn: {
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#FAF6F0',
+    borderWidth: 1,
+    borderColor: '#EFE3D3',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6
+  },
+  secondaryCtaBtnText: {
+    color: '#B8895A',
+    fontSize: 14,
+    fontWeight: '700'
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'flex-end'
+  },
+  adjustPanelSheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 28,
+    borderWidth: 1,
+    borderColor: '#EFE3D3',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 10
+  },
+  panelHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#E0D2C1',
+    alignSelf: 'center',
+    marginBottom: 14
+  },
+  panelHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 18
+  },
+  panelTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#2C2219'
+  },
+  panelMetricsText: {
+    fontSize: 12,
+    color: '#8D7B68',
+    marginTop: 2
+  },
+  panelMetricVal: {
+    fontWeight: '700',
+    color: '#B8895A'
+  },
+  panelCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FAF6F0',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  panelToolsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    justifyContent: 'space-between',
+    marginBottom: 20
+  },
+  panelToolItem: {
+    width: '30%',
+    alignItems: 'center',
+    paddingVertical: 10,
+    backgroundColor: '#FAF6F0',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#EFE3D3'
+  },
+  panelToolIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: '#EFE3D3'
+  },
+  panelToolIconBoxActive: {
+    backgroundColor: '#B8895A',
+    borderColor: '#B8895A'
+  },
+  panelToolLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#38271C',
+    textAlign: 'center'
+  },
+  panelDoneBtn: {
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#B8895A',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  panelDoneBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700'
   },
   bottomCameraCaptureArea: {
     position: 'absolute',
@@ -1242,7 +1570,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 28,
-    backgroundColor: '#241F1A'
+    backgroundColor: '#241F1A',
+    zIndex: 20
+  },
+  permissionIconCircle: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: 'rgba(184, 137, 90, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    borderWidth: 1.5,
+    borderColor: 'rgba(184, 137, 90, 0.35)'
   },
   permissionTitle: {
     color: '#FFFFFF',
@@ -1256,17 +1596,79 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
     textAlign: 'center',
-    marginBottom: 16
+    marginBottom: 20
   },
   permissionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     backgroundColor: '#B8895A',
     borderRadius: 14,
-    paddingHorizontal: 20,
-    paddingVertical: 12
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    shadowColor: '#B8895A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4
   },
   permissionBtnText: {
     color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700'
+  },
+  permissionGalleryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)'
+  },
+  permissionGalleryBtnText: {
+    color: '#D8B98E',
     fontSize: 14,
+    fontWeight: '600'
+  },
+  selectedHairCanvasBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(20, 18, 16, 0.92)',
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    paddingRight: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#B8895A',
+    zIndex: 15,
+    elevation: 5
+  },
+  selectedHairBadgeThumb: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#352C23'
+  },
+  selectedHairBadgeTextBox: {
+    maxWidth: 150
+  },
+  selectedHairBadgeSubtitle: {
+    color: '#B8895A',
+    fontSize: 9,
+    fontWeight: '700',
+    textTransform: 'uppercase'
+  },
+  selectedHairBadgeTitle: {
+    color: '#FFFFFF',
+    fontSize: 11,
     fontWeight: '700'
   },
   vignetteTop: {
@@ -1362,316 +1764,23 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)'
   },
-  filterCarouselContent: {
-    paddingHorizontal: 20,
-    gap: 12,
-    paddingBottom: 12,
-    paddingTop: 8
-  },
-  filterThumb: {
-    width: 80,
-    height: 98,
-    borderRadius: 16,
-    overflow: 'hidden',
-    position: 'relative',
-    borderWidth: 1.5,
-    borderColor: '#E8DCD0',
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2
-  },
-  filterThumbHairBg: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#F5ECE1',
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  filterThumbActive: {
-    borderWidth: 2.5,
-    borderColor: '#B8895A',
-    shadowColor: '#B8895A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4
-  },
-  filterThumbImg: {
-    width: '100%',
-    height: '100%',
-    position: 'absolute'
-  },
-  filterThumbImgInactive: {
-    opacity: 0.85
-  },
-  filterActiveOverlay: {
+  hairOverlayWrapper: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(169, 120, 69, 0.12)',
-    zIndex: 1
-  },
-  filterInactiveOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'transparent',
-    zIndex: 1
-  },
-  filterLabel: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingVertical: 4,
-    alignItems: 'center',
-    zIndex: 2,
-    backgroundColor: 'rgba(255, 253, 249, 0.95)',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(229, 217, 202, 0.6)'
-  },
-  filterLabelActive: {
-    backgroundColor: '#FFF8F0'
-  },
-  filterLabelInactive: {
-    backgroundColor: 'rgba(255, 253, 249, 0.92)'
-  },
-  filterLabelText: {
-    fontSize: 11,
-    fontWeight: '700'
-  },
-  filterLabelTextActive: {
-    color: '#B8895A',
-    fontWeight: '800'
-  },
-  filterLabelTextInactive: {
-    color: '#4A3B2C'
-  },
-  selectorSectionBlock: {
-    width: '100%',
-    maxWidth: 420,
-    marginBottom: 16
-  },
-  selectorLabelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-    marginBottom: 8
-  },
-  selectorSectionTitle: {
-    fontSize: 11.5,
-    fontWeight: '800',
-    color: '#5C4431',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase'
-  },
-  selectedHairNameText: {
-    fontSize: 12.5,
-    fontWeight: '800',
-    color: '#B8895A'
-  },
-  colorSelectorContainer: {
-    width: '100%',
-    maxWidth: 420,
-    marginBottom: 16
-  },
-  colorSwatchesScroll: {
-    paddingVertical: 4,
-    gap: 10,
-    paddingHorizontal: 2
-  },
-  colorChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 22,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#E2D5C5',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2
-  },
-  colorChipActive: {
-    borderColor: '#B8895A',
-    borderWidth: 2,
-    backgroundColor: '#FFF7EF',
-    shadowColor: '#B8895A',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 4
-  },
-  colorCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: 'rgba(0, 0, 0, 0.15)'
-  },
-  colorChipText: {
-    fontSize: 12.5,
-    fontWeight: '700',
-    color: '#3E3125'
-  },
-  colorChipTextActive: {
-    color: '#8E5828',
-    fontWeight: '800'
-  },
-  postCaptureActionsRow: {
-    width: '100%',
-    maxWidth: 420,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    marginTop: 8,
-    marginBottom: 12
-  },
-  retakeBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    height: 48,
-    paddingHorizontal: 16,
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#D8C7B5',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2
-  },
-  retakeBtnText: {
-    color: '#5C4431',
-    fontSize: 13.5,
-    fontWeight: '700'
-  },
-  primaryAiBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: '#B8895A',
-    borderWidth: 1,
-    borderColor: '#CFA87D',
-    shadowColor: '#B8895A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 4
-  },
-  primaryAiBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
-    letterSpacing: 0.3
-  },
-  manualTryOnBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    height: 48,
-    paddingHorizontal: 16,
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#D8C7B5',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2
-  },
-  manualTryOnBtnText: {
-    color: '#B8895A',
-    fontSize: 13.5,
-    fontWeight: '700'
-  },
-  ctaContainer: {
-    width: '100%',
-    maxWidth: 420,
-    marginTop: 4,
-    marginBottom: 8
-  },
-  bookCtaBtn: {
-    width: '100%',
-    height: 52,
-    backgroundColor: '#A06E3E',
-    borderRadius: 16,
-    flexDirection: 'row',
+    top: '8%',
+    left: '12%',
+    width: '76%',
+    height: '60%',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 10,
-    elevation: 5,
-    shadowColor: '#A06E3E',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10
+    zIndex: 8,
+    pointerEvents: 'none'
   },
-  bookCtaText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '800',
-    letterSpacing: 0.3
+  hairOverlayImage: {
+    width: '100%',
+    height: '100%'
   },
-  aiBadgeTopContainer: {
-    position: 'absolute',
-    top: 130,
-    right: 20,
-    alignItems: 'flex-end',
-    gap: 8,
-    zIndex: 20
-  },
-  aiResultPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(36, 31, 26, 0.88)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#FFD700'
-  },
-  aiResultPillText: {
-    color: '#FFD700',
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.5
-  },
-  toggleCompareBtn: {
-    backgroundColor: 'rgba(255, 253, 249, 0.92)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E5D9CA',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3
-  },
+
+
   toggleCompareText: {
     color: '#241F1A',
     fontSize: 12,
@@ -1803,14 +1912,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#0F0E0D'
   },
   photoTransformBox: {
-    width: '100%',
-    height: '100%',
+    width: PHOTO_CANVAS_WIDTH,
+    height: PHOTO_CANVAS_HEIGHT,
     justifyContent: 'center',
     alignItems: 'center'
   },
   photoContentImage: {
-    width: '100%',
-    height: '100%'
+    width: PHOTO_CANVAS_WIDTH,
+    height: PHOTO_CANVAS_HEIGHT
   },
   cameraFaceGuideOverlay: {
     position: 'absolute',
@@ -1885,82 +1994,6 @@ const styles = StyleSheet.create({
   },
   floatingResetBtnText: {
     color: '#E0D2C1',
-    fontSize: 11,
-    fontWeight: '600'
-  },
-  photoAlignControlCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 12,
-    marginVertical: 10,
-    borderWidth: 1,
-    borderColor: '#EFE3D3',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2
-  },
-  photoAlignHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10
-  },
-  photoAlignTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6
-  },
-  photoAlignTitleText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#2C2219'
-  },
-  photoAlignMetricsText: {
-    fontSize: 11,
-    color: '#8D7B68'
-  },
-  metricBold: {
-    fontWeight: '700',
-    color: '#B8895A'
-  },
-  photoAlignButtonsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    alignItems: 'center'
-  },
-  alignToolBtn: {
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    backgroundColor: '#F9F4EE',
-    borderWidth: 1,
-    borderColor: '#E7D7C3',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4
-  },
-  alignToolBtnPrimary: {
-    backgroundColor: '#B8895A',
-    borderColor: '#A07446'
-  },
-  alignToolBtnPrimaryText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700'
-  },
-  alignToolBtnText: {
-    color: '#4A3B2C',
-    fontSize: 12,
-    fontWeight: '600'
-  },
-  alignResetBtn: {
-    backgroundColor: '#EFE8DE'
-  },
-  alignResetBtnText: {
-    color: '#6F6255',
     fontSize: 11,
     fontWeight: '600'
   }
