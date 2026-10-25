@@ -117,6 +117,14 @@ public class GlobalExceptionHandler {
             message = "Email này đã được sử dụng.";
         } else if (errorMsg.contains("users_phone_key")) {
             message = "Số điện thoại này đã được sử dụng.";
+        } else if (errorMsg.contains("fk_tryon_requests_hairstyle")) {
+            message = "Kiểu tóc đã chọn không còn tồn tại. Vui lòng chọn kiểu tóc khác.";
+        } else if (errorMsg.contains("fk_tryon_requests_user")) {
+            message = "Không xác định được tài khoản. Vui lòng đăng nhập lại.";
+        } else if (errorMsg.contains("not-null constraint")) {
+            message = "Thiếu thông tin bắt buộc. Vui lòng kiểm tra lại và thử lại.";
+        } else if (errorMsg.contains("foreign key constraint")) {
+            message = "Dữ liệu liên quan không còn tồn tại. Vui lòng tải lại và thử lại.";
         }
 
         ErrorResponse body = new ErrorResponse(
