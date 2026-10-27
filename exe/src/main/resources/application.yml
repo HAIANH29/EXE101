@@ -137,10 +137,10 @@ app:
     api-secret: ${CLOUDINARY_API_SECRET:}
 
   ai:
-    # Backend gọi thẳng Replicate (Style Your Hair: cjwbw/style-your-hair), không còn service Python trung gian.
+    # Backend gọi thẳng Replicate (google/nano-banana-2), không còn service Python trung gian.
     replicate:
       api-token: ${REPLICATE_API_TOKEN:}
-      hair-model: ${REPLICATE_HAIR_MODEL:cjwbw/style-your-hair}
+      hair-model: ${REPLICATE_HAIR_MODEL:google/nano-banana-2}
 
 springdoc:
   api-docs:
