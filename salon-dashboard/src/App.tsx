@@ -16,6 +16,7 @@ import { NavigationTab, Salon, UserAccount } from './types/salon';
 import styleLockLogo from './assets/stylelock-logo-transparent.png';
 import { AdminShell } from './components/admin/AdminShell';
 import { AdminOverview } from './components/admin/AdminOverview';
+import { AdminSalons } from './components/admin/AdminSalons';
 import { AdminUsers } from './components/admin/AdminUsers';
 import { AdminCatalog } from './components/admin/AdminCatalog';
 import { AdminPayments } from './components/admin/AdminPayments';
@@ -182,6 +183,7 @@ export function App() {
     return (
       <AdminShell currentTab={adminTab} user={user} onTabChange={setAdminTab} onLogout={handleLogout}>
         {adminTab === 'Overview' && <AdminOverview onNavigate={setAdminTab} />}
+        {adminTab === 'Salons' && <AdminSalons onNavigate={setAdminTab} />}
         {adminTab === 'Users' && <AdminUsers currentUserId={user.id} />}
         {adminTab === 'Catalog' && <AdminCatalog />}
         {adminTab === 'Payments' && <AdminPayments />}

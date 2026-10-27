@@ -1,9 +1,10 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useI18n } from '../../i18n';
 import { useAdminT } from '../../adminI18n';
 import { usePayT } from '../../payI18n';
 import { AdminTab } from '../../types/admin';
 import { UserAccount } from '../../types/salon';
+import { adminApi } from '../../services/adminApi';
 import styleLockLogo from '../../assets/stylelock-logo-transparent.png';
 
 type AdminShellProps = {
@@ -16,6 +17,7 @@ type AdminShellProps = {
 
 const navItems: { tab: AdminTab; icon: string; labelKey: string; hintKey: string; pay?: boolean }[] = [
   { tab: 'Overview', icon: 'dashboard', labelKey: 'tabOverview', hintKey: 'hintOverview' },
+  { tab: 'Salons', icon: 'storefront', labelKey: 'tabSalons', hintKey: 'hintSalons' },
   { tab: 'Users', icon: 'group', labelKey: 'tabUsers', hintKey: 'hintUsers' },
   { tab: 'Catalog', icon: 'content_cut', labelKey: 'tabCatalog', hintKey: 'hintCatalog' },
   { tab: 'Payments', icon: 'payments', labelKey: 'adTabPayments', hintKey: 'adHintPayments', pay: true }
@@ -25,6 +27,25 @@ export function AdminShell({ currentTab, user, onTabChange, onLogout, children }
   const { language, toggleLanguage, t } = useI18n();
   const at = useAdminT();
   const pt = usePayT();
+  const [pendingSalonsCount, setPendingSalonsCount] = useState<number>(0);
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchPending = async () => {
+      try {
+        const ov = await adminApi.getOverview();
+        if (mounted) setPendingSalonsCount(ov.pendingApprovalSalons || 0);
+      } catch {
+        // ignore
+      }
+    };
+    void fetchPending();
+    const interval = setInterval(fetchPending, 15000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [currentTab]);
 
   return (
     <div className="app-shell">
@@ -47,7 +68,12 @@ export function AdminShell({ currentTab, user, onTabChange, onLogout, children }
               >
                 <span className="material-symbols-outlined">{item.icon}</span>
                 <span className="nav-copy">
-                  <strong>{item.pay ? pt(item.labelKey) : at(item.labelKey)}</strong>
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                    <strong>{item.pay ? pt(item.labelKey) : at(item.labelKey)}</strong>
+                    {item.tab === 'Salons' && pendingSalonsCount > 0 && (
+                      <span className="admin-nav-badge">{pendingSalonsCount}</span>
+                    )}
+                  </span>
                   <small>{item.pay ? pt(item.hintKey) : at(item.hintKey)}</small>
                 </span>
               </button>

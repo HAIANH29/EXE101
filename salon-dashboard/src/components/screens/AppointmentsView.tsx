@@ -108,7 +108,9 @@ export function AppointmentsView({ salon }: AppointmentsViewProps) {
                 </span>
                 <span>
                   <b>{t('customer')} #{booking.customerId}</b>
-                  <small>{t('contactNotUpdated')}</small>
+                  <small title={booking.note} style={{ whiteSpace: 'normal', display: 'block', color: 'var(--muted)', fontSize: 11 }}>
+                    {booking.note || t('contactNotUpdated')}
+                  </small>
                 </span>
                 <span>{booking.serviceName || `${t('service')} #${booking.serviceId}`}</span>
                 <span>{booking.stylistName || `${t('stylist')} #${booking.stylistId}`}</span>
