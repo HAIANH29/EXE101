@@ -5,7 +5,9 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
-  Image
+  Image,
+  Modal,
+  ActivityIndicator
 } from 'react-native';
 import { LocalizedText as Text, LocalizedAlert as Alert } from '../i18n/LocalizedComponents';
 import { backendApi } from '../services/backendApi';
@@ -30,6 +32,27 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
     const [activeTab, setActiveTab] = useState<string>('UPCOMING');
     const [allBookings, setAllBookings] = useState<Booking[]>(bookingService.getAllBookings());
     const [paymentsByBooking, setPaymentsByBooking] = useState<Record<string, Payment>>({});
+
+    const today = new Date();
+    const dateOptions = [0, 1, 2, 3, 4, 5].map((offset) => {
+        const d = new Date();
+        d.setDate(today.getDate() + offset);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const dayName = offset === 0 ? 'Hôm nay' : offset === 1 ? 'Ngày mai' : `Ngày ${dd}/${mm}`;
+        return {
+            fullDate: `${yyyy}-${mm}-${dd}`,
+            label: `${dayName} (${dd}/${mm})`
+        };
+    });
+
+    const [rescheduleBookingTarget, setRescheduleBookingTarget] = useState<Booking | null>(null);
+    const [rescheduleDate, setRescheduleDate] = useState<string>(dateOptions[1].fullDate);
+    const [rescheduleTimeSlot, setRescheduleTimeSlot] = useState<string>('');
+    const [isSubmittingReschedule, setIsSubmittingReschedule] = useState<boolean>(false);
+    const [availability, setAvailability] = useState<any>(undefined);
+    const [slotsLoading, setSlotsLoading] = useState<boolean>(false);
 
     const loadPayments = async () => {
         try {
@@ -134,21 +157,130 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
         );
     };
 
+    useEffect(() => {
+        if (!rescheduleBookingTarget) {
+            setAvailability(undefined);
+            return;
+        }
+
+        const salonApiId = rescheduleBookingTarget.salonId
+            ? Number(String(rescheduleBookingTarget.salonId).replace(/\D/g, ''))
+            : undefined;
+        const stylistApiId = rescheduleBookingTarget.stylistId
+            ? Number(String(rescheduleBookingTarget.stylistId).replace(/\D/g, ''))
+            : undefined;
+
+        if (!salonApiId || !stylistApiId) {
+            setAvailability(undefined);
+            return;
+        }
+
+        let isMounted = true;
+        setSlotsLoading(true);
+        backendApi
+            .getAvailability(salonApiId, stylistApiId, rescheduleDate)
+            .then((res) => {
+                if (isMounted) setAvailability(res);
+            })
+            .catch(() => {
+                if (isMounted) setAvailability(undefined);
+            })
+            .finally(() => {
+                if (isMounted) setSlotsLoading(false);
+            });
+
+        return () => {
+            isMounted = false;
+        };
+    }, [rescheduleBookingTarget, rescheduleDate]);
+
     const handleReschedule = (b: Booking) => {
-        Alert.alert(
-            'Đổi lịch hẹn',
-            `Bạn muốn chọn lại thời gian cho lịch hẹn tại ${b.salonName}?`,
-            [
-                { text: 'Đóng', style: 'cancel' },
-                {
-                    text: 'Chọn giờ mới',
-                    onPress: () =>
-                        navigation.navigate('SalonDetail', {
-                            salon: { id: b.salonId, name: b.salonName, address: b.salonAddress, services: [] }
-                        })
-                }
-            ]
-        );
+        if (b.status === 'COMPLETED' || b.status === 'CANCELLED') {
+            Alert.alert('Không thể đổi lịch', 'Lịch hẹn này đã hoàn thành hoặc đã bị hủy.');
+            return;
+        }
+        setRescheduleBookingTarget(b);
+        setRescheduleDate(dateOptions[1].fullDate);
+        setRescheduleTimeSlot('');
+    };
+
+    const handleConfirmReschedule = async () => {
+        if (!rescheduleBookingTarget) return;
+        if (!rescheduleTimeSlot) {
+            Alert.alert('Chưa chọn giờ', 'Vui lòng chọn khung giờ hẹn mới!');
+            return;
+        }
+
+        setIsSubmittingReschedule(true);
+        try {
+            if (rescheduleBookingTarget.apiId) {
+                const updated = await backendApi.rescheduleBooking(
+                    rescheduleBookingTarget.apiId,
+                    rescheduleDate,
+                    rescheduleTimeSlot
+                );
+                bookingService.upsertBooking(updated);
+            } else {
+                const localUpdated: Booking = {
+                    ...rescheduleBookingTarget,
+                    date: rescheduleDate,
+                    timeSlot: rescheduleTimeSlot
+                };
+                bookingService.upsertBooking(localUpdated);
+            }
+
+            setAllBookings(bookingService.getAllBookings());
+            const targetSalon = rescheduleBookingTarget.salonName;
+            setRescheduleBookingTarget(null);
+
+            Alert.alert(
+                '✨ Đổi lịch thành công',
+                `Lịch hẹn tại ${targetSalon} đã được chuyển sang ngày ${rescheduleDate} lúc ${rescheduleTimeSlot}.`
+            );
+        } catch (error: any) {
+            const message = error instanceof Error ? error.message : 'Không thể đổi lịch hẹn.';
+            Alert.alert('Đổi lịch thất bại', message);
+        } finally {
+            setIsSubmittingReschedule(false);
+        }
+    };
+
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const toMinutes = (time: string) => {
+        const [h, m] = time.split(':').map(Number);
+        return h * 60 + m;
+    };
+
+    const getRescheduleSlots = () => {
+        if (availability && !availability.closed && availability.openTime && availability.closeTime) {
+            const open = toMinutes(availability.openTime);
+            const close = toMinutes(availability.closeTime);
+            const booked = (availability.bookedIntervals || []).map((interval: any) => ({
+                start: new Date(interval.startAt).getTime(),
+                end: new Date(interval.endAt).getTime()
+            }));
+
+            const slots = [];
+            for (let minute = open; minute + 30 <= close; minute += 30) {
+                const value = `${pad(Math.floor(minute / 60))}:${pad(minute % 60)}`;
+                const start = new Date(`${rescheduleDate}T${value}:00+07:00`).getTime();
+                const end = start + 30 * 60000;
+                const isPast = start <= Date.now();
+                const overlaps = booked.some((interval: any) => interval.start < end && interval.end > start);
+                slots.push({ value, disabled: isPast || overlaps });
+            }
+            return slots;
+        }
+
+        const defaultList = [
+            '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+            '13:30', '14:00', '14:30', '15:00', '15:30', '16:00',
+            '16:30', '17:00', '17:30', '18:00', '18:30', '19:00'
+        ];
+        return defaultList.map((val) => {
+            const start = new Date(`${rescheduleDate}T${val}:00+07:00`).getTime();
+            return { value: val, disabled: start <= Date.now() };
+        });
     };
 
     const handleMessage = (b: Booking) => {
@@ -308,6 +440,142 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
 
                 <View style={{ height: 100 }} />
             </ScrollView>
+
+            {/* Modal Đổi Lịch Hẹn */}
+            <Modal
+                visible={!!rescheduleBookingTarget}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setRescheduleBookingTarget(null)}
+            >
+                <TouchableOpacity
+                    style={styles.modalBackdrop}
+                    activeOpacity={1}
+                    onPress={() => setRescheduleBookingTarget(null)}
+                >
+                    <TouchableOpacity
+                        activeOpacity={1}
+                        style={styles.modalCard}
+                        onPress={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <View style={styles.modalHeader}>
+                            <View style={styles.modalHeaderLeft}>
+                                <AppIcon name="calendar" size={20} color="#B8895A" />
+                                <Text style={styles.modalTitle}>Đổi lịch hẹn</Text>
+                            </View>
+                            <TouchableOpacity
+                                style={styles.modalCloseBtn}
+                                onPress={() => setRescheduleBookingTarget(null)}
+                            >
+                                <AppIcon name="close" size={16} color="#2C2219" />
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Booking Summary Box */}
+                        {rescheduleBookingTarget && (
+                            <View style={styles.modalSummaryBox}>
+                                <Text style={styles.modalSalonName}>{rescheduleBookingTarget.salonName}</Text>
+                                <Text style={styles.modalServiceText}>
+                                    {rescheduleBookingTarget.serviceName || rescheduleBookingTarget.hairstyleName || 'Dịch vụ làm tóc'}
+                                    {rescheduleBookingTarget.stylistName ? ` · Stylist: ${rescheduleBookingTarget.stylistName}` : ''}
+                                </Text>
+                                <View style={styles.modalCurrentTimeRow}>
+                                    <Text style={styles.modalCurrentTimeLabel}>Giờ hiện tại:</Text>
+                                    <Text style={styles.modalCurrentTimeValue}>
+                                        {rescheduleBookingTarget.date} · {rescheduleBookingTarget.timeSlot}
+                                    </Text>
+                                </View>
+                            </View>
+                        )}
+
+                        {/* Date Selector */}
+                        <Text style={styles.modalSectionTitle}>1. Chọn ngày hẹn mới</Text>
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.modalDateScroll}
+                        >
+                            {dateOptions.map((opt) => {
+                                const isDateActive = rescheduleDate === opt.fullDate;
+                                return (
+                                    <TouchableOpacity
+                                        key={opt.fullDate}
+                                        style={[styles.modalDateChip, isDateActive && styles.modalDateChipActive]}
+                                        onPress={() => {
+                                            setRescheduleDate(opt.fullDate);
+                                            setRescheduleTimeSlot('');
+                                        }}
+                                    >
+                                        <Text style={[styles.modalDateChipText, isDateActive && styles.modalDateChipTextActive]}>
+                                            {opt.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </ScrollView>
+
+                        {/* Time Slot Selector */}
+                        <Text style={styles.modalSectionTitle}>2. Chọn khung giờ mới</Text>
+                        {slotsLoading ? (
+                            <View style={styles.slotsLoadingBox}>
+                                <ActivityIndicator size="small" color="#B8895A" />
+                                <Text style={styles.slotsLoadingText}>Đang kiểm tra lịch trống...</Text>
+                            </View>
+                        ) : (
+                            <View style={styles.slotsGrid}>
+                                {getRescheduleSlots().map((slot) => {
+                                    const isSlotActive = rescheduleTimeSlot === slot.value;
+                                    return (
+                                        <TouchableOpacity
+                                            key={slot.value}
+                                            disabled={slot.disabled}
+                                            style={[
+                                                styles.slotPill,
+                                                isSlotActive && styles.slotPillActive,
+                                                slot.disabled && styles.slotPillDisabled
+                                            ]}
+                                            onPress={() => setRescheduleTimeSlot(slot.value)}
+                                        >
+                                            <Text
+                                                style={[
+                                                    styles.slotPillText,
+                                                    isSlotActive && styles.slotPillTextActive,
+                                                    slot.disabled && styles.slotPillTextDisabled
+                                                ]}
+                                            >
+                                                {slot.value}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+                        )}
+
+                        {/* Action Buttons */}
+                        <View style={styles.modalActionsRow}>
+                            <TouchableOpacity
+                                style={styles.modalCancelBtn}
+                                onPress={() => setRescheduleBookingTarget(null)}
+                            >
+                                <Text style={styles.modalCancelBtnText}>Hủy</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.modalSubmitBtn, (!rescheduleTimeSlot || isSubmittingReschedule) && styles.modalSubmitBtnDisabled]}
+                                disabled={!rescheduleTimeSlot || isSubmittingReschedule}
+                                onPress={handleConfirmReschedule}
+                            >
+                                {isSubmittingReschedule ? (
+                                    <ActivityIndicator size="small" color="#FFFFFF" />
+                                ) : (
+                                    <Text style={styles.modalSubmitBtnText}>Xác nhận đổi lịch</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </TouchableOpacity>
+                </TouchableOpacity>
+            </Modal>
 
             <BottomNavBar active="History" navigation={navigation} />
         </SafeAreaView>
@@ -563,6 +831,204 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 14,
         fontWeight: '700'
+    },
+    modalBackdrop: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.55)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20
+    },
+    modalCard: {
+        width: '100%',
+        maxWidth: 420,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 24,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: '#EFE3D3',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.18,
+        shadowRadius: 12,
+        elevation: 8
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 14
+    },
+    modalHeaderLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: '#2C2219'
+    },
+    modalCloseBtn: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#FAF6F0',
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
+    modalSummaryBox: {
+        backgroundColor: '#FAF6F0',
+        borderRadius: 16,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: '#EFE3D3',
+        marginBottom: 16
+    },
+    modalSalonName: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#2C2219',
+        marginBottom: 3
+    },
+    modalServiceText: {
+        fontSize: 13,
+        color: '#6F6255',
+        marginBottom: 6
+    },
+    modalCurrentTimeRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6
+    },
+    modalCurrentTimeLabel: {
+        fontSize: 12,
+        color: '#9B8B7A'
+    },
+    modalCurrentTimeValue: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#B65A4B'
+    },
+    modalSectionTitle: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#6F6255',
+        marginBottom: 8,
+        marginTop: 4
+    },
+    modalDateScroll: {
+        gap: 8,
+        paddingBottom: 12
+    },
+    modalDateChip: {
+        paddingVertical: 7,
+        paddingHorizontal: 12,
+        borderRadius: 12,
+        backgroundColor: '#F3EAE0',
+        borderWidth: 1,
+        borderColor: 'transparent'
+    },
+    modalDateChipActive: {
+        backgroundColor: '#B8895A',
+        borderColor: '#B8895A'
+    },
+    modalDateChipText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#6F6255'
+    },
+    modalDateChipTextActive: {
+        color: '#FFFFFF',
+        fontWeight: '700'
+    },
+    slotsLoadingBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingVertical: 16
+    },
+    slotsLoadingText: {
+        fontSize: 12,
+        color: '#9B8B7A'
+    },
+    slotsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginBottom: 16
+    },
+    slotPill: {
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        borderRadius: 12,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#E0D2C1'
+    },
+    slotPillActive: {
+        backgroundColor: '#B8895A',
+        borderColor: '#B8895A'
+    },
+    slotPillDisabled: {
+        backgroundColor: '#F7F3EE',
+        borderColor: '#EAE3DA',
+        opacity: 0.55
+    },
+    slotPillText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#2C2219'
+    },
+    slotPillTextActive: {
+        color: '#FFFFFF',
+        fontWeight: '700'
+    },
+    slotPillTextDisabled: {
+        color: '#B8ABA0'
+    },
+    modalActionsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginTop: 6
+    },
+    modalCancelBtn: {
+        flex: 1,
+        height: 44,
+        borderRadius: 14,
+        backgroundColor: '#FAF6F0',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: '#E5D9CA'
+    },
+    modalCancelBtnText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#6F6255'
+    },
+    modalSubmitBtn: {
+        flex: 2,
+        height: 44,
+        borderRadius: 14,
+        backgroundColor: '#B8895A',
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#B8895A',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.25,
+        shadowRadius: 6,
+        elevation: 3
+    },
+    modalSubmitBtnDisabled: {
+        opacity: 0.5
+    },
+    modalSubmitBtnText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#FFFFFF'
     }
 });
 

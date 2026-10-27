@@ -16,6 +16,7 @@ import { backendApi } from '../services/backendApi';
 import { HAIR_COLORS } from '../services/hairAssetMap';
 import { applyTransformToImage } from '../utils/imageTransform';
 import { describeTryOnError } from '../utils/tryOnError';
+import { FALLBACK_30_HAIRSTYLES } from '../components/explore/ExploreTypes';
 
 interface TryOnEditorScreenProps {
   navigation: any;
@@ -43,17 +44,30 @@ const TryOnEditorContent: React.FC<TryOnEditorScreenProps> = ({ navigation, rout
   const { userPhotoUri, hairstyle: initialHairstyle, initialHairColor } = route.params;
 
   const [currentHairstyle, setCurrentHairstyle] = useState<Hairstyle>(initialHairstyle);
-  const [catalogHairstyles, setCatalogHairstyles] = useState<Hairstyle[]>([]);
+  const [catalogHairstyles, setCatalogHairstyles] = useState<Hairstyle[]>(FALLBACK_30_HAIRSTYLES);
+
+  // Sync currentHairstyle whenever route.params.hairstyle changes (e.g. from HairstyleSelect)
+  useEffect(() => {
+    if (route.params?.hairstyle && route.params.hairstyle.id !== currentHairstyle?.id) {
+      setCurrentHairstyle(route.params.hairstyle);
+      setScale(1.0);
+      setRotation(0);
+      setOffsetX(0);
+      setOffsetY(0);
+      setAiResultImageUrl(null);
+      setMode('canvas');
+    }
+  }, [route.params?.hairstyle]);
 
   useEffect(() => {
     let isMounted = true;
     backendApi
       .getHairstyles()
       .then((items) => {
-        if (isMounted) setCatalogHairstyles(items);
+        if (isMounted && items && items.length > 0) setCatalogHairstyles(items);
       })
       .catch(() => {
-        // Danh sách gợi ý nhanh là phần phụ; vẫn chỉnh được kiểu tóc đã chọn.
+        // Fallback already active
       });
     return () => {
       isMounted = false;
@@ -85,9 +99,8 @@ const TryOnEditorContent: React.FC<TryOnEditorScreenProps> = ({ navigation, rout
     setRotation(0);
     setOffsetX(0);
     setOffsetY(0);
-    if (aiResultImageUrl) {
-      setMode('canvas');
-    }
+    setAiResultImageUrl(null);
+    setMode('canvas');
   };
 
   const handleGenerateAi = async () => {
@@ -311,7 +324,7 @@ const TryOnEditorContent: React.FC<TryOnEditorScreenProps> = ({ navigation, rout
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.quickHairScroll}
           >
-            {catalogHairstyles.slice(0, 8).map((hs) => {
+            {catalogHairstyles.slice(0, 20).map((hs) => {
               const isSelected = currentHairstyle.id === hs.id;
               return (
                 <TouchableOpacity

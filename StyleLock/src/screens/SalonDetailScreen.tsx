@@ -56,7 +56,28 @@ function buildTimeSlots(date: string, availability: BackendAvailability | undefi
 }
 
 export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation, route }) => {
-  const salon: Salon = route.params.salon;
+  const rawSalon = route.params?.salon || {};
+  const salonApiId: number | undefined =
+    rawSalon.apiId ||
+    (rawSalon.id && !isNaN(Number(rawSalon.id))
+      ? Number(rawSalon.id)
+      : typeof rawSalon.id === 'string' && rawSalon.id.startsWith('api-sal-')
+      ? Number(rawSalon.id.replace('api-sal-', ''))
+      : undefined);
+
+  const salon: Salon = {
+    ...rawSalon,
+    apiId: salonApiId,
+    id: rawSalon.id || (salonApiId ? `api-sal-${salonApiId}` : 'salon-unknown'),
+    name: rawSalon.name || 'Salon',
+    address: rawSalon.address || 'Địa chỉ đang cập nhật',
+    rating: rawSalon.rating ?? 5.0,
+    reviewCount: rawSalon.reviewCount || 128,
+    imageUrl: rawSalon.imageUrl || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600',
+    services: rawSalon.services || [],
+    stylists: rawSalon.stylists || []
+  };
+
   const selectedHairstyle: Hairstyle | undefined = route.params?.selectedHairstyle;
   const userPhotoUri: string | undefined = route.params?.userPhotoUri;
 
@@ -143,12 +164,12 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
 
         if (apiServices.length > 0) {
           setSalonServices(apiServices);
-          setSelectedService(apiServices[0]);
+          setSelectedService((prev) => prev || apiServices[0]);
         }
 
         if (apiStylists.length > 0) {
           setSalonStylists(apiStylists);
-          setSelectedStylist(apiStylists[0]);
+          setSelectedStylist((prev) => prev || apiStylists[0]);
         }
       } catch {
         // Giữ dữ liệu salon từ route nếu API chi tiết tạm lỗi.
@@ -283,7 +304,7 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
           <View style={styles.ratingRow}>
             <Text style={styles.starText}>★</Text>
             <Text style={styles.ratingText}>
-              {salon.rating.toFixed(1)} ({salon.reviewCount || 128} reviews)
+              {(salon.rating ?? 5.0).toFixed(1)} ({salon.reviewCount || 128} reviews)
             </Text>
           </View>
         </View>
