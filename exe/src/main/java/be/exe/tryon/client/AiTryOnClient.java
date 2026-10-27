@@ -24,8 +24,9 @@ import java.util.Set;
 /**
  * Gọi AI model trên Replicate để thử kiểu tóc và màu tóc.
  * Hỗ trợ linh hoạt:
- * 1. google/nano-banana-2.1 (Gemini Image model thế hệ mới, nhanh và giữ nét khuôn mặt)
- * 2. subhash25rawat/custom-hair (HairFastGAN: StyleGAN2 Latent Blending)
+ * 1. cjwbw/style-your-hair (Style Your Hair: Latent Optimization for Pose-Invariant Hairstyle Transfer)
+ * 2. google/nano-banana-2 (Gemini Image model thế hệ mới, nhanh và giữ nét khuôn mặt)
+ * 3. subhash25rawat/custom-hair (HairFastGAN: StyleGAN2 Latent Blending)
  */
 @Component
 public class AiTryOnClient {
@@ -36,6 +37,10 @@ public class AiTryOnClient {
     private static final long MAX_WAIT_MS = 5 * 60 * 1000L;
     private static final long POLL_INTERVAL_MS = 2_000L;
     private static final Set<String> TERMINAL_STATUSES = Set.of("succeeded", "failed", "canceled");
+
+    // Version hash ổn định cho cjwbw/style-your-hair trên Replicate
+    private static final String STYLE_YOUR_HAIR_DEFAULT_VERSION =
+            "c4c7e5a657e2e1abccd57625093522a9928edeccee77e3f55d57c664bcd96fa2";
 
     // Ảnh mẫu tóc mặc định chất lượng cao, góc nhìn thẳng cận mặt chuẩn cho AI
     private static final Map<Long, String> HAIRSTYLE_TEMPLATES = Map.of(
@@ -53,6 +58,7 @@ public class AiTryOnClient {
     private final String modelVersion;
     private final boolean isOfficialModel;
     private final boolean isNanoBanana;
+    private final boolean isStyleYourHair;
 
     public AiTryOnClient(StorageService storageService,
                          @Value("${app.ai.replicate.api-token:}") String apiToken,
@@ -61,9 +67,13 @@ public class AiTryOnClient {
         this.apiToken = apiToken;
         this.rawHairModel = hairModel.trim();
         this.isNanoBanana = this.rawHairModel.toLowerCase().contains("nano-banana");
-        
-        // Official model dạng "owner/model-name" không có ":versionHash"
-        if (this.rawHairModel.contains("/") && !this.rawHairModel.contains(":")) {
+        this.isStyleYourHair = this.rawHairModel.toLowerCase().contains("style-your-hair");
+
+        if (this.isStyleYourHair && !this.rawHairModel.contains(":")) {
+            // Model cjwbw/style-your-hair dùng version hash cụ thể trên Replicate để đảm bảo ổn định
+            this.isOfficialModel = false;
+            this.modelVersion = STYLE_YOUR_HAIR_DEFAULT_VERSION;
+        } else if (this.rawHairModel.contains("/") && !this.rawHairModel.contains(":")) {
             this.isOfficialModel = true;
             this.modelVersion = null;
         } else {
@@ -128,7 +138,13 @@ public class AiTryOnClient {
     private String runPrediction(String faceUrl, String hairUrl, String colorUrl) throws InterruptedException {
         Map<String, Object> input = new LinkedHashMap<>();
 
-        if (isNanoBanana) {
+        if (isStyleYourHair) {
+            // Model cjwbw/style-your-hair nhận:
+            // - source_image: ảnh khuôn mặt khách (giữ diện mạo và pose)
+            // - target_image: ảnh mẫu tóc cần chuyển sang
+            input.put("source_image", faceUrl);
+            input.put("target_image", hairUrl);
+        } else if (isNanoBanana) {
             List<String> images = new ArrayList<>();
             images.add(faceUrl);
             if (!isBlank(hairUrl)) images.add(hairUrl);
@@ -140,6 +156,7 @@ public class AiTryOnClient {
             input.put("resolution", "1K");
             input.put("output_format", "jpg");
         } else {
+            // HairFastGAN (subhash25rawat/custom-hair)
             input.put("face_image", faceUrl);
             input.put("hair_image", hairUrl);
             input.put("color_image", colorUrl);

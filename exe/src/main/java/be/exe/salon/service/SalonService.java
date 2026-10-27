@@ -38,6 +38,8 @@ public interface SalonService {
 
     SalonDetailResponse getSalonDetail(Long salonId);
 
+    SalonImageUploadResponse uploadImage(org.springframework.web.multipart.MultipartFile file);
+
     Page<SalonResponse> getSalons(SalonStatus statusFilter, Pageable pageable);
 
     Page<SalonResponse> getSalonsByOwner(Long ownerId, Pageable pageable);

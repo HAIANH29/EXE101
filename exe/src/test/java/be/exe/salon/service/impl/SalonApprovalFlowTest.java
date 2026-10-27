@@ -35,6 +35,15 @@ public class SalonApprovalFlowTest {
     private SalonBusinessHourRepository businessHourRepository;
 
     @Mock
+    private be.exe.salon.repository.StylistRepository stylistRepository;
+
+    @Mock
+    private be.exe.salon.repository.SalonImageRepository salonImageRepository;
+
+    @Mock
+    private be.exe.common.storage.StorageService storageService;
+
+    @Mock
     private AuthService authService;
 
     @Mock
