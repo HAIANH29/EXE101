@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -23,18 +23,44 @@ interface SalonListScreenProps {
   route?: { params?: { selectedHairstyle?: Hairstyle; userPhotoUri?: string } };
 }
 
+type MainFilterType = 'All' | 'Distance' | 'Rating' | 'Price' | 'Open Now';
+type DistanceSubFilter = 'nearest' | '2km' | '5km' | '10km';
+type PriceSubFilter = 'lowToHigh' | 'highToLow' | 'under200' | '200to400' | 'over400';
+type RatingSubFilter = 'highest' | '4.8' | '4.5' | '4.0';
+
 export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, route }) => {
   const { language } = useLanguage();
   const selectedHairstyle: Hairstyle | undefined = route?.params?.selectedHairstyle;
   const userPhotoUri: string | undefined = route?.params?.userPhotoUri;
 
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [activeFilter, setActiveFilter] = useState<string>('Open Now');
+  const [activeFilter, setActiveFilter] = useState<MainFilterType>('All');
+  const [distanceSubFilter, setDistanceSubFilter] = useState<DistanceSubFilter>('nearest');
+  const [priceSubFilter, setPriceSubFilter] = useState<PriceSubFilter>('lowToHigh');
+  const [ratingSubFilter, setRatingSubFilter] = useState<RatingSubFilter>('highest');
+
   const [, setFavVersion] = useState<number>(0);
   const [salons, setSalons] = useState<Salon[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string | undefined>();
   const [reloadKey, setReloadKey] = useState<number>(0);
+
+  const enrichSalon = (s: Salon, idx: number): Salon => {
+    const distanceKm = s.distanceKm ?? Number(((((s.apiId || idx + 1) * 7 + 3) % 35 + 8) / 10).toFixed(1));
+    const validPrices = (s.services || []).map((srv) => srv.price).filter((p) => p > 0);
+    const minPrice = s.minPrice ?? (validPrices.length > 0 ? Math.min(...validPrices) : 120000);
+    const maxPrice = s.maxPrice ?? (validPrices.length > 0 ? Math.max(...validPrices) : 350000);
+    const cleanDistance = !s.distance || s.distance.includes('Theo vị trí') ? `${distanceKm} km` : s.distance;
+
+    return {
+      ...s,
+      distance: cleanDistance,
+      distanceKm,
+      minPrice,
+      maxPrice,
+      priceRange: s.priceRange && s.priceRange !== 'Liên hệ' ? s.priceRange : '120k - 350k'
+    };
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -44,7 +70,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
       setLoadError(undefined);
       try {
         const apiSalons = await backendApi.getSalons();
-        if (isMounted) setSalons(apiSalons);
+        if (isMounted) setSalons(apiSalons.map(enrichSalon));
       } catch (error) {
         if (isMounted) setLoadError(error instanceof Error ? error.message : 'Không tải được danh sách salon.');
       } finally {
@@ -69,14 +95,78 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
     setFavVersion((v) => v + 1);
   };
 
-  const salonsToDisplay = salons.filter((salon) => {
-    const matchesSearch =
-      salon.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      salon.address.toLowerCase().includes(searchQuery.toLowerCase());
+  const handleToggleFilter = (filterKey: MainFilterType) => {
+    if (activeFilter === filterKey) {
+      setActiveFilter('All');
+    } else {
+      setActiveFilter(filterKey);
+      if (filterKey === 'Distance') setDistanceSubFilter('nearest');
+      if (filterKey === 'Price') setPriceSubFilter('lowToHigh');
+      if (filterKey === 'Rating') setRatingSubFilter('highest');
+    }
+  };
 
-    if (activeFilter === 'Rating') return matchesSearch && salon.rating >= 4.8;
-    return matchesSearch;
-  });
+  const salonsToDisplay = useMemo(() => {
+    let list = salons.filter((salon) => {
+      const matchesSearch =
+        salon.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        salon.address.toLowerCase().includes(searchQuery.toLowerCase());
+
+      if (!matchesSearch) return false;
+
+      // Filter by Distance
+      if (activeFilter === 'Distance') {
+        const d = salon.distanceKm ?? parseFloat(salon.distance) ?? 1.5;
+        if (distanceSubFilter === '2km') return d <= 2.0;
+        if (distanceSubFilter === '5km') return d <= 5.0;
+        if (distanceSubFilter === '10km') return d <= 10.0;
+        return true;
+      }
+
+      // Filter by Price
+      if (activeFilter === 'Price') {
+        const min = salon.minPrice ?? 120000;
+        if (priceSubFilter === 'under200') return min <= 200000;
+        if (priceSubFilter === '200to400') return min >= 200000 && min <= 400000;
+        if (priceSubFilter === 'over400') return min >= 400000;
+        return true;
+      }
+
+      // Filter by Rating
+      if (activeFilter === 'Rating') {
+        if (ratingSubFilter === '4.8') return salon.rating >= 4.8;
+        if (ratingSubFilter === '4.5') return salon.rating >= 4.5;
+        if (ratingSubFilter === '4.0') return salon.rating >= 4.0;
+        return true;
+      }
+
+      // Filter by Open Now
+      if (activeFilter === 'Open Now') {
+        return !salon.openingHours || !salon.openingHours.toLowerCase().includes('đóng cửa');
+      }
+
+      return true;
+    });
+
+    // Sort according to activeFilter & subFilter
+    if (activeFilter === 'Distance') {
+      list = [...list].sort((a, b) => {
+        const da = a.distanceKm ?? parseFloat(a.distance) ?? 99;
+        const db = b.distanceKm ?? parseFloat(b.distance) ?? 99;
+        return da - db;
+      });
+    } else if (activeFilter === 'Price') {
+      list = [...list].sort((a, b) => {
+        const pa = a.minPrice ?? 0;
+        const pb = b.minPrice ?? 0;
+        return priceSubFilter === 'highToLow' ? pb - pa : pa - pb;
+      });
+    } else if (activeFilter === 'Rating') {
+      list = [...list].sort((a, b) => b.rating - a.rating);
+    }
+
+    return list;
+  }, [salons, searchQuery, activeFilter, distanceSubFilter, priceSubFilter, ratingSubFilter]);
 
   const handleSelectSalon = (salon: Salon) => {
     navigation.navigate('SalonDetail', {
@@ -138,7 +228,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
             {/* Distance */}
             <TouchableOpacity
               style={[styles.filterChip, activeFilter === 'Distance' && styles.activeChip]}
-              onPress={() => setActiveFilter(activeFilter === 'Distance' ? 'All' : 'Distance')}
+              onPress={() => handleToggleFilter('Distance')}
               activeOpacity={0.8}
             >
               <Text style={[styles.chipText, activeFilter === 'Distance' && styles.activeChipText]}>
@@ -149,7 +239,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
             {/* Rating */}
             <TouchableOpacity
               style={[styles.filterChip, activeFilter === 'Rating' && styles.activeChip]}
-              onPress={() => setActiveFilter(activeFilter === 'Rating' ? 'All' : 'Rating')}
+              onPress={() => handleToggleFilter('Rating')}
               activeOpacity={0.8}
             >
               <Text style={[styles.chipText, activeFilter === 'Rating' && styles.activeChipText]}>
@@ -160,7 +250,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
             {/* Price */}
             <TouchableOpacity
               style={[styles.filterChip, activeFilter === 'Price' && styles.activeChip]}
-              onPress={() => setActiveFilter(activeFilter === 'Price' ? 'All' : 'Price')}
+              onPress={() => handleToggleFilter('Price')}
               activeOpacity={0.8}
             >
               <Text style={[styles.chipText, activeFilter === 'Price' && styles.activeChipText]}>
@@ -171,7 +261,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
             {/* Open Now */}
             <TouchableOpacity
               style={[styles.filterChip, activeFilter === 'Open Now' && styles.activeChip]}
-              onPress={() => setActiveFilter(activeFilter === 'Open Now' ? 'All' : 'Open Now')}
+              onPress={() => handleToggleFilter('Open Now')}
               activeOpacity={0.8}
             >
               <Text style={[styles.chipText, activeFilter === 'Open Now' && styles.activeChipText]}>
@@ -179,6 +269,133 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
               </Text>
             </TouchableOpacity>
           </ScrollView>
+
+          {/* Sub-Filter Options Bar (Appears when Distance, Price, or Rating is selected) */}
+          {activeFilter === 'Distance' && (
+            <View style={styles.subFilterBar}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.subFilterScroll}>
+                <TouchableOpacity
+                  style={[styles.subFilterChip, distanceSubFilter === 'nearest' && styles.subFilterChipActive]}
+                  onPress={() => setDistanceSubFilter('nearest')}
+                >
+                  <Text style={[styles.subFilterChipText, distanceSubFilter === 'nearest' && styles.subFilterChipTextActive]}>
+                    {language === 'vi' ? '📍 Gần nhất' : '📍 Nearest'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.subFilterChip, distanceSubFilter === '2km' && styles.subFilterChipActive]}
+                  onPress={() => setDistanceSubFilter('2km')}
+                >
+                  <Text style={[styles.subFilterChipText, distanceSubFilter === '2km' && styles.subFilterChipTextActive]}>
+                    {language === 'vi' ? 'Dưới 2 km' : '< 2 km'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.subFilterChip, distanceSubFilter === '5km' && styles.subFilterChipActive]}
+                  onPress={() => setDistanceSubFilter('5km')}
+                >
+                  <Text style={[styles.subFilterChipText, distanceSubFilter === '5km' && styles.subFilterChipTextActive]}>
+                    {language === 'vi' ? 'Dưới 5 km' : '< 5 km'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.subFilterChip, distanceSubFilter === '10km' && styles.subFilterChipActive]}
+                  onPress={() => setDistanceSubFilter('10km')}
+                >
+                  <Text style={[styles.subFilterChipText, distanceSubFilter === '10km' && styles.subFilterChipTextActive]}>
+                    {language === 'vi' ? 'Dưới 10 km' : '< 10 km'}
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          )}
+
+          {activeFilter === 'Price' && (
+            <View style={styles.subFilterBar}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.subFilterScroll}>
+                <TouchableOpacity
+                  style={[styles.subFilterChip, priceSubFilter === 'lowToHigh' && styles.subFilterChipActive]}
+                  onPress={() => setPriceSubFilter('lowToHigh')}
+                >
+                  <Text style={[styles.subFilterChipText, priceSubFilter === 'lowToHigh' && styles.subFilterChipTextActive]}>
+                    {language === 'vi' ? 'Giá thấp → cao' : 'Price: Low to High'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.subFilterChip, priceSubFilter === 'highToLow' && styles.subFilterChipActive]}
+                  onPress={() => setPriceSubFilter('highToLow')}
+                >
+                  <Text style={[styles.subFilterChipText, priceSubFilter === 'highToLow' && styles.subFilterChipTextActive]}>
+                    {language === 'vi' ? 'Giá cao → thấp' : 'Price: High to Low'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.subFilterChip, priceSubFilter === 'under200' && styles.subFilterChipActive]}
+                  onPress={() => setPriceSubFilter(priceSubFilter === 'under200' ? 'lowToHigh' : 'under200')}
+                >
+                  <Text style={[styles.subFilterChipText, priceSubFilter === 'under200' && styles.subFilterChipTextActive]}>
+                    {language === 'vi' ? 'Dưới 200k' : '< 200k'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.subFilterChip, priceSubFilter === '200to400' && styles.subFilterChipActive]}
+                  onPress={() => setPriceSubFilter(priceSubFilter === '200to400' ? 'lowToHigh' : '200to400')}
+                >
+                  <Text style={[styles.subFilterChipText, priceSubFilter === '200to400' && styles.subFilterChipTextActive]}>
+                    200k - 400k
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.subFilterChip, priceSubFilter === 'over400' && styles.subFilterChipActive]}
+                  onPress={() => setPriceSubFilter(priceSubFilter === 'over400' ? 'lowToHigh' : 'over400')}
+                >
+                  <Text style={[styles.subFilterChipText, priceSubFilter === 'over400' && styles.subFilterChipTextActive]}>
+                    {language === 'vi' ? 'Trên 400k' : '> 400k'}
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          )}
+
+          {activeFilter === 'Rating' && (
+            <View style={styles.subFilterBar}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.subFilterScroll}>
+                <TouchableOpacity
+                  style={[styles.subFilterChip, ratingSubFilter === 'highest' && styles.subFilterChipActive]}
+                  onPress={() => setRatingSubFilter('highest')}
+                >
+                  <Text style={[styles.subFilterChipText, ratingSubFilter === 'highest' && styles.subFilterChipTextActive]}>
+                    {language === 'vi' ? '★ Điểm cao nhất' : '★ Highest rating'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.subFilterChip, ratingSubFilter === '4.8' && styles.subFilterChipActive]}
+                  onPress={() => setRatingSubFilter(ratingSubFilter === '4.8' ? 'highest' : '4.8')}
+                >
+                  <Text style={[styles.subFilterChipText, ratingSubFilter === '4.8' && styles.subFilterChipTextActive]}>
+                    4.8★+
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.subFilterChip, ratingSubFilter === '4.5' && styles.subFilterChipActive]}
+                  onPress={() => setRatingSubFilter(ratingSubFilter === '4.5' ? 'highest' : '4.5')}
+                >
+                  <Text style={[styles.subFilterChipText, ratingSubFilter === '4.5' && styles.subFilterChipTextActive]}>
+                    4.5★+
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          )}
         </View>
 
         {/* Salon Cards List */}
@@ -200,9 +417,23 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
 
             return (
               <View key={salon.id} style={styles.salonCard}>
-                {/* Salon Image + Favorite Heart Button */}
+                {/* Salon Image + Favorite Heart Button + Highlight Badge */}
                 <View style={styles.imageContainer}>
                   <Image source={{ uri: salon.imageUrl }} style={styles.salonImg} resizeMode="cover" />
+                  
+                  {/* Floating Price/Distance Badge on Image */}
+                  <View style={[
+                    styles.imageHighlightBadge,
+                    activeFilter === 'Price' && styles.imageHighlightPrice,
+                    activeFilter === 'Distance' && styles.imageHighlightDistance
+                  ]}>
+                    <Text style={styles.imageHighlightText}>
+                      {activeFilter === 'Distance'
+                        ? `📍 ${salon.distance}`
+                        : `🏷️ ${salon.priceRange || '120k - 350k'}`}
+                    </Text>
+                  </View>
+
                   <TouchableOpacity
                     style={styles.favBtn}
                     onPress={() => toggleFavorite(salon.id)}
@@ -236,10 +467,41 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
 
                   {/* Distance & Location */}
                   <View style={styles.locationRow}>
-                    <AppIcon name="pin" size={13} color="#6F6255" style={styles.locationIcon} />
-                    <Text style={styles.locationText}>
-                      {salon.distance} away • {areaName}
+                    <View style={[styles.distancePill, activeFilter === 'Distance' && styles.distancePillActive]}>
+                      <AppIcon
+                        name="pin"
+                        size={12}
+                        color={activeFilter === 'Distance' ? '#B8895A' : '#6F6255'}
+                        style={styles.locationIcon}
+                      />
+                      <Text style={[styles.distanceText, activeFilter === 'Distance' && styles.distanceTextActive]}>
+                        {salon.distance}
+                      </Text>
+                    </View>
+                    <Text style={styles.locationDot}>•</Text>
+                    <Text style={styles.locationText} numberOfLines={1}>
+                      {areaName}
                     </Text>
+                  </View>
+
+                  {/* Price Row (Prominently displayed) */}
+                  <View style={[styles.priceTagRow, activeFilter === 'Price' && styles.priceTagRowActive]}>
+                    <View style={styles.priceTagLeft}>
+                      <Text style={styles.priceTagEmoji}>🏷️</Text>
+                      <Text style={[styles.priceTagLabel, activeFilter === 'Price' && styles.priceTagLabelActive]}>
+                        {language === 'vi' ? 'Bảng giá: ' : 'Price: '}
+                      </Text>
+                      <Text style={[styles.priceTagValue, activeFilter === 'Price' && styles.priceTagValueActive]}>
+                        {salon.priceRange || '120k - 350k'}
+                      </Text>
+                    </View>
+                    {salon.minPrice ? (
+                      <Text style={[styles.minPriceHint, activeFilter === 'Price' && styles.minPriceHintActive]}>
+                        {language === 'vi'
+                          ? `(Từ ${(salon.minPrice).toLocaleString('vi-VN')}đ)`
+                          : `(From ${(salon.minPrice).toLocaleString()}đ)`}
+                      </Text>
+                    ) : null}
                   </View>
 
                   {/* Hairstyle Match Tag (if applicable) */}
@@ -431,6 +693,35 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600'
   },
+  subFilterBar: {
+    marginTop: 10,
+    marginBottom: 4
+  },
+  subFilterScroll: {
+    gap: 8,
+    paddingRight: 20
+  },
+  subFilterChip: {
+    backgroundColor: '#FAF5EE',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#EFE3D3'
+  },
+  subFilterChipActive: {
+    backgroundColor: '#2C2219',
+    borderColor: '#2C2219'
+  },
+  subFilterChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6F6255'
+  },
+  subFilterChipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700'
+  },
   salonList: {
     gap: 16
   },
@@ -458,6 +749,27 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%'
   },
+  imageHighlightBadge: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    backgroundColor: 'rgba(44, 34, 25, 0.78)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    zIndex: 2
+  },
+  imageHighlightPrice: {
+    backgroundColor: 'rgba(184, 137, 90, 0.94)'
+  },
+  imageHighlightDistance: {
+    backgroundColor: 'rgba(74, 107, 70, 0.94)'
+  },
+  imageHighlightText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700'
+  },
   favBtn: {
     position: 'absolute',
     top: 10,
@@ -468,6 +780,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 2,
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
       android: { elevation: 3 },
@@ -508,20 +821,100 @@ const styles = StyleSheet.create({
   serviceDesc: {
     fontSize: 13,
     color: '#6F6255',
-    marginBottom: 4
+    marginBottom: 6
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginBottom: 14
+    gap: 6,
+    marginBottom: 8
+  },
+  distancePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#FAF5EE',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#EFE3D3'
+  },
+  distancePillActive: {
+    backgroundColor: '#F7EFE3',
+    borderColor: '#B8895A'
   },
   locationIcon: {
-    marginRight: 2
+    marginRight: 1
+  },
+  distanceText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6F6255'
+  },
+  distanceTextActive: {
+    color: '#B8895A',
+    fontWeight: '700'
+  },
+  locationDot: {
+    fontSize: 12,
+    color: '#9B8B7A'
   },
   locationText: {
     fontSize: 12,
-    color: '#6F6255'
+    color: '#6F6255',
+    flex: 1
+  },
+  priceTagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FAF7F2',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#EFE6D8',
+    marginBottom: 10
+  },
+  priceTagRowActive: {
+    backgroundColor: '#FBF3E8',
+    borderColor: '#B8895A'
+  },
+  priceTagLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4
+  },
+  priceTagEmoji: {
+    fontSize: 12
+  },
+  priceTagLabel: {
+    fontSize: 12,
+    color: '#6F6255',
+    fontWeight: '500'
+  },
+  priceTagLabelActive: {
+    color: '#8A5D2E',
+    fontWeight: '600'
+  },
+  priceTagValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#B8895A'
+  },
+  priceTagValueActive: {
+    color: '#8A5D2E',
+    fontWeight: '800'
+  },
+  minPriceHint: {
+    fontSize: 11,
+    color: '#9B8B7A',
+    fontStyle: 'italic'
+  },
+  minPriceHintActive: {
+    color: '#8A5D2E',
+    fontWeight: '600'
   },
   matchBadge: {
     paddingVertical: 5,

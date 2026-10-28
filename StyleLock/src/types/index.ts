@@ -28,9 +28,12 @@ export interface Salon {
   name: string;
   address: string;
   distance: string;
+  distanceKm?: number;
   rating: number;
   reviewCount: number;
   priceRange: string;
+  minPrice?: number;
+  maxPrice?: number;
   phone: string;
   imageUrl: string;
   openingHours: string;

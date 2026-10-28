@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   StyleSheet,
   View,
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
-  Image
+  Image,
+  Modal,
+  ActivityIndicator
 } from 'react-native';
 import { LocalizedText as Text, LocalizedAlert as Alert } from '../i18n/LocalizedComponents';
 import { backendApi } from '../services/backendApi';
@@ -13,27 +15,68 @@ import { AppIcon, IconBadge } from '../components/AppIcon';
 import { bookingService } from '../services/bookingService';
 import { BottomNavBar } from '../components/BottomNavBar';
 import { Booking, BookingStatus, Payment } from '../types';
-import { formatVnd, getPaymentStatusMeta } from '../utils/payment';
+import { formatDateTime, formatVnd, getPaymentStatusMeta, getPaymentTypeLabel } from '../utils/payment';
 import { NotificationBellButton } from '../components/NotificationBellButton';
 
 interface BookingHistoryScreenProps {
     navigation: any;
+    route?: { params?: { initialTab?: string } };
 }
 
 const TABS = [
     { label: 'Upcoming', value: 'UPCOMING' },
     { label: 'Completed', value: 'COMPLETED' },
-    { label: 'Cancelled', value: 'CANCELLED' }
+    { label: 'Cancelled', value: 'CANCELLED' },
+    { label: 'Payment History', value: 'PAYMENTS' }
 ];
 
-export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navigation }) => {
-    const [activeTab, setActiveTab] = useState<string>('UPCOMING');
+const PAYMENT_FILTERS = [
+    { label: 'Tất cả', value: 'ALL' },
+    { label: 'Đã thanh toán', value: 'PAID' },
+    { label: 'Chờ thanh toán', value: 'PENDING' },
+    { label: 'Hoàn tiền', value: 'REFUND' }
+] as const;
+
+export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navigation, route }) => {
+    const [activeTab, setActiveTab] = useState<string>(route?.params?.initialTab || 'UPCOMING');
     const [allBookings, setAllBookings] = useState<Booking[]>(bookingService.getAllBookings());
     const [paymentsByBooking, setPaymentsByBooking] = useState<Record<string, Payment>>({});
+    const [paymentsList, setPaymentsList] = useState<Payment[]>([]);
+    const [paymentFilter, setPaymentFilter] = useState<'ALL' | 'PENDING' | 'PAID' | 'REFUND'>('ALL');
+    const [paymentsLoading, setPaymentsLoading] = useState<boolean>(false);
+
+    useEffect(() => {
+        if (route?.params?.initialTab) {
+            setActiveTab(route.params.initialTab);
+        }
+    }, [route?.params?.initialTab]);
+
+    const today = new Date();
+    const dateOptions = [0, 1, 2, 3, 4, 5].map((offset) => {
+        const d = new Date();
+        d.setDate(today.getDate() + offset);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const dayName = offset === 0 ? 'Hôm nay' : offset === 1 ? 'Ngày mai' : `Ngày ${dd}/${mm}`;
+        return {
+            fullDate: `${yyyy}-${mm}-${dd}`,
+            label: `${dayName} (${dd}/${mm})`
+        };
+    });
+
+    const [rescheduleBookingTarget, setRescheduleBookingTarget] = useState<Booking | null>(null);
+    const [rescheduleDate, setRescheduleDate] = useState<string>(dateOptions[1].fullDate);
+    const [rescheduleTimeSlot, setRescheduleTimeSlot] = useState<string>('');
+    const [isSubmittingReschedule, setIsSubmittingReschedule] = useState<boolean>(false);
+    const [availability, setAvailability] = useState<any>(undefined);
+    const [slotsLoading, setSlotsLoading] = useState<boolean>(false);
 
     const loadPayments = async () => {
+        setPaymentsLoading(true);
         try {
             const history = await backendApi.getPaymentHistory(0, 100);
+            setPaymentsList(history.items);
             const map: Record<string, Payment> = {};
             history.items.forEach((payment) => {
                 if (payment.bookingId) map[String(payment.bookingId)] = payment;
@@ -41,6 +84,8 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
             setPaymentsByBooking(map);
         } catch {
             // Trạng thái thanh toán là thông tin phụ, bỏ qua nếu tạm thời không tải được.
+        } finally {
+            setPaymentsLoading(false);
         }
     };
 
@@ -81,6 +126,14 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
         }
         return true;
     });
+
+    const visiblePayments = useMemo(() => {
+        return paymentsList.filter((payment) => {
+            if (paymentFilter === 'ALL') return true;
+            if (paymentFilter === 'REFUND') return payment.status === 'REFUND_PENDING' || payment.status === 'REFUNDED';
+            return payment.status === paymentFilter;
+        });
+    }, [paymentsList, paymentFilter]);
 
     const getStatusBadge = (status: BookingStatus) => {
         switch (status) {
@@ -134,21 +187,130 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
         );
     };
 
+    useEffect(() => {
+        if (!rescheduleBookingTarget) {
+            setAvailability(undefined);
+            return;
+        }
+
+        const salonApiId = rescheduleBookingTarget.salonId
+            ? Number(String(rescheduleBookingTarget.salonId).replace(/\D/g, ''))
+            : undefined;
+        const stylistApiId = rescheduleBookingTarget.stylistId
+            ? Number(String(rescheduleBookingTarget.stylistId).replace(/\D/g, ''))
+            : undefined;
+
+        if (!salonApiId || !stylistApiId) {
+            setAvailability(undefined);
+            return;
+        }
+
+        let isMounted = true;
+        setSlotsLoading(true);
+        backendApi
+            .getAvailability(salonApiId, stylistApiId, rescheduleDate)
+            .then((res) => {
+                if (isMounted) setAvailability(res);
+            })
+            .catch(() => {
+                if (isMounted) setAvailability(undefined);
+            })
+            .finally(() => {
+                if (isMounted) setSlotsLoading(false);
+            });
+
+        return () => {
+            isMounted = false;
+        };
+    }, [rescheduleBookingTarget, rescheduleDate]);
+
     const handleReschedule = (b: Booking) => {
-        Alert.alert(
-            'Đổi lịch hẹn',
-            `Bạn muốn chọn lại thời gian cho lịch hẹn tại ${b.salonName}?`,
-            [
-                { text: 'Đóng', style: 'cancel' },
-                {
-                    text: 'Chọn giờ mới',
-                    onPress: () =>
-                        navigation.navigate('SalonDetail', {
-                            salon: { id: b.salonId, name: b.salonName, address: b.salonAddress, services: [] }
-                        })
-                }
-            ]
-        );
+        if (b.status === 'COMPLETED' || b.status === 'CANCELLED') {
+            Alert.alert('Không thể đổi lịch', 'Lịch hẹn này đã hoàn thành hoặc đã bị hủy.');
+            return;
+        }
+        setRescheduleBookingTarget(b);
+        setRescheduleDate(dateOptions[1].fullDate);
+        setRescheduleTimeSlot('');
+    };
+
+    const handleConfirmReschedule = async () => {
+        if (!rescheduleBookingTarget) return;
+        if (!rescheduleTimeSlot) {
+            Alert.alert('Chưa chọn giờ', 'Vui lòng chọn khung giờ hẹn mới!');
+            return;
+        }
+
+        setIsSubmittingReschedule(true);
+        try {
+            if (rescheduleBookingTarget.apiId) {
+                const updated = await backendApi.rescheduleBooking(
+                    rescheduleBookingTarget.apiId,
+                    rescheduleDate,
+                    rescheduleTimeSlot
+                );
+                bookingService.upsertBooking(updated);
+            } else {
+                const localUpdated: Booking = {
+                    ...rescheduleBookingTarget,
+                    date: rescheduleDate,
+                    timeSlot: rescheduleTimeSlot
+                };
+                bookingService.upsertBooking(localUpdated);
+            }
+
+            setAllBookings(bookingService.getAllBookings());
+            const targetSalon = rescheduleBookingTarget.salonName;
+            setRescheduleBookingTarget(null);
+
+            Alert.alert(
+                '✨ Đổi lịch thành công',
+                `Lịch hẹn tại ${targetSalon} đã được chuyển sang ngày ${rescheduleDate} lúc ${rescheduleTimeSlot}.`
+            );
+        } catch (error: any) {
+            const message = error instanceof Error ? error.message : 'Không thể đổi lịch hẹn.';
+            Alert.alert('Đổi lịch thất bại', message);
+        } finally {
+            setIsSubmittingReschedule(false);
+        }
+    };
+
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const toMinutes = (time: string) => {
+        const [h, m] = time.split(':').map(Number);
+        return h * 60 + m;
+    };
+
+    const getRescheduleSlots = () => {
+        if (availability && !availability.closed && availability.openTime && availability.closeTime) {
+            const open = toMinutes(availability.openTime);
+            const close = toMinutes(availability.closeTime);
+            const booked = (availability.bookedIntervals || []).map((interval: any) => ({
+                start: new Date(interval.startAt).getTime(),
+                end: new Date(interval.endAt).getTime()
+            }));
+
+            const slots = [];
+            for (let minute = open; minute + 30 <= close; minute += 30) {
+                const value = `${pad(Math.floor(minute / 60))}:${pad(minute % 60)}`;
+                const start = new Date(`${rescheduleDate}T${value}:00+07:00`).getTime();
+                const end = start + 30 * 60000;
+                const isPast = start <= Date.now();
+                const overlaps = booked.some((interval: any) => interval.start < end && interval.end > start);
+                slots.push({ value, disabled: isPast || overlaps });
+            }
+            return slots;
+        }
+
+        const defaultList = [
+            '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+            '13:30', '14:00', '14:30', '15:00', '15:30', '16:00',
+            '16:30', '17:00', '17:30', '18:00', '18:30', '19:00'
+        ];
+        return defaultList.map((val) => {
+            const start = new Date(`${rescheduleDate}T${val}:00+07:00`).getTime();
+            return { value: val, disabled: start <= Date.now() };
+        });
     };
 
     const handleMessage = (b: Booking) => {
@@ -162,6 +324,13 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
                 <Text style={styles.brandTitle}>StyleLock</Text>
 
                 <View style={styles.headerRightActions}>
+                    <TouchableOpacity
+                        style={[styles.headerIconBtn, activeTab === 'PAYMENTS' && styles.headerIconBtnActive]}
+                        onPress={() => setActiveTab(activeTab === 'PAYMENTS' ? 'UPCOMING' : 'PAYMENTS')}
+                        activeOpacity={0.8}
+                    >
+                        <AppIcon name="card" size={18} color={activeTab === 'PAYMENTS' ? '#2C2219' : '#B8895A'} />
+                    </TouchableOpacity>
                     <NotificationBellButton navigation={navigation} style={styles.headerIconBtn} />
                     <TouchableOpacity
                         style={styles.headerIconBtn}
@@ -175,10 +344,17 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 {/* Page Title */}
-                <Text style={styles.pageTitle}>My Bookings</Text>
+                <Text style={styles.pageTitle}>
+                    {activeTab === 'PAYMENTS' ? 'Payment History' : 'My Bookings'}
+                </Text>
 
-                {/* Filter Tabs */}
-                <View style={styles.tabsRow}>
+                {/* Filter Tabs Scroll */}
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.tabsScroll}
+                    style={styles.tabsScrollWrapper}
+                >
                     {TABS.map((tab) => {
                         const isActive = activeTab === tab.value;
                         return (
@@ -193,10 +369,119 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
                             </TouchableOpacity>
                         );
                     })}
-                </View>
+                </ScrollView>
 
-                {/* Bookings List */}
-                {filteredBookings.length === 0 ? (
+                {/* Main Content: Payments or Bookings */}
+                {activeTab === 'PAYMENTS' ? (
+                    <View style={styles.paymentsSection}>
+                        {/* Sub-Filters for Payments */}
+                        <View style={styles.paymentFiltersRow}>
+                            {PAYMENT_FILTERS.map((pf) => {
+                                const isFilterActive = paymentFilter === pf.value;
+                                return (
+                                    <TouchableOpacity
+                                        key={pf.value}
+                                        style={[styles.paymentFilterChip, isFilterActive && styles.paymentFilterChipActive]}
+                                        onPress={() => setPaymentFilter(pf.value)}
+                                        activeOpacity={0.8}
+                                    >
+                                        <Text style={[styles.paymentFilterText, isFilterActive && styles.paymentFilterTextActive]}>
+                                            {pf.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+
+                        {paymentsLoading ? (
+                            <View style={styles.loadingBox}>
+                                <ActivityIndicator color="#B8895A" />
+                                <Text style={styles.loadingText}>Đang tải lịch sử thanh toán...</Text>
+                            </View>
+                        ) : visiblePayments.length === 0 ? (
+                            <View style={styles.emptyCard}>
+                                <IconBadge name="card" size={24} containerStyle={styles.emptyIconBadge} />
+                                <Text style={styles.emptyTitle}>
+                                    {paymentsList.length === 0
+                                        ? 'Bạn chưa có giao dịch thanh toán nào.'
+                                        : 'Không có giao dịch nào ở mục này.'}
+                                </Text>
+                                <Text style={styles.emptySub}>
+                                    Các giao dịch giữ chỗ và hóa đơn dịch vụ sẽ xuất hiện tại đây.
+                                </Text>
+                            </View>
+                        ) : (
+                            <View style={styles.paymentsList}>
+                                {visiblePayments.map((payment) => {
+                                    const meta = getPaymentStatusMeta(payment.status);
+                                    const matchedBooking = allBookings.find(
+                                        (b) => b.id === String(payment.bookingId) || (payment.bookingId && b.apiId === payment.bookingId)
+                                    );
+
+                                    return (
+                                        <TouchableOpacity
+                                            key={payment.id}
+                                            style={styles.paymentCard}
+                                            activeOpacity={0.88}
+                                            onPress={() => {
+                                                if (payment.status === 'PENDING') {
+                                                    navigation.navigate('Payment', {
+                                                        bookingId: payment.bookingId,
+                                                        paymentId: payment.id
+                                                    });
+                                                } else if (matchedBooking) {
+                                                    navigation.navigate('BookingStatus', { bookingId: matchedBooking.id });
+                                                }
+                                            }}
+                                        >
+                                            <View style={styles.paymentCardTop}>
+                                                <View style={styles.paymentCardHeaderLeft}>
+                                                    <View style={styles.paymentIconBox}>
+                                                        <AppIcon name="card" size={18} color="#B8895A" />
+                                                    </View>
+                                                    <View style={{ flex: 1 }}>
+                                                        <Text style={styles.paymentTypeTitle} numberOfLines={1}>
+                                                            {matchedBooking?.salonName || getPaymentTypeLabel(payment)}
+                                                        </Text>
+                                                        <Text style={styles.paymentReferenceCode}>
+                                                            {payment.bookingId ? `Lịch hẹn #${payment.bookingId} · ` : ''}
+                                                            Mã: {payment.referenceCode}
+                                                        </Text>
+                                                    </View>
+                                                </View>
+                                                <View style={[styles.paymentStatusPill, { backgroundColor: meta.background }]}>
+                                                    <Text style={[styles.paymentStatusPillText, { color: meta.color }]}>
+                                                        {meta.label}
+                                                    </Text>
+                                                </View>
+                                            </View>
+
+                                            <View style={styles.paymentCardDivider} />
+
+                                            <View style={styles.paymentCardBottom}>
+                                                <View style={styles.paymentDateRow}>
+                                                    <AppIcon name="clock" size={13} color="#9B8B7A" />
+                                                    <Text style={styles.paymentDateText}>
+                                                        {formatDateTime(payment.paidAt || payment.createdAt)}
+                                                    </Text>
+                                                </View>
+                                                <Text style={styles.paymentAmountText}>
+                                                    {formatVnd(payment.amount)}
+                                                </Text>
+                                            </View>
+
+                                            {payment.status === 'PENDING' && (
+                                                <View style={styles.payNowBanner}>
+                                                    <Text style={styles.payNowText}>Chạm để quét mã QR thanh toán ngay ➔</Text>
+                                                </View>
+                                            )}
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+                        )}
+                    </View>
+                ) : filteredBookings.length === 0 ? (
                     <View style={styles.emptyCard}>
                         <IconBadge name="calendar" size={24} containerStyle={styles.emptyIconBadge} />
                         <Text style={styles.emptyTitle}>Chưa có lịch hẹn nào</Text>
@@ -309,6 +594,142 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
                 <View style={{ height: 100 }} />
             </ScrollView>
 
+            {/* Modal Đổi Lịch Hẹn */}
+            <Modal
+                visible={!!rescheduleBookingTarget}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setRescheduleBookingTarget(null)}
+            >
+                <TouchableOpacity
+                    style={styles.modalBackdrop}
+                    activeOpacity={1}
+                    onPress={() => setRescheduleBookingTarget(null)}
+                >
+                    <TouchableOpacity
+                        activeOpacity={1}
+                        style={styles.modalCard}
+                        onPress={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <View style={styles.modalHeader}>
+                            <View style={styles.modalHeaderLeft}>
+                                <AppIcon name="calendar" size={20} color="#B8895A" />
+                                <Text style={styles.modalTitle}>Đổi lịch hẹn</Text>
+                            </View>
+                            <TouchableOpacity
+                                style={styles.modalCloseBtn}
+                                onPress={() => setRescheduleBookingTarget(null)}
+                            >
+                                <AppIcon name="close" size={16} color="#2C2219" />
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Booking Summary Box */}
+                        {rescheduleBookingTarget && (
+                            <View style={styles.modalSummaryBox}>
+                                <Text style={styles.modalSalonName}>{rescheduleBookingTarget.salonName}</Text>
+                                <Text style={styles.modalServiceText}>
+                                    {rescheduleBookingTarget.serviceName || rescheduleBookingTarget.hairstyleName || 'Dịch vụ làm tóc'}
+                                    {rescheduleBookingTarget.stylistName ? ` · Stylist: ${rescheduleBookingTarget.stylistName}` : ''}
+                                </Text>
+                                <View style={styles.modalCurrentTimeRow}>
+                                    <Text style={styles.modalCurrentTimeLabel}>Giờ hiện tại:</Text>
+                                    <Text style={styles.modalCurrentTimeValue}>
+                                        {rescheduleBookingTarget.date} · {rescheduleBookingTarget.timeSlot}
+                                    </Text>
+                                </View>
+                            </View>
+                        )}
+
+                        {/* Date Selector */}
+                        <Text style={styles.modalSectionTitle}>1. Chọn ngày hẹn mới</Text>
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.modalDateScroll}
+                        >
+                            {dateOptions.map((opt) => {
+                                const isDateActive = rescheduleDate === opt.fullDate;
+                                return (
+                                    <TouchableOpacity
+                                        key={opt.fullDate}
+                                        style={[styles.modalDateChip, isDateActive && styles.modalDateChipActive]}
+                                        onPress={() => {
+                                            setRescheduleDate(opt.fullDate);
+                                            setRescheduleTimeSlot('');
+                                        }}
+                                    >
+                                        <Text style={[styles.modalDateChipText, isDateActive && styles.modalDateChipTextActive]}>
+                                            {opt.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </ScrollView>
+
+                        {/* Time Slot Selector */}
+                        <Text style={styles.modalSectionTitle}>2. Chọn khung giờ mới</Text>
+                        {slotsLoading ? (
+                            <View style={styles.slotsLoadingBox}>
+                                <ActivityIndicator size="small" color="#B8895A" />
+                                <Text style={styles.slotsLoadingText}>Đang kiểm tra lịch trống...</Text>
+                            </View>
+                        ) : (
+                            <View style={styles.slotsGrid}>
+                                {getRescheduleSlots().map((slot) => {
+                                    const isSlotActive = rescheduleTimeSlot === slot.value;
+                                    return (
+                                        <TouchableOpacity
+                                            key={slot.value}
+                                            disabled={slot.disabled}
+                                            style={[
+                                                styles.slotPill,
+                                                isSlotActive && styles.slotPillActive,
+                                                slot.disabled && styles.slotPillDisabled
+                                            ]}
+                                            onPress={() => setRescheduleTimeSlot(slot.value)}
+                                        >
+                                            <Text
+                                                style={[
+                                                    styles.slotPillText,
+                                                    isSlotActive && styles.slotPillTextActive,
+                                                    slot.disabled && styles.slotPillTextDisabled
+                                                ]}
+                                            >
+                                                {slot.value}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+                        )}
+
+                        {/* Action Buttons */}
+                        <View style={styles.modalActionsRow}>
+                            <TouchableOpacity
+                                style={styles.modalCancelBtn}
+                                onPress={() => setRescheduleBookingTarget(null)}
+                            >
+                                <Text style={styles.modalCancelBtnText}>Hủy</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.modalSubmitBtn, (!rescheduleTimeSlot || isSubmittingReschedule) && styles.modalSubmitBtnDisabled]}
+                                disabled={!rescheduleTimeSlot || isSubmittingReschedule}
+                                onPress={handleConfirmReschedule}
+                            >
+                                {isSubmittingReschedule ? (
+                                    <ActivityIndicator size="small" color="#FFFFFF" />
+                                ) : (
+                                    <Text style={styles.modalSubmitBtnText}>Xác nhận đổi lịch</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </TouchableOpacity>
+                </TouchableOpacity>
+            </Modal>
+
             <BottomNavBar active="History" navigation={navigation} />
         </SafeAreaView>
     );
@@ -343,6 +764,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: '#F7EFE4'
     },
+    headerIconBtnActive: {
+        backgroundColor: '#EFE2D1',
+        borderWidth: 1,
+        borderColor: '#B8895A'
+    },
     brandTitle: {
         fontSize: 22,
         fontWeight: '800',
@@ -359,10 +785,14 @@ const styles = StyleSheet.create({
         color: '#241F1A',
         marginBottom: 16
     },
-    tabsRow: {
+    tabsScrollWrapper: {
+        marginBottom: 16,
+        marginHorizontal: -20
+    },
+    tabsScroll: {
         flexDirection: 'row',
-        gap: 10,
-        marginBottom: 20
+        gap: 8,
+        paddingHorizontal: 20
     },
     tabChip: {
         paddingHorizontal: 16,
@@ -384,6 +814,140 @@ const styles = StyleSheet.create({
     tabChipTextActive: {
         color: '#FFFFFF',
         fontWeight: '700'
+    },
+    paymentsSection: {
+        gap: 12
+    },
+    paymentFiltersRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginBottom: 8
+    },
+    paymentFilterChip: {
+        paddingVertical: 7,
+        paddingHorizontal: 14,
+        borderRadius: 20,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#E0D2C1'
+    },
+    paymentFilterChipActive: {
+        backgroundColor: '#B8895A',
+        borderColor: '#B8895A'
+    },
+    paymentFilterText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#6F6255'
+    },
+    paymentFilterTextActive: {
+        color: '#FFFFFF',
+        fontWeight: '700'
+    },
+    paymentsList: {
+        gap: 12
+    },
+    paymentCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: '#EFE3D3',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 6,
+        elevation: 2
+    },
+    paymentCardTop: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        gap: 10
+    },
+    paymentCardHeaderLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        flex: 1
+    },
+    paymentIconBox: {
+        width: 38,
+        height: 38,
+        borderRadius: 12,
+        backgroundColor: '#FAF5EE',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: '#EFE3D3'
+    },
+    paymentTypeTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#2C2219'
+    },
+    paymentReferenceCode: {
+        fontSize: 12,
+        color: '#9B8B7A',
+        marginTop: 2
+    },
+    paymentStatusPill: {
+        borderRadius: 12,
+        paddingVertical: 4,
+        paddingHorizontal: 10
+    },
+    paymentStatusPillText: {
+        fontSize: 11,
+        fontWeight: '700'
+    },
+    paymentCardDivider: {
+        height: 1,
+        backgroundColor: '#F3EAE0',
+        marginVertical: 12
+    },
+    paymentCardBottom: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+    },
+    paymentDateRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5
+    },
+    paymentDateText: {
+        fontSize: 12,
+        color: '#6F6255'
+    },
+    paymentAmountText: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: '#B8895A'
+    },
+    payNowBanner: {
+        marginTop: 10,
+        backgroundColor: '#FAF5EE',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#EFE3D3'
+    },
+    payNowText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#B8895A'
+    },
+    loadingBox: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 40,
+        gap: 10
+    },
+    loadingText: {
+        fontSize: 13,
+        color: '#9B8B7A'
     },
     bookingsList: {
         gap: 16
@@ -563,6 +1127,204 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 14,
         fontWeight: '700'
+    },
+    modalBackdrop: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.55)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20
+    },
+    modalCard: {
+        width: '100%',
+        maxWidth: 420,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 24,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: '#EFE3D3',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.18,
+        shadowRadius: 12,
+        elevation: 8
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 14
+    },
+    modalHeaderLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: '#2C2219'
+    },
+    modalCloseBtn: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#FAF6F0',
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
+    modalSummaryBox: {
+        backgroundColor: '#FAF6F0',
+        borderRadius: 16,
+        padding: 14,
+        borderWidth: 1,
+        borderColor: '#EFE3D3',
+        marginBottom: 16
+    },
+    modalSalonName: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#2C2219',
+        marginBottom: 3
+    },
+    modalServiceText: {
+        fontSize: 13,
+        color: '#6F6255',
+        marginBottom: 6
+    },
+    modalCurrentTimeRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6
+    },
+    modalCurrentTimeLabel: {
+        fontSize: 12,
+        color: '#9B8B7A'
+    },
+    modalCurrentTimeValue: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#B65A4B'
+    },
+    modalSectionTitle: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#6F6255',
+        marginBottom: 8,
+        marginTop: 4
+    },
+    modalDateScroll: {
+        gap: 8,
+        paddingBottom: 12
+    },
+    modalDateChip: {
+        paddingVertical: 7,
+        paddingHorizontal: 12,
+        borderRadius: 12,
+        backgroundColor: '#F3EAE0',
+        borderWidth: 1,
+        borderColor: 'transparent'
+    },
+    modalDateChipActive: {
+        backgroundColor: '#B8895A',
+        borderColor: '#B8895A'
+    },
+    modalDateChipText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#6F6255'
+    },
+    modalDateChipTextActive: {
+        color: '#FFFFFF',
+        fontWeight: '700'
+    },
+    slotsLoadingBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingVertical: 16
+    },
+    slotsLoadingText: {
+        fontSize: 12,
+        color: '#9B8B7A'
+    },
+    slotsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginBottom: 16
+    },
+    slotPill: {
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        borderRadius: 12,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#E0D2C1'
+    },
+    slotPillActive: {
+        backgroundColor: '#B8895A',
+        borderColor: '#B8895A'
+    },
+    slotPillDisabled: {
+        backgroundColor: '#F7F3EE',
+        borderColor: '#EAE3DA',
+        opacity: 0.55
+    },
+    slotPillText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#2C2219'
+    },
+    slotPillTextActive: {
+        color: '#FFFFFF',
+        fontWeight: '700'
+    },
+    slotPillTextDisabled: {
+        color: '#B8ABA0'
+    },
+    modalActionsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginTop: 6
+    },
+    modalCancelBtn: {
+        flex: 1,
+        height: 44,
+        borderRadius: 14,
+        backgroundColor: '#FAF6F0',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: '#E5D9CA'
+    },
+    modalCancelBtnText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#6F6255'
+    },
+    modalSubmitBtn: {
+        flex: 2,
+        height: 44,
+        borderRadius: 14,
+        backgroundColor: '#B8895A',
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#B8895A',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.25,
+        shadowRadius: 6,
+        elevation: 3
+    },
+    modalSubmitBtnDisabled: {
+        opacity: 0.5
+    },
+    modalSubmitBtnText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#FFFFFF'
     }
 });
 

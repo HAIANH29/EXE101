@@ -10,6 +10,7 @@ import {
 import { LocalizedText as Text } from '../i18n/LocalizedComponents';
 import { Hairstyle } from '../types';
 import { AppIcon } from './AppIcon';
+import { CompactSlider } from './CompactSlider';
 import { resolveHairOverlaySource, HAIR_COLORS, HairColorOption } from '../services/hairAssetMap';
 
 export interface HairCanvasOverlayProps {
@@ -74,6 +75,21 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
   const [alignTarget, setAlignTarget] = useState<'hair' | 'photo'>('hair');
   const [isComparingOriginal, setIsComparingOriginal] = useState<boolean>(false);
   const [showFaceGuide, setShowFaceGuide] = useState<boolean>(true);
+  const [showNudgeControls, setShowNudgeControls] = useState<boolean>(false);
+
+  const handleResetActiveTarget = () => {
+    if (alignTarget === 'hair') {
+      onScaleChange(1.0);
+      onRotationChange(0);
+      onOffsetXChange(0);
+      onOffsetYChange(0);
+    } else {
+      onPhotoScaleChange?.(1.0);
+      onPhotoRotationChange?.(0);
+      onPhotoOffsetXChange?.(0);
+      onPhotoOffsetYChange?.(0);
+    }
+  };
 
   // Dynamic SVG hair overlay with accurate color rendering
   const hairSource = resolveHairOverlaySource(hairstyle, hairColor);
@@ -268,16 +284,6 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
               </TouchableOpacity>
             </View>
           </View>
-
-          {/* Bottom Live Hint Badge */}
-          <View style={styles.bottomGuideBadge}>
-            <AppIcon name="sparkle" size={12} color="#D8B98E" />
-            <Text style={styles.bottomGuideText}>
-              {alignTarget === 'hair'
-                ? `Đang chỉnh: 💇 MẪU TÓC (${Math.round(scale * 100)}%) • Kéo thả để dời vị trí`
-                : `Đang chỉnh: 👤 ẢNH MẶT (${Math.round(photoScale * 100)}%) • Kéo thả hoặc bấm 90° để xoay`}
-            </Text>
-          </View>
         </View>
       </View>
 
@@ -313,230 +319,175 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
         {/* Tab 1: Align & Size Controls */}
         {activeTab === 'align' && (
           <View style={styles.tabContent}>
-            {/* Target Selector Switcher: Hair vs Photo */}
-            <View style={styles.targetSelectorRow}>
-              <TouchableOpacity
-                style={[styles.targetBtn, alignTarget === 'hair' && styles.targetBtnActive]}
-                onPress={() => setAlignTarget('hair')}
-                activeOpacity={0.8}
-              >
-                <AppIcon name="scissors" size={14} color={alignTarget === 'hair' ? '#FFFFFF' : '#8D7B68'} />
-                <Text style={[styles.targetBtnText, alignTarget === 'hair' && styles.targetBtnTextActive]}>
-                  💇 Căn chỉnh Mẫu tóc
-                </Text>
-              </TouchableOpacity>
+            {/* Target Selector Switcher: Hair vs Photo + Reset */}
+            <View style={styles.targetHeaderRow}>
+              <View style={styles.segmentedControl} accessibilityRole="tablist">
+                <TouchableOpacity
+                  style={[styles.segmentBtn, alignTarget === 'hair' && styles.segmentBtnActive]}
+                  onPress={() => setAlignTarget('hair')}
+                  activeOpacity={0.8}
+                  accessibilityRole="tab"
+                  accessibilityLabel="Chỉnh mẫu tóc"
+                >
+                  <AppIcon
+                    name="scissors"
+                    size={13}
+                    color={alignTarget === 'hair' ? '#FFFFFF' : '#8D7B68'}
+                  />
+                  <Text style={[styles.segmentBtnText, alignTarget === 'hair' && styles.segmentBtnTextActive]}>
+                    Mẫu tóc
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.segmentBtn, alignTarget === 'photo' && styles.segmentBtnActive]}
+                  onPress={() => setAlignTarget('photo')}
+                  activeOpacity={0.8}
+                  accessibilityRole="tab"
+                  accessibilityLabel="Chỉnh ảnh mặt"
+                >
+                  <AppIcon
+                    name="user"
+                    size={13}
+                    color={alignTarget === 'photo' ? '#FFFFFF' : '#8D7B68'}
+                  />
+                  <Text style={[styles.segmentBtnText, alignTarget === 'photo' && styles.segmentBtnTextActive]}>
+                    Ảnh mặt
+                  </Text>
+                </TouchableOpacity>
+              </View>
 
               <TouchableOpacity
-                style={[styles.targetBtn, alignTarget === 'photo' && styles.targetBtnActive]}
-                onPress={() => setAlignTarget('photo')}
-                activeOpacity={0.8}
+                style={styles.compactResetBtn}
+                onPress={handleResetActiveTarget}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Đặt lại"
               >
-                <AppIcon name="user" size={14} color={alignTarget === 'photo' ? '#FFFFFF' : '#8D7B68'} />
-                <Text style={[styles.targetBtnText, alignTarget === 'photo' && styles.targetBtnTextActive]}>
-                  👤 Căn chỉnh Ảnh mặt
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Live Size & Position Metric Indicator */}
-            <View style={styles.metricRow}>
-              <Text style={styles.metricText}>
-                🔍 Tỉ lệ: <Text style={styles.metricHighlight}>{Math.round((alignTarget === 'hair' ? scale : photoScale) * 100)}%</Text>
-              </Text>
-              <Text style={styles.metricText}>
-                📐 Vị trí: <Text style={styles.metricHighlight}>
-                  X={alignTarget === 'hair' ? offsetX : photoOffsetX}px, Y={alignTarget === 'hair' ? offsetY : photoOffsetY}px
-                </Text>
-              </Text>
-              <Text style={styles.metricText}>
-                🔄 Xoay: <Text style={styles.metricHighlight}>{alignTarget === 'hair' ? rotation : photoRotation}°</Text>
-              </Text>
-            </View>
-
-            {/* Quick Scale Presets */}
-            <View style={styles.presetScaleRow}>
-              {[
-                { label: '85% Nhỏ', val: 0.85 },
-                { label: '100% Vừa', val: 1.0 },
-                { label: '120% Lớn', val: 1.2 },
-                { label: '140% Rộng', val: 1.4 }
-              ].map((p) => {
-                const currentVal = alignTarget === 'hair' ? scale : photoScale;
-                const isSelected = Math.abs(currentVal - p.val) < 0.05;
-                return (
-                  <TouchableOpacity
-                    key={p.val}
-                    style={[styles.presetScaleBtn, isSelected && styles.presetScaleBtnActive]}
-                    onPress={() => {
-                      if (alignTarget === 'hair') {
-                        onScaleChange(p.val);
-                      } else if (onPhotoScaleChange) {
-                        onPhotoScaleChange(p.val);
-                      }
-                    }}
-                  >
-                    <Text style={[styles.presetScaleText, isSelected && styles.presetScaleTextActive]}>
-                      {p.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            {/* Zoom & Rotation Quick Row */}
-            <View style={styles.toolRow}>
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => {
-                  if (alignTarget === 'hair') {
-                    onScaleChange(Math.max(0.4, Number((scale - 0.15).toFixed(2))));
-                  } else if (onPhotoScaleChange) {
-                    onPhotoScaleChange(Math.max(0.5, Number((photoScale - 0.15).toFixed(2))));
-                  }
-                }}
-              >
-                <AppIcon name="zoomOut" size={14} color="#B8895A" />
-                <Text style={styles.actionBtnText}>Thu nhỏ (-15%)</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => {
-                  if (alignTarget === 'hair') {
-                    onScaleChange(Math.min(2.5, Number((scale + 0.15).toFixed(2))));
-                  } else if (onPhotoScaleChange) {
-                    onPhotoScaleChange(Math.min(3.0, Number((photoScale + 0.15).toFixed(2))));
-                  }
-                }}
-              >
-                <AppIcon name="zoomIn" size={14} color="#B8895A" />
-                <Text style={styles.actionBtnText}>Phóng to (+15%)</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => {
-                  if (alignTarget === 'hair') {
-                    onRotationChange(rotation - 5);
-                  } else if (onPhotoRotationChange) {
-                    onPhotoRotationChange(photoRotation - 5);
-                  }
-                }}
-              >
-                <AppIcon name="rotateLeft" size={14} color="#B8895A" />
-                <Text style={styles.actionBtnText}>Xoay -5°</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => {
-                  if (alignTarget === 'hair') {
-                    onRotationChange(rotation + 5);
-                  } else if (onPhotoRotationChange) {
-                    onPhotoRotationChange(photoRotation + 5);
-                  }
-                }}
-              >
-                <AppIcon name="refresh" size={14} color="#B8895A" />
-                <Text style={styles.actionBtnText}>Xoay +5°</Text>
+                <AppIcon name="refresh" size={13} color="#8D7B68" />
+                <Text style={styles.compactResetText}>Đặt lại</Text>
               </TouchableOpacity>
             </View>
 
-            {/* Position Directional Pad Row */}
-            <View style={styles.toolRow}>
-              <TouchableOpacity
-                style={styles.directionalBtn}
-                onPress={() => {
-                  if (alignTarget === 'hair') {
-                    onOffsetYChange(offsetY - 15);
-                  } else if (onPhotoOffsetYChange) {
-                    onPhotoOffsetYChange(photoOffsetY - 15);
-                  }
-                }}
-              >
-                <AppIcon name="arrowLeft" size={13} color="#FFFFFF" style={{ transform: [{ rotate: '90deg' }] }} />
-                <Text style={styles.directionalBtnText}>Lên</Text>
-              </TouchableOpacity>
+            {/* Scale Range Slider (50% - 150%) */}
+            <CompactSlider
+              label="Kích thước"
+              icon="zoomIn"
+              min={50}
+              max={150}
+              step={1}
+              unit="%"
+              value={Math.round((alignTarget === 'hair' ? scale : photoScale) * 100)}
+              onValueChange={(pct) => {
+                const nextScale = Number((pct / 100).toFixed(2));
+                if (alignTarget === 'hair') {
+                  onScaleChange(nextScale);
+                } else if (onPhotoScaleChange) {
+                  onPhotoScaleChange(nextScale);
+                }
+              }}
+              accessibilityLabel={`Kích thước ${alignTarget === 'hair' ? 'mẫu tóc' : 'ảnh mặt'}`}
+            />
 
-              <TouchableOpacity
-                style={styles.directionalBtn}
-                onPress={() => {
-                  if (alignTarget === 'hair') {
-                    onOffsetYChange(offsetY + 15);
-                  } else if (onPhotoOffsetYChange) {
-                    onPhotoOffsetYChange(photoOffsetY + 15);
-                  }
-                }}
-              >
-                <AppIcon name="arrowLeft" size={13} color="#FFFFFF" style={{ transform: [{ rotate: '-90deg' }] }} />
-                <Text style={styles.directionalBtnText}>Xuống</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.directionalBtn}
-                onPress={() => {
-                  if (alignTarget === 'hair') {
-                    onOffsetXChange(offsetX - 15);
-                  } else if (onPhotoOffsetXChange) {
-                    onPhotoOffsetXChange(photoOffsetX - 15);
-                  }
-                }}
-              >
-                <AppIcon name="arrowLeft" size={13} color="#FFFFFF" />
-                <Text style={styles.directionalBtnText}>Trái</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.directionalBtn}
-                onPress={() => {
-                  if (alignTarget === 'hair') {
-                    onOffsetXChange(offsetX + 15);
-                  } else if (onPhotoOffsetXChange) {
-                    onPhotoOffsetXChange(photoOffsetX + 15);
-                  }
-                }}
-              >
-                <AppIcon name="arrowRight" size={13} color="#FFFFFF" />
-                <Text style={styles.directionalBtnText}>Phải</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.directionalBtn, styles.resetBtn]}
-                onPress={() => {
-                  if (alignTarget === 'hair') {
-                    onScaleChange(1.0);
-                    onRotationChange(0);
-                    onOffsetXChange(0);
-                    onOffsetYChange(0);
-                  } else {
-                    onPhotoScaleChange?.(1.0);
-                    onPhotoRotationChange?.(0);
-                    onPhotoOffsetXChange?.(0);
-                    onPhotoOffsetYChange?.(0);
-                  }
-                }}
-              >
-                <AppIcon name="refresh" size={13} color="#FFFFFF" />
-                <Text style={styles.directionalBtnText}>Về giữa</Text>
-              </TouchableOpacity>
-            </View>
+            {/* Rotation Range Slider (-45° to +45°) */}
+            <CompactSlider
+              label="Góc xoay"
+              icon="rotateLeft"
+              min={-45}
+              max={45}
+              step={1}
+              value={alignTarget === 'hair' ? rotation : photoRotation}
+              formatValue={(deg) => (deg > 0 ? `+${deg}°` : `${deg}°`)}
+              onValueChange={(deg) => {
+                if (alignTarget === 'hair') {
+                  onRotationChange(deg);
+                } else if (onPhotoRotationChange) {
+                  onPhotoRotationChange(deg);
+                }
+              }}
+              accessibilityLabel={`Góc xoay ${alignTarget === 'hair' ? 'mẫu tóc' : 'ảnh mặt'}`}
+            />
 
             {/* Quick 90-degree Rotation Button if modifying Photo */}
             {alignTarget === 'photo' && onPhotoRotationChange && (
               <TouchableOpacity
-                style={styles.rotate90Btn}
+                style={styles.compactRotate90Btn}
                 onPress={() => onPhotoRotationChange((photoRotation + 90) % 360)}
                 activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="Xoay ảnh 90 độ"
               >
-                <AppIcon name="refresh" size={14} color="#B8895A" />
-                <Text style={styles.rotate90Text}>🔄 Xoay ảnh 90° (chỉnh ảnh chụp ngang thành thẳng đứng)</Text>
+                <AppIcon name="refresh" size={12} color="#B8895A" />
+                <Text style={styles.compactRotate90Text}>Xoay ảnh 90° (đổi chiều chụp)</Text>
               </TouchableOpacity>
             )}
 
-            {/* Hint Note for User */}
-            <Text style={styles.alignHintText}>
-              💡 Mẹo: Bạn có thể nhấn giữ chuột/ngón tay để kéo thả trực tiếp trên ảnh, lăn chuột để phóng to/thu nhỏ nhanh.
-            </Text>
+            {/* Simplified Subtle Caption */}
+            <Text style={styles.dragCaption}>Kéo trực tiếp trên ảnh để căn chỉnh vị trí.</Text>
+
+            {/* Collapsible fine position adjustment fallback */}
+            <TouchableOpacity
+              style={styles.nudgeToggleRow}
+              onPress={() => setShowNudgeControls(!showNudgeControls)}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={showNudgeControls ? 'Ẩn tinh chỉnh pixel' : 'Hiện tinh chỉnh pixel'}
+            >
+              <Text style={styles.nudgeToggleText}>
+                {showNudgeControls ? 'Ẩn tinh chỉnh pixel' : 'Tinh chỉnh pixel (X, Y)'}
+              </Text>
+              <AppIcon name={showNudgeControls ? 'close' : 'settings'} size={11} color="#9B8B7A" />
+            </TouchableOpacity>
+
+            {showNudgeControls && (
+              <View style={styles.nudgePadRow}>
+                <Text style={styles.nudgeCoordText}>
+                  X={alignTarget === 'hair' ? offsetX : photoOffsetX}px • Y={alignTarget === 'hair' ? offsetY : photoOffsetY}px
+                </Text>
+                <View style={styles.nudgeBtnGroup}>
+                  <TouchableOpacity
+                    style={styles.nudgeMiniBtn}
+                    onPress={() => {
+                      if (alignTarget === 'hair') onOffsetXChange(offsetX - 2);
+                      else onPhotoOffsetXChange?.(photoOffsetX - 2);
+                    }}
+                    accessibilityLabel="Dời sang trái 2px"
+                  >
+                    <Text style={styles.nudgeMiniBtnText}>←</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.nudgeMiniBtn}
+                    onPress={() => {
+                      if (alignTarget === 'hair') onOffsetXChange(offsetX + 2);
+                      else onPhotoOffsetXChange?.(photoOffsetX + 2);
+                    }}
+                    accessibilityLabel="Dời sang phải 2px"
+                  >
+                    <Text style={styles.nudgeMiniBtnText}>→</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.nudgeMiniBtn}
+                    onPress={() => {
+                      if (alignTarget === 'hair') onOffsetYChange(offsetY - 2);
+                      else onPhotoOffsetYChange?.(photoOffsetY - 2);
+                    }}
+                    accessibilityLabel="Dời lên 2px"
+                  >
+                    <Text style={styles.nudgeMiniBtnText}>↑</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.nudgeMiniBtn}
+                    onPress={() => {
+                      if (alignTarget === 'hair') onOffsetYChange(offsetY + 2);
+                      else onPhotoOffsetYChange?.(photoOffsetY + 2);
+                    }}
+                    accessibilityLabel="Dời xuống 2px"
+                  >
+                    <Text style={styles.nudgeMiniBtnText}>↓</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </View>
         )}
 
@@ -767,27 +718,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700'
   },
-  bottomGuideBadge: {
-    position: 'absolute',
-    bottom: 10,
-    left: 12,
-    right: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(15, 26, 25, 0.82)',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(72, 209, 183, 0.2)'
-  },
-  bottomGuideText: {
-    color: '#DDCBB5',
-    fontSize: 11,
-    fontWeight: '500'
-  },
   controlPanel: {
     width: '100%',
     marginTop: 16,
@@ -832,144 +762,131 @@ const styles = StyleSheet.create({
   tabContent: {
     padding: 12
   },
-  targetSelectorRow: {
+  targetHeaderRow: {
     flexDirection: 'row',
-    gap: 8,
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 10
   },
-  targetBtn: {
+  segmentedControl: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: '#FAF5EE',
+    borderRadius: 12,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: '#E8D8C4',
+    marginRight: 8
+  },
+  segmentBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: '#F7EFE4',
-    borderWidth: 1,
-    borderColor: '#E8D8C4'
+    paddingVertical: 7,
+    borderRadius: 9
   },
-  targetBtnActive: {
-    backgroundColor: '#B8895A',
-    borderColor: '#B8895A'
+  segmentBtnActive: {
+    backgroundColor: '#B8895A'
   },
-  targetBtnText: {
+  segmentBtnText: {
     fontSize: 12,
     fontWeight: '600',
     color: '#8D7B68'
   },
-  targetBtnTextActive: {
+  segmentBtnTextActive: {
     color: '#FFFFFF'
   },
-  metricRow: {
+  compactResetBtn: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: '#FAF5ED',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FAF5EE',
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E8D8C4'
+  },
+  compactResetText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#8D7B68'
+  },
+  compactRotate90Btn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#FAF5EE',
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E8D8C4',
+    marginBottom: 8,
+    alignSelf: 'center'
+  },
+  compactRotate90Text: {
+    color: '#B8895A',
+    fontSize: 11,
+    fontWeight: '600'
+  },
+  dragCaption: {
+    fontSize: 12,
+    color: '#8D7B68',
+    textAlign: 'center',
+    marginTop: 2,
+    marginBottom: 4
+  },
+  nudgeToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 4
+  },
+  nudgeToggleText: {
+    fontSize: 11,
+    color: '#9B8B7A',
+    fontWeight: '500'
+  },
+  nudgePadRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FAF5EE',
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 8,
-    marginBottom: 8,
+    marginTop: 4,
     borderWidth: 1,
     borderColor: '#EFE5D8'
   },
-  metricText: {
-    fontSize: 11,
-    color: '#6F6255',
-    fontWeight: '500'
-  },
-  metricHighlight: {
-    color: '#B8895A',
-    fontWeight: '700'
-  },
-  presetScaleRow: {
-    flexDirection: 'row',
-    gap: 6,
-    marginBottom: 8
-  },
-  presetScaleBtn: {
-    flex: 1,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: '#F7EFE4',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#DDCBB5'
-  },
-  presetScaleBtnActive: {
-    backgroundColor: '#B8895A',
-    borderColor: '#B8895A'
-  },
-  presetScaleText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#B8895A'
-  },
-  presetScaleTextActive: {
-    color: '#FFFFFF'
-  },
-  toolRow: {
-    flexDirection: 'row',
-    gap: 6,
-    marginBottom: 8
-  },
-  actionBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    backgroundColor: '#F7EFE4',
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#DDCBB5'
-  },
-  actionBtnText: {
-    color: '#B8895A',
-    fontSize: 11,
-    fontWeight: '700'
-  },
-  directionalBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    backgroundColor: '#B8895A',
-    paddingVertical: 9,
-    borderRadius: 10
-  },
-  directionalBtnText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700'
-  },
-  resetBtn: {
-    backgroundColor: '#B65A4B'
-  },
-  rotate90Btn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: '#F7EFE4',
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#DDCBB5',
-    marginBottom: 8
-  },
-  rotate90Text: {
-    color: '#B8895A',
-    fontSize: 11,
-    fontWeight: '700'
-  },
-  alignHintText: {
+  nudgeCoordText: {
     fontSize: 11,
     color: '#8D7B68',
-    textAlign: 'center',
-    marginTop: 4,
-    lineHeight: 16
+    fontWeight: '500'
+  },
+  nudgeBtnGroup: {
+    flexDirection: 'row',
+    gap: 4
+  },
+  nudgeMiniBtn: {
+    width: 26,
+    height: 24,
+    borderRadius: 6,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E8D8C4',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  nudgeMiniBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6F6255'
   },
   colorSubText: {
     fontSize: 12,
