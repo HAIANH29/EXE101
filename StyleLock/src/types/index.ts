@@ -36,6 +36,7 @@ export interface Salon {
   maxPrice?: number;
   phone: string;
   imageUrl: string;
+  description?: string;
   openingHours: string;
   supportedHairstyles: string[]; // Hairstyle IDs
   services: ServiceItem[];

@@ -82,14 +82,14 @@ type BackendSalon = {
   status?: string;
 };
 
-type BackendBusinessHour = {
+export type BackendBusinessHour = {
   dayOfWeek: number;
   openTime?: string;
   closeTime?: string;
   closed: boolean;
 };
 
-type BackendSalonDetail = BackendSalon & {
+export type BackendSalonDetail = BackendSalon & {
   businessHours?: BackendBusinessHour[];
 };
 
@@ -165,10 +165,20 @@ type BackendNotification = {
   createdAt: string;
 };
 
-type BackendReviewSummary = {
+export type BackendReviewSummary = {
   salonId: number;
   averageRating: number | string;
   totalReviews: number;
+};
+
+export type BackendReview = {
+  id: number;
+  bookingId: number;
+  customerId: number;
+  salonId: number;
+  rating: number;
+  comment?: string;
+  createdAt: string;
 };
 
 type BookingContext = {
@@ -652,6 +662,25 @@ export const backendApi = {
 
   async getSalonReviewSummary(salonId: number) {
     return apiRequest<BackendReviewSummary>(`/api/salons/${salonId}/reviews/summary`);
+  },
+
+  async getSalonReviews(salonId: number, page = 0, size = 50) {
+    const result = await apiRequest<PageResponse<BackendReview>>(
+      `/api/salons/${salonId}/reviews?page=${page}&size=${size}`
+    );
+    return {
+      items: result.content || [],
+      total: result.totalElements || 0,
+      totalPages: result.totalPages || 0,
+      last: result.last ?? true
+    };
+  },
+
+  async createReview(input: { bookingId: number; rating: number; comment?: string }) {
+    return apiRequest<BackendReview>('/api/reviews', {
+      method: 'POST',
+      body: JSON.stringify(input)
+    });
   },
 
   async getPaymentByBooking(bookingId: string | number) {
