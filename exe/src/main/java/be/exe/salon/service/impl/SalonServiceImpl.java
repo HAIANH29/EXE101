@@ -258,6 +258,45 @@ public class SalonServiceImpl implements SalonService {
                 salonId, be.exe.salon.domain.StylistStatus.ACTIVE);
     }
 
+    @Override
+    public SalonResponse createSalonByAdmin(Long ownerId, CreateSalonRequest request) {
+        List<String> images = resolveImages(request.getImageUrl(), request.getImageUrls());
+        String coverImage = images.isEmpty() ? null : images.get(0);
+
+        Salon salon = new Salon(ownerId, request.getName());
+        salon.updateInfo(request.getName(), request.getPhone(), request.getAddress(),
+                request.getDescription(), coverImage);
+        salon.changeStatus(SalonStatus.ACTIVE);
+        salon = salonRepository.saveAndFlush(salon);
+
+        if (!images.isEmpty()) {
+            replaceGallery(salon.getId(), images);
+        }
+
+        return SalonMapper.toResponse(salon, images);
+    }
+
+    @Override
+    public SalonResponse updateSalonByAdmin(Long salonId, UpdateSalonRequest request) {
+        Salon salon = findOrThrow(salonId);
+
+        List<String> images = resolveImages(request.getImageUrl(), request.getImageUrls());
+        String coverImage = images.isEmpty() ? null : images.get(0);
+
+        salon.updateInfo(request.getName(), request.getPhone(), request.getAddress(),
+                request.getDescription(), coverImage);
+
+        replaceGallery(salon.getId(), images);
+
+        return SalonMapper.toResponse(salon, images);
+    }
+
+    @Override
+    public void deleteSalonByAdmin(Long salonId) {
+        Salon salon = findOrThrow(salonId);
+        salon.changeStatus(SalonStatus.INACTIVE);
+    }
+
     private List<String> getImagesForSalon(Long salonId, String fallbackCover) {
         List<String> images = salonImageRepository.findBySalonIdOrderBySortOrderAsc(salonId).stream()
                 .map(SalonImage::getImageUrl)

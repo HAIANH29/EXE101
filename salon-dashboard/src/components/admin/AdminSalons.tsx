@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../../i18n';
 import { useAdminT } from '../../adminI18n';
 import { adminApi } from '../../services/adminApi';
+import { SalonFormInput } from '../../services/api';
 import { AdminOverview, AdminSalonStatus } from '../../types/admin';
 import { BusinessHour, Salon } from '../../types/salon';
 import { Pager, StatusPill } from './AdminParts';
@@ -37,9 +38,27 @@ const DAY_NAMES_EN: Record<number, string> = {
   7: 'Sun'
 };
 
+const MAX_IMAGES = 10;
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
+
+const EMPTY_FORM: SalonFormInput = {
+  name: '',
+  phone: '',
+  address: '',
+  description: '',
+  imageUrl: '',
+  imageUrls: []
+};
+
+const imagesOf = (item?: Salon | null): string[] =>
+  item?.imageUrls?.length ? item.imageUrls : item?.imageUrl ? [item.imageUrl] : [];
+
 export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
-  const { date, language } = useI18n();
+  const { date, language, t } = useI18n();
   const at = useAdminT();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const [filter, setFilter] = useState<AdminSalonStatus | ''>('');
   const [search, setSearch] = useState('');
   const [pageNo, setPageNo] = useState(0);
@@ -56,6 +75,16 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
   const [detailSalon, setDetailSalon] = useState<Salon | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string>();
+
+  // Modal Thêm / Sửa salon
+  const [salonModalMode, setSalonModalMode] = useState<'create' | 'edit' | null>(null);
+  const [editingSalonId, setEditingSalonId] = useState<number | null>(null);
+  const [salonForm, setSalonForm] = useState<SalonFormInput>(EMPTY_FORM);
+  const [formImages, setFormImages] = useState<string[]>([]);
+  const [linkInput, setLinkInput] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [savingSalon, setSavingSalon] = useState(false);
+  const [formError, setFormError] = useState<string>();
 
   const loadOverview = async () => {
     try {
@@ -93,6 +122,7 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
     setFilter(next);
   };
 
+  /* ────── Duyệt salon ────── */
   const handleApprove = async (salon: Salon) => {
     if (!window.confirm(at('slApproveConfirm', { name: salon.name }))) return;
     setBusyId(salon.id);
@@ -113,6 +143,7 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
     }
   };
 
+  /* ────── Từ chối salon ────── */
   const handleReject = async (salon: Salon) => {
     if (!window.confirm(at('slRejectConfirm', { name: salon.name }))) return;
     setBusyId(salon.id);
@@ -133,6 +164,7 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
     }
   };
 
+  /* ────── Bật/tắt trạng thái salon ────── */
   const handleToggleStatus = async (salon: Salon, targetStatus: AdminSalonStatus) => {
     const statusLabel = at(`st_${targetStatus}`);
     if (!window.confirm(at('slStatusChangeConfirm', { name: salon.name, status: statusLabel }))) return;
@@ -154,6 +186,27 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
     }
   };
 
+  /* ────── Xóa / Ngừng hoạt động salon ────── */
+  const handleDeleteSalon = async (salon: Salon) => {
+    if (!window.confirm(at('slDeleteConfirm', { name: salon.name }))) return;
+    setBusyId(salon.id);
+    setError(undefined);
+    setNotice(undefined);
+    try {
+      await adminApi.deleteSalon(salon.id);
+      setNotice(at('slDeleteSuccess', { name: salon.name }));
+      if (detailSalon?.id === salon.id) {
+        setDetailSalon(null);
+      }
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : at('genericError'));
+    } finally {
+      setBusyId(undefined);
+    }
+  };
+
+  /* ────── Xem chi tiết salon ────── */
   const openDetail = async (salon: Salon) => {
     setDetailSalon(salon);
     setSelectedImage(salon.imageUrl || salon.imageUrls?.[0]);
@@ -166,6 +219,133 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
       // Giữ nguyên thông tin salon cơ bản nếu gọi detail bị lỗi
     } finally {
       setLoadingDetail(false);
+    }
+  };
+
+  /* ────── Mở modal Thêm salon ────── */
+  const openCreateModal = () => {
+    setSalonModalMode('create');
+    setEditingSalonId(null);
+    setSalonForm(EMPTY_FORM);
+    setFormImages([]);
+    setLinkInput('');
+    setFormError(undefined);
+  };
+
+  /* ────── Mở modal Sửa salon ────── */
+  const openEditModal = (salon: Salon) => {
+    const imgs = imagesOf(salon);
+    setSalonModalMode('edit');
+    setEditingSalonId(salon.id);
+    setSalonForm({
+      name: salon.name || '',
+      phone: salon.phone || '',
+      address: salon.address || '',
+      description: salon.description || '',
+      imageUrl: salon.imageUrl || '',
+      imageUrls: imgs
+    });
+    setFormImages(imgs);
+    setLinkInput('');
+    setFormError(undefined);
+  };
+
+  /* ────── Thêm link ảnh ────── */
+  const addImageLink = () => {
+    const url = linkInput.trim();
+    if (!url) return;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      setFormError('Link ảnh phải bắt đầu bằng http:// hoặc https://');
+      return;
+    }
+    if (formImages.includes(url)) {
+      setFormError(t('imageDuplicateError'));
+      return;
+    }
+    if (formImages.length >= MAX_IMAGES) {
+      setFormError(t('imageMaxError', { max: MAX_IMAGES }));
+      return;
+    }
+    setFormError(undefined);
+    setFormImages((prev) => [...prev, url]);
+    setLinkInput('');
+  };
+
+  /* ────── Upload file ảnh ────── */
+  const handleUploadFiles = async (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    event.target.value = '';
+    if (files.length === 0) return;
+    setFormError(undefined);
+
+    const availableSlots = MAX_IMAGES - formImages.length;
+    if (files.length > availableSlots) {
+      setFormError(t('imageMaxError', { max: MAX_IMAGES }));
+      return;
+    }
+    const invalid = files.find((file) => !ALLOWED_TYPES.includes(file.type) || file.size > MAX_FILE_BYTES);
+    if (invalid) {
+      setFormError(t('imageFileInvalidError', { name: invalid.name }));
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const uploaded: string[] = [];
+      for (const file of files) {
+        uploaded.push(await adminApi.uploadSalonImage(file));
+      }
+      setFormImages((prev) => {
+        const next = [...prev];
+        for (const u of uploaded) {
+          if (!next.includes(u) && next.length < MAX_IMAGES) next.push(u);
+        }
+        return next;
+      });
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : at('genericError'));
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  /* ────── Lưu form Thêm / Sửa salon ────── */
+  const handleSubmitSalonForm = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!salonForm.name.trim()) {
+      setFormError('Tên chi nhánh không được để trống');
+      return;
+    }
+
+    setSavingSalon(true);
+    setFormError(undefined);
+
+    const payload: SalonFormInput = {
+      name: salonForm.name.trim(),
+      phone: salonForm.phone?.trim() || undefined,
+      address: salonForm.address?.trim() || undefined,
+      description: salonForm.description?.trim() || undefined,
+      imageUrl: formImages[0] || '',
+      imageUrls: formImages
+    };
+
+    try {
+      if (salonModalMode === 'create') {
+        const created = await adminApi.createSalon(payload);
+        setNotice(at('slCreateSuccess', { name: created.name }));
+      } else if (salonModalMode === 'edit' && editingSalonId) {
+        const updated = await adminApi.updateSalon(editingSalonId, payload);
+        setNotice(at('slEditSuccess', { name: updated.name }));
+        if (detailSalon?.id === editingSalonId) {
+          setDetailSalon((curr) => (curr ? { ...curr, ...updated } : null));
+        }
+      }
+      setSalonModalMode(null);
+      await load();
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : at('genericError'));
+    } finally {
+      setSavingSalon(false);
     }
   };
 
@@ -200,10 +380,12 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
           </p>
         </div>
         <div className="header-actions">
+          <button type="button" className="solid-button" onClick={openCreateModal}>
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
+            {at('slCreate')}
+          </button>
           <button type="button" className="ghost-button" onClick={() => void load()}>
-            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-              refresh
-            </span>
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>refresh</span>
             {loading ? at('loading') : at('refresh')}
           </button>
         </div>
@@ -366,7 +548,7 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
           <div className="table-wrapper">
             <div
               className="table-header"
-              style={{ gridTemplateColumns: '1.8fr 1.6fr 1fr 1fr 1.4fr' }}
+              style={{ gridTemplateColumns: '1.8fr 1.6fr 1fr 1fr 1.8fr' }}
             >
               <span>{at('slBranchName')}</span>
               <span>{at('slAddress')}</span>
@@ -387,7 +569,7 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
                   key={salon.id}
                   className="table-row"
                   style={{
-                    gridTemplateColumns: '1.8fr 1.6fr 1fr 1fr 1.4fr',
+                    gridTemplateColumns: '1.8fr 1.6fr 1fr 1fr 1.8fr',
                     alignItems: 'center',
                     background: isPending ? 'rgba(234, 215, 191, 0.12)' : undefined
                   }}
@@ -462,9 +644,7 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
                           onClick={() => void handleApprove(salon)}
                           title={at('slApprove')}
                         >
-                          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                            check
-                          </span>
+                          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>check</span>
                           {at('slApprove')}
                         </button>
                         <button
@@ -475,9 +655,7 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
                           onClick={() => void handleReject(salon)}
                           title={at('slReject')}
                         >
-                          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                            close
-                          </span>
+                          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>close</span>
                           {at('slReject')}
                         </button>
                       </>
@@ -507,16 +685,38 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
                       </button>
                     )}
 
+                    {/* Sửa salon */}
+                    <button
+                      type="button"
+                      className="ghost-button mini"
+                      disabled={isBusy}
+                      onClick={() => openEditModal(salon)}
+                      title={at('slEdit')}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>edit</span>
+                      {at('edit')}
+                    </button>
+
+                    {/* Xóa salon */}
+                    <button
+                      type="button"
+                      className="ghost-button mini"
+                      style={{ color: 'var(--danger)', borderColor: 'rgba(192, 57, 43, 0.3)' }}
+                      disabled={isBusy}
+                      onClick={() => void handleDeleteSalon(salon)}
+                      title={at('slDelete')}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
+                    </button>
+
+                    {/* Chi tiết salon */}
                     <button
                       type="button"
                       className="ghost-button mini"
                       onClick={() => void openDetail(salon)}
                       title={at('slViewDetail')}
                     >
-                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
-                        visibility
-                      </span>
-                      {at('slViewDetail')}
+                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>visibility</span>
                     </button>
                   </div>
                 </div>
@@ -529,7 +729,187 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
         <Pager page={pageNo} totalPages={totalPages} onChange={setPageNo} />
       </section>
 
-      {/* Modal chi tiết chi nhánh */}
+      {/* ═══════════════ MODAL THÊM / SỬA SALON ═══════════════ */}
+      {salonModalMode && (
+        <div className="admin-modal-backdrop" onClick={() => !savingSalon && setSalonModalMode(null)}>
+          <div
+            className="admin-modal"
+            style={{ maxWidth: 620, maxHeight: '90vh', overflowY: 'auto' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="admin-modal-head">
+              <div>
+                <h3>{salonModalMode === 'create' ? at('slCreateTitle') : at('slEditTitle', { id: editingSalonId || '' })}</h3>
+                <p>Cập nhật trực tiếp lên hệ thống qua API backend</p>
+              </div>
+              <button
+                type="button"
+                className="admin-modal-close"
+                disabled={savingSalon}
+                onClick={() => setSalonModalMode(null)}
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className="admin-modal-body">
+              {formError && <div className="error-banner">{formError}</div>}
+
+              <form className="form-grid" onSubmit={handleSubmitSalonForm}>
+                <label className="full">
+                  {at('slBranchName')} *
+                  <input
+                    value={salonForm.name}
+                    onChange={(e) => setSalonForm({ ...salonForm, name: e.target.value })}
+                    required
+                    placeholder="VD: StyleLock Quận 1"
+                    autoFocus
+                  />
+                </label>
+
+                <label>
+                  {at('slPhone')}
+                  <input
+                    type="tel"
+                    value={salonForm.phone || ''}
+                    onChange={(e) => setSalonForm({ ...salonForm, phone: e.target.value })}
+                    placeholder="0901234567"
+                  />
+                </label>
+
+                <label>
+                  {at('slAddress')}
+                  <input
+                    value={salonForm.address || ''}
+                    onChange={(e) => setSalonForm({ ...salonForm, address: e.target.value })}
+                    placeholder="123 Nguyễn Huệ, P. Bến Nghé, Q.1, TP.HCM"
+                  />
+                </label>
+
+                <label className="full">
+                  {at('ctDescription')}
+                  <textarea
+                    rows={3}
+                    value={salonForm.description || ''}
+                    onChange={(e) => setSalonForm({ ...salonForm, description: e.target.value })}
+                    placeholder="Mô tả về dịch vụ, phong cách, đội ngũ chuyên gia của chi nhánh..."
+                  />
+                </label>
+
+                {/* Quản lý hình ảnh chi nhánh */}
+                <div className="full image-manager" style={{ marginTop: 6 }}>
+                  <div className="image-manager-head">
+                    <div>
+                      <strong>{at('slImages')}</strong>
+                      <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--muted)' }}>
+                        Tối đa {MAX_IMAGES} ảnh. Ảnh đầu tiên là ảnh bìa chi nhánh hiển thị trên app.
+                      </p>
+                    </div>
+                    <span className={formImages.length >= MAX_IMAGES ? 'count-full' : ''}>
+                      {formImages.length}/{MAX_IMAGES}
+                    </span>
+                  </div>
+
+                  {formImages.length > 0 && (
+                    <div className="image-grid" style={{ marginTop: 10 }}>
+                      {formImages.map((url, idx) => (
+                        <div className={`image-tile ${idx === 0 ? 'cover' : ''}`} key={`${url}-${idx}`}>
+                          <img src={url} alt={`Ảnh ${idx + 1}`} loading="lazy" />
+                          {idx === 0 && <span className="cover-badge">{t('coverImage')}</span>}
+                          <div className="image-tile-actions">
+                            {idx !== 0 && (
+                              <button
+                                type="button"
+                                className="mini"
+                                onClick={() => {
+                                  setFormImages((prev) => {
+                                    const copy = [...prev];
+                                    const [picked] = copy.splice(idx, 1);
+                                    return [picked, ...copy];
+                                  });
+                                }}
+                              >
+                                {t('makeCover')}
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              className="mini danger"
+                              onClick={() => setFormImages((prev) => prev.filter((_, i) => i !== idx))}
+                            >
+                              {t('removeImage')}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="image-add" style={{ marginTop: 10 }}>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      multiple
+                      hidden
+                      onChange={(e) => void handleUploadFiles(e)}
+                    />
+                    <button
+                      type="button"
+                      className="ghost-button"
+                      disabled={uploadingImage || formImages.length >= MAX_IMAGES}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {uploadingImage ? t('uploadingImages') : `📎 ${t('attachImages')}`}
+                    </button>
+                    <input
+                      type="url"
+                      value={linkInput}
+                      disabled={formImages.length >= MAX_IMAGES}
+                      placeholder={t('linkPlaceholder')}
+                      onChange={(e) => setLinkInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          addImageLink();
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="ghost-button"
+                      disabled={formImages.length >= MAX_IMAGES}
+                      onClick={addImageLink}
+                    >
+                      {t('addLink')}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="admin-modal-actions full" style={{ marginTop: 14 }}>
+                  <button
+                    type="button"
+                    className="ghost-button"
+                    disabled={savingSalon || uploadingImage}
+                    onClick={() => setSalonModalMode(null)}
+                  >
+                    {at('cancel')}
+                  </button>
+                  <button
+                    type="submit"
+                    className="solid-button"
+                    disabled={savingSalon || uploadingImage}
+                  >
+                    {savingSalon ? at('saving') : at('save')}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════ MODAL CHI TIẾT CHI NHÁNH ═══════════════ */}
       {detailSalon && (
         <div className="admin-modal-backdrop" onClick={() => setDetailSalon(null)}>
           <div
@@ -709,7 +1089,7 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
                 )}
               </div>
 
-              {/* Hành động phê duyệt / từ chối trong modal */}
+              {/* Hành động phê duyệt / từ chối nếu PENDING */}
               {detailSalon.status === 'PENDING_APPROVAL' && (
                 <div
                   style={{
@@ -758,8 +1138,41 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
               )}
             </div>
 
-            {/* Modal footer */}
-            <div className="admin-modal-actions" style={{ padding: '16px 24px', borderTop: '1px solid var(--line)' }}>
+            {/* Modal footer: Sửa, Xóa, Đóng */}
+            <div
+              className="admin-modal-actions"
+              style={{
+                padding: '16px 24px',
+                borderTop: '1px solid var(--line)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}
+            >
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  type="button"
+                  className="solid-button mini"
+                  onClick={() => {
+                    const current = detailSalon;
+                    setDetailSalon(null);
+                    openEditModal(current);
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>edit</span>
+                  {at('slEdit')}
+                </button>
+                <button
+                  type="button"
+                  className="ghost-button mini"
+                  style={{ color: 'var(--danger)', borderColor: 'rgba(192, 57, 43, 0.3)' }}
+                  onClick={() => void handleDeleteSalon(detailSalon)}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
+                  {at('slDelete')}
+                </button>
+              </div>
+
               <button
                 type="button"
                 className="ghost-button"

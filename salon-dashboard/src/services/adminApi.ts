@@ -9,7 +9,7 @@ import {
   HairstyleCategory,
   HairstyleFormInput
 } from '../types/admin';
-import { request } from './api';
+import { request, salonApi, SalonFormInput } from './api';
 
 export const adminApi = {
   getOverview() {
@@ -36,6 +36,30 @@ export const adminApi = {
     return request<Salon>(`/api/admin/salons/${salonId}/reject`, {
       method: 'PATCH'
     });
+  },
+
+  createSalon(input: SalonFormInput) {
+    return request<Salon>('/api/admin/salons', {
+      method: 'POST',
+      body: JSON.stringify(input)
+    });
+  },
+
+  updateSalon(salonId: number, input: SalonFormInput) {
+    return request<Salon>(`/api/admin/salons/${salonId}`, {
+      method: 'PUT',
+      body: JSON.stringify(input)
+    });
+  },
+
+  deleteSalon(salonId: number) {
+    return request<void>(`/api/admin/salons/${salonId}`, {
+      method: 'DELETE'
+    });
+  },
+
+  uploadSalonImage(file: File) {
+    return salonApi.uploadSalonImage(file);
   },
 
   updateSalonStatus(salonId: number, status: AdminSalonStatus) {
@@ -71,6 +95,16 @@ export const adminApi = {
 
   deleteUser(userId: number) {
     return request<void>(`/api/admin/users/${userId}`, { method: 'DELETE' });
+  },
+
+  getPayments(page: number, size = 10, status?: string) {
+    const query = new URLSearchParams({ page: String(page), size: String(size) });
+    if (status) query.set('status', status);
+    return request<PageResponse<PaymentInfo>>(`/api/admin/payments?${query}`);
+  },
+
+  getPaymentById(paymentId: number) {
+    return request<PaymentInfo>(`/api/admin/payments/${paymentId}`);
   },
 
   refundPayment(paymentId: number, input: { refundAmount: number; refundReference: string; note?: string }) {

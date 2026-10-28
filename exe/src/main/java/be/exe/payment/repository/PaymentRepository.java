@@ -20,6 +20,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     Page<Payment> findByCustomerIdOrderByCreatedAtDesc(Long customerId, Pageable pageable);
 
+    Page<Payment> findByStatus(PaymentStatus status, Pageable pageable);
+
     Optional<Payment> findFirstByCustomerIdAndSalonIdAndPaymentTypeAndStatusIn(
             Long customerId, Long salonId, PaymentType paymentType, List<PaymentStatus> statuses);
 
