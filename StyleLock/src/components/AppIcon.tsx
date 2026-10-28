@@ -1,6 +1,47 @@
-import { StyleProp, StyleSheet, TextStyle, View, ViewStyle } from 'react-native';
+import { StyleProp, StyleSheet, TextStyle, View, ViewStyle, Platform } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Font from 'expo-font';
+
+if (Platform.OS === 'web') {
+  Font.loadAsync({
+    ...Feather.font,
+    ...Ionicons.font,
+    Feather: Feather.font.feather,
+    Ionicons: Ionicons.font.ionicons
+  }).catch(() => {});
+
+  if (typeof document !== 'undefined') {
+    const styleId = 'expo-vector-icons-web-fallback';
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.type = 'text/css';
+      style.appendChild(
+        document.createTextNode(`
+          @font-face {
+            font-family: 'feather';
+            src: url('https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.woff') format('woff'),
+                 url('https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.29.0/feather.woff') format('woff');
+          }
+          @font-face {
+            font-family: 'Feather';
+            src: url('https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.woff') format('woff');
+          }
+          @font-face {
+            font-family: 'ionicons';
+            src: url('https://cdnjs.cloudflare.com/ajax/libs/ionicons/2.0.1/fonts/ionicons.woff') format('woff');
+          }
+          @font-face {
+            font-family: 'Ionicons';
+            src: url('https://cdnjs.cloudflare.com/ajax/libs/ionicons/2.0.1/fonts/ionicons.woff') format('woff');
+          }
+        `)
+      );
+      document.head.appendChild(style);
+    }
+  }
+}
 
 type FeatherName = keyof typeof Feather.glyphMap;
 
@@ -52,6 +93,7 @@ export type AppIconName =
   | 'trendingUp'
   | 'arrowUp'
   | 'download'
+  | 'wifi'
   | 'trash';
 
 const ICON_MAP: Record<AppIconName, FeatherName> = {
@@ -102,6 +144,7 @@ const ICON_MAP: Record<AppIconName, FeatherName> = {
   eyeOff: 'eye-off',
   settings: 'settings',
   trendingUp: 'trending-up',
+  wifi: 'wifi',
   trash: 'trash-2'
 };
 

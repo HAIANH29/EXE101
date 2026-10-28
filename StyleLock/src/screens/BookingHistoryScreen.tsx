@@ -23,11 +23,10 @@ interface BookingHistoryScreenProps {
     route?: { params?: { initialTab?: string } };
 }
 
-const TABS = [
-    { label: 'Upcoming', value: 'UPCOMING' },
-    { label: 'Completed', value: 'COMPLETED' },
-    { label: 'Cancelled', value: 'CANCELLED' },
-    { label: 'Payment History', value: 'PAYMENTS' }
+const BOOKING_FILTERS = [
+    { label: 'Sắp tới', value: 'UPCOMING' },
+    { label: 'Đã hoàn thành', value: 'COMPLETED' },
+    { label: 'Đã hủy', value: 'CANCELLED' }
 ];
 
 const PAYMENT_FILTERS = [
@@ -134,6 +133,20 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
             return payment.status === paymentFilter;
         });
     }, [paymentsList, paymentFilter]);
+
+    const totalPaidAmount = useMemo(() => {
+        return paymentsList
+            .filter((p) => p.status === 'PAID')
+            .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    }, [paymentsList]);
+
+    const paidCount = useMemo(() => {
+        return paymentsList.filter((p) => p.status === 'PAID').length;
+    }, [paymentsList]);
+
+    const pendingCount = useMemo(() => {
+        return paymentsList.filter((p) => p.status === 'PENDING').length;
+    }, [paymentsList]);
 
     const getStatusBadge = (status: BookingStatus) => {
         switch (status) {
@@ -324,13 +337,6 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
                 <Text style={styles.brandTitle}>StyleLock</Text>
 
                 <View style={styles.headerRightActions}>
-                    <TouchableOpacity
-                        style={[styles.headerIconBtn, activeTab === 'PAYMENTS' && styles.headerIconBtnActive]}
-                        onPress={() => setActiveTab(activeTab === 'PAYMENTS' ? 'UPCOMING' : 'PAYMENTS')}
-                        activeOpacity={0.8}
-                    >
-                        <AppIcon name="card" size={18} color={activeTab === 'PAYMENTS' ? '#2C2219' : '#B8895A'} />
-                    </TouchableOpacity>
                     <NotificationBellButton navigation={navigation} style={styles.headerIconBtn} />
                     <TouchableOpacity
                         style={styles.headerIconBtn}
@@ -345,70 +351,148 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 {/* Page Title */}
                 <Text style={styles.pageTitle}>
-                    {activeTab === 'PAYMENTS' ? 'Payment History' : 'My Bookings'}
+                    {activeTab === 'PAYMENTS' ? 'Lịch sử thanh toán' : 'Lịch hẹn của bạn'}
                 </Text>
 
-                {/* Filter Tabs Scroll */}
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.tabsScroll}
-                    style={styles.tabsScrollWrapper}
-                >
-                    {TABS.map((tab) => {
-                        const isActive = activeTab === tab.value;
-                        return (
-                            <TouchableOpacity
-                                key={tab.value}
-                                style={[styles.tabChip, isActive && styles.tabChipActive]}
-                                onPress={() => setActiveTab(tab.value)}
-                            >
-                                <Text style={[styles.tabChipText, isActive && styles.tabChipTextActive]}>
-                                    {tab.label}
-                                </Text>
-                            </TouchableOpacity>
-                        );
-                    })}
-                </ScrollView>
+                {/* Primary Segmented Switcher: Bookings vs Payments */}
+                <View style={styles.segmentContainer}>
+                    <TouchableOpacity
+                        style={[styles.segmentBtn, activeTab !== 'PAYMENTS' && styles.segmentBtnActive]}
+                        onPress={() => setActiveTab('UPCOMING')}
+                        activeOpacity={0.8}
+                    >
+                        <AppIcon
+                            name="calendar"
+                            size={16}
+                            color={activeTab !== 'PAYMENTS' ? '#FFFFFF' : '#6F6255'}
+                        />
+                        <Text style={[styles.segmentText, activeTab !== 'PAYMENTS' && styles.segmentTextActive]}>
+                            Lịch hẹn ({allBookings.length})
+                        </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles.segmentBtn, activeTab === 'PAYMENTS' && styles.segmentBtnActive]}
+                        onPress={() => setActiveTab('PAYMENTS')}
+                        activeOpacity={0.8}
+                    >
+                        <AppIcon
+                            name="card"
+                            size={16}
+                            color={activeTab === 'PAYMENTS' ? '#FFFFFF' : '#6F6255'}
+                        />
+                        <Text style={[styles.segmentText, activeTab === 'PAYMENTS' && styles.segmentTextActive]}>
+                            Lịch sử thanh toán ({paymentsList.length})
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Single Row Filter Chips */}
+                <View style={styles.filterRow}>
+                    {activeTab === 'PAYMENTS'
+                        ? PAYMENT_FILTERS.map((pf) => {
+                              const isFilterActive = paymentFilter === pf.value;
+                              return (
+                                  <TouchableOpacity
+                                      key={pf.value}
+                                      style={[styles.filterChip, isFilterActive && styles.filterChipActive]}
+                                      onPress={() => setPaymentFilter(pf.value)}
+                                      activeOpacity={0.8}
+                                  >
+                                      <Text style={[styles.filterChipText, isFilterActive && styles.filterChipTextActive]}>
+                                          {pf.label}
+                                      </Text>
+                                  </TouchableOpacity>
+                              );
+                          })
+                        : BOOKING_FILTERS.map((tab) => {
+                              const isActive = activeTab === tab.value;
+                              return (
+                                  <TouchableOpacity
+                                      key={tab.value}
+                                      style={[styles.filterChip, isActive && styles.filterChipActive]}
+                                      onPress={() => setActiveTab(tab.value)}
+                                      activeOpacity={0.8}
+                                  >
+                                      <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
+                                          {tab.label}
+                                      </Text>
+                                  </TouchableOpacity>
+                              );
+                          })}
+                </View>
 
                 {/* Main Content: Payments or Bookings */}
                 {activeTab === 'PAYMENTS' ? (
                     <View style={styles.paymentsSection}>
-                        {/* Sub-Filters for Payments */}
-                        <View style={styles.paymentFiltersRow}>
-                            {PAYMENT_FILTERS.map((pf) => {
-                                const isFilterActive = paymentFilter === pf.value;
-                                return (
-                                    <TouchableOpacity
-                                        key={pf.value}
-                                        style={[styles.paymentFilterChip, isFilterActive && styles.paymentFilterChipActive]}
-                                        onPress={() => setPaymentFilter(pf.value)}
-                                        activeOpacity={0.8}
-                                    >
-                                        <Text style={[styles.paymentFilterText, isFilterActive && styles.paymentFilterTextActive]}>
-                                            {pf.label}
-                                        </Text>
-                                    </TouchableOpacity>
-                                );
-                            })}
+                        {/* Financial Overview Card */}
+                        <View style={styles.paymentSummaryCard}>
+                            <View style={styles.summaryTopRow}>
+                                <View style={styles.summaryIconBox}>
+                                    <AppIcon name="card" size={20} color="#B8895A" />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.summarySubtitle}>Tổng chi tiêu đã thanh toán</Text>
+                                    <Text style={styles.summaryAmount}>{formatVnd(totalPaidAmount)}</Text>
+                                </View>
+                                <TouchableOpacity
+                                    style={styles.summaryRefreshBtn}
+                                    onPress={loadPayments}
+                                    activeOpacity={0.7}
+                                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                >
+                                    <AppIcon name="refresh" size={15} color="#8D7B68" />
+                                </TouchableOpacity>
+                            </View>
+
+                            <View style={styles.summaryMetricsRow}>
+                                <View style={styles.summaryMetricItem}>
+                                    <Text style={styles.summaryMetricValue}>{paymentsList.length}</Text>
+                                    <Text style={styles.summaryMetricLabel}>Tổng giao dịch</Text>
+                                </View>
+                                <View style={styles.summaryMetricDivider} />
+                                <View style={styles.summaryMetricItem}>
+                                    <Text style={[styles.summaryMetricValue, { color: '#2E7D32' }]}>{paidCount}</Text>
+                                    <Text style={styles.summaryMetricLabel}>Thành công</Text>
+                                </View>
+                                <View style={styles.summaryMetricDivider} />
+                                <View style={styles.summaryMetricItem}>
+                                    <Text style={[styles.summaryMetricValue, pendingCount > 0 && { color: '#D97706' }]}>
+                                        {pendingCount}
+                                    </Text>
+                                    <Text style={styles.summaryMetricLabel}>Chờ thanh toán</Text>
+                                </View>
+                            </View>
                         </View>
 
                         {paymentsLoading ? (
                             <View style={styles.loadingBox}>
-                                <ActivityIndicator color="#B8895A" />
+                                <ActivityIndicator color="#B8895A" size="small" />
                                 <Text style={styles.loadingText}>Đang tải lịch sử thanh toán...</Text>
                             </View>
                         ) : visiblePayments.length === 0 ? (
                             <View style={styles.emptyCard}>
-                                <IconBadge name="card" size={24} containerStyle={styles.emptyIconBadge} />
+                                <View style={styles.emptyIconBadge}>
+                                    <AppIcon name="card" size={28} color="#B8895A" />
+                                </View>
                                 <Text style={styles.emptyTitle}>
                                     {paymentsList.length === 0
-                                        ? 'Bạn chưa có giao dịch thanh toán nào.'
-                                        : 'Không có giao dịch nào ở mục này.'}
+                                        ? 'Bạn chưa có giao dịch thanh toán nào'
+                                        : 'Không có giao dịch nào ở mục này'}
                                 </Text>
                                 <Text style={styles.emptySub}>
-                                    Các giao dịch giữ chỗ và hóa đơn dịch vụ sẽ xuất hiện tại đây.
+                                    {paymentsList.length === 0
+                                        ? 'Các giao dịch đặt cọc giữ chỗ và hóa đơn dịch vụ làm tóc sẽ xuất hiện tại đây sau khi thực hiện.'
+                                        : 'Vui lòng chọn bộ lọc khác hoặc kiểm tra lại sau.'}
                                 </Text>
+                                <TouchableOpacity
+                                    style={styles.exploreBtn}
+                                    onPress={() => navigation.navigate('SalonList')}
+                                    activeOpacity={0.85}
+                                >
+                                    <AppIcon name="scissors" size={16} color="#FFFFFF" />
+                                    <Text style={styles.exploreBtnText}>Khám phá salon & Đặt lịch ngay</Text>
+                                </TouchableOpacity>
                             </View>
                         ) : (
                             <View style={styles.paymentsList}>
@@ -417,6 +501,8 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
                                     const matchedBooking = allBookings.find(
                                         (b) => b.id === String(payment.bookingId) || (payment.bookingId && b.apiId === payment.bookingId)
                                     );
+                                    const isPending = payment.status === 'PENDING';
+                                    const isPaid = payment.status === 'PAID';
 
                                     return (
                                         <TouchableOpacity
@@ -424,7 +510,7 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
                                             style={styles.paymentCard}
                                             activeOpacity={0.88}
                                             onPress={() => {
-                                                if (payment.status === 'PENDING') {
+                                                if (isPending) {
                                                     navigation.navigate('Payment', {
                                                         bookingId: payment.bookingId,
                                                         paymentId: payment.id
@@ -436,8 +522,12 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
                                         >
                                             <View style={styles.paymentCardTop}>
                                                 <View style={styles.paymentCardHeaderLeft}>
-                                                    <View style={styles.paymentIconBox}>
-                                                        <AppIcon name="card" size={18} color="#B8895A" />
+                                                    <View style={[styles.paymentIconBox, isPaid && styles.paymentIconBoxPaid]}>
+                                                        <AppIcon
+                                                            name={isPaid ? 'check' : isPending ? 'clock' : 'card'}
+                                                            size={18}
+                                                            color={isPaid ? '#2E7D32' : isPending ? '#D97706' : '#B8895A'}
+                                                        />
                                                     </View>
                                                     <View style={{ flex: 1 }}>
                                                         <Text style={styles.paymentTypeTitle} numberOfLines={1}>
@@ -449,6 +539,7 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
                                                         </Text>
                                                     </View>
                                                 </View>
+
                                                 <View style={[styles.paymentStatusPill, { backgroundColor: meta.background }]}>
                                                     <Text style={[styles.paymentStatusPillText, { color: meta.color }]}>
                                                         {meta.label}
@@ -465,14 +556,22 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
                                                         {formatDateTime(payment.paidAt || payment.createdAt)}
                                                     </Text>
                                                 </View>
-                                                <Text style={styles.paymentAmountText}>
+                                                <Text style={[styles.paymentAmountText, isPaid && { color: '#2E7D32' }]}>
                                                     {formatVnd(payment.amount)}
                                                 </Text>
                                             </View>
 
-                                            {payment.status === 'PENDING' && (
+                                            {isPending && (
                                                 <View style={styles.payNowBanner}>
+                                                    <AppIcon name="qr" size={14} color="#B8895A" />
                                                     <Text style={styles.payNowText}>Chạm để quét mã QR thanh toán ngay ➔</Text>
+                                                </View>
+                                            )}
+
+                                            {!isPending && matchedBooking && (
+                                                <View style={styles.viewBookingRow}>
+                                                    <Text style={styles.viewBookingText}>Xem chi tiết lịch hẹn</Text>
+                                                    <AppIcon name="arrowRight" size={12} color="#B8895A" />
                                                 </View>
                                             )}
                                         </TouchableOpacity>
@@ -785,65 +884,151 @@ const styles = StyleSheet.create({
         color: '#241F1A',
         marginBottom: 16
     },
-    tabsScrollWrapper: {
-        marginBottom: 16,
-        marginHorizontal: -20
-    },
-    tabsScroll: {
+    segmentContainer: {
         flexDirection: 'row',
-        gap: 8,
-        paddingHorizontal: 20
+        backgroundColor: '#E5D9CA',
+        borderRadius: 14,
+        padding: 3,
+        marginBottom: 14,
+        gap: 4
     },
-    tabChip: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: '#DDCBB5',
-        backgroundColor: '#FFFFFF'
+    segmentBtn: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        paddingVertical: 9,
+        borderRadius: 11
     },
-    tabChipActive: {
+    segmentBtnActive: {
         backgroundColor: '#B8895A',
-        borderColor: '#B8895A'
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2
     },
-    tabChipText: {
+    segmentText: {
         fontSize: 13,
-        fontWeight: '500',
+        fontWeight: '600',
         color: '#6F6255'
     },
-    tabChipTextActive: {
+    segmentTextActive: {
         color: '#FFFFFF',
         fontWeight: '700'
     },
-    paymentsSection: {
-        gap: 12
-    },
-    paymentFiltersRow: {
+    filterRow: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: 8,
-        marginBottom: 8
+        marginBottom: 16
     },
-    paymentFilterChip: {
+    filterChip: {
         paddingVertical: 7,
         paddingHorizontal: 14,
         borderRadius: 20,
         backgroundColor: '#FFFFFF',
         borderWidth: 1,
-        borderColor: '#E0D2C1'
+        borderColor: '#DDCBB5'
     },
-    paymentFilterChipActive: {
-        backgroundColor: '#B8895A',
-        borderColor: '#B8895A'
+    filterChipActive: {
+        backgroundColor: '#241F1A',
+        borderColor: '#241F1A'
     },
-    paymentFilterText: {
+    filterChipText: {
         fontSize: 12,
         fontWeight: '600',
         color: '#6F6255'
     },
-    paymentFilterTextActive: {
-        color: '#FFFFFF',
+    filterChipTextActive: {
+        color: '#FAF5EE',
         fontWeight: '700'
+    },
+    paymentsSection: {
+        gap: 12
+    },
+    paymentSummaryCard: {
+        backgroundColor: '#FAF5EE',
+        borderRadius: 20,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: '#EFE3D3',
+        marginBottom: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 6,
+        elevation: 2
+    },
+    summaryTopRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        marginBottom: 12
+    },
+    summaryIconBox: {
+        width: 42,
+        height: 42,
+        borderRadius: 13,
+        backgroundColor: '#F3EAE0',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: '#E5D9CA'
+    },
+    summarySubtitle: {
+        fontSize: 12,
+        color: '#8D7B68',
+        fontWeight: '500',
+        marginBottom: 2
+    },
+    summaryAmount: {
+        fontSize: 20,
+        fontWeight: '800',
+        color: '#241F1A',
+        letterSpacing: 0.3
+    },
+    summaryRefreshBtn: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#FFFFFF',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: '#E5D9CA'
+    },
+    summaryMetricsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 14,
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        borderWidth: 1,
+        borderColor: '#EFE3D3'
+    },
+    summaryMetricItem: {
+        flex: 1,
+        alignItems: 'center'
+    },
+    summaryMetricValue: {
+        fontSize: 15,
+        fontWeight: '800',
+        color: '#241F1A'
+    },
+    summaryMetricLabel: {
+        fontSize: 11,
+        color: '#8D7B68',
+        fontWeight: '500',
+        marginTop: 2
+    },
+    summaryMetricDivider: {
+        width: 1,
+        height: 22,
+        backgroundColor: '#EFE3D3'
     },
     paymentsList: {
         gap: 12
@@ -881,6 +1066,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         borderWidth: 1,
         borderColor: '#EFE3D3'
+    },
+    paymentIconBoxPaid: {
+        backgroundColor: '#E8F5E9',
+        borderColor: '#C8E6C9'
     },
     paymentTypeTitle: {
         fontSize: 15,
@@ -927,16 +1116,31 @@ const styles = StyleSheet.create({
     },
     payNowBanner: {
         marginTop: 10,
-        backgroundColor: '#FAF5EE',
+        backgroundColor: '#FFF8E1',
         paddingVertical: 8,
         paddingHorizontal: 12,
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: '#EFE3D3'
+        borderColor: '#FFE082',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6
     },
     payNowText: {
         fontSize: 12,
         fontWeight: '700',
+        color: '#B8895A'
+    },
+    viewBookingRow: {
+        marginTop: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        gap: 4
+    },
+    viewBookingText: {
+        fontSize: 12,
+        fontWeight: '600',
         color: '#B8895A'
     },
     loadingBox: {
