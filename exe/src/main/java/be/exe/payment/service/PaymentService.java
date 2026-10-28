@@ -33,4 +33,8 @@ public interface PaymentService {
     Page<PaymentResponse> getPaymentHistory(Long requesterId, Pageable pageable);
 
     PaymentResponse refundPayment(Long paymentId, BigDecimal refundAmount, String refundReference, String note, Long adminId);
+
+    Page<PaymentResponse> getAllPayments(String status, Pageable pageable);
+
+    PaymentResponse getPaymentForAdmin(Long paymentId);
 }

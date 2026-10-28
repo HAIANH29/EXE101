@@ -22,6 +22,7 @@ public record PaymentResponse(
         String refundReason,
         String refundReference,
         Instant refundRequestedAt,
-        Instant refundedAt
+        Instant refundedAt,
+        Long customerId
 ) {
 }
