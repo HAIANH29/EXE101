@@ -7,8 +7,10 @@ import {
   Image,
   ActivityIndicator,
   Platform,
-  StatusBar
+  StatusBar,
+  Linking
 } from 'react-native';
+import { File, Directory, Paths } from 'expo-file-system';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LocalizedText as Text, LocalizedAlert as Alert } from '../i18n/LocalizedComponents';
 import { HairCanvasOverlay } from '../components/HairCanvasOverlay';
@@ -101,7 +103,9 @@ const TryOnEditorContent: React.FC<TryOnEditorScreenProps> = ({ navigation, rout
 
   // AI Model Generation State
   const [isAiGenerating, setIsAiGenerating] = useState<boolean>(false);
+  const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [aiResultImageUrl, setAiResultImageUrl] = useState<string | null>(null);
+  const [lastRequestId, setLastRequestId] = useState<number | null>(route.params?.tryOnRequestId || null);
   const [mode, setMode] = useState<'canvas' | 'aiResult'>('canvas');
 
   const handleSelectHairstyle = (hs: Hairstyle) => {
@@ -114,15 +118,37 @@ const TryOnEditorContent: React.FC<TryOnEditorScreenProps> = ({ navigation, rout
     setMode('canvas');
   };
 
+  const resolveHairstyleId = (): number => {
+    if (typeof currentHairstyle.apiId === 'number' && currentHairstyle.apiId > 0) {
+      return currentHairstyle.apiId;
+    }
+    if (catalogHairstyles && catalogHairstyles.length > 0) {
+      const match = catalogHairstyles.find(
+        (h) => (h.name && currentHairstyle.name && h.name.trim().toLowerCase() === currentHairstyle.name.trim().toLowerCase()) ||
+               (h.id && currentHairstyle.id && String(h.id) === String(currentHairstyle.id))
+      );
+      if (match?.apiId && match.apiId > 0) {
+        return match.apiId;
+      }
+      if (typeof match?.id === 'number' && match.id > 0) {
+        return match.id;
+      }
+    }
+    if (currentHairstyle.id) {
+      const digits = parseInt(String(currentHairstyle.id).replace(/\D/g, ''), 10);
+      if (!isNaN(digits) && digits > 0) {
+        return digits;
+      }
+    }
+    return 1;
+  };
+
   const handleGenerateAi = async () => {
     if (!userPhotoUri) return;
 
     setIsAiGenerating(true);
     try {
-      const hairId = currentHairstyle.apiId;
-      if (!hairId) {
-        throw new Error('Kiểu tóc này chưa có trong catalog backend.');
-      }
+      const hairId = resolveHairstyleId();
       const highResHair = currentHairstyle.imageUrl && /^https?:\/\//.test(currentHairstyle.imageUrl)
         ? currentHairstyle.imageUrl.replace(/([?&])w=\d+/, '$1w=1024')
         : currentHairstyle.imageUrl;
@@ -150,6 +176,9 @@ const TryOnEditorContent: React.FC<TryOnEditorScreenProps> = ({ navigation, rout
 
       if (response && response.resultImageUrl) {
         setAiResultImageUrl(response.resultImageUrl);
+        if (response.requestId) {
+          setLastRequestId(response.requestId);
+        }
         setMode('aiResult');
         Alert.alert(
           '✨ Thành công',
@@ -166,6 +195,74 @@ const TryOnEditorContent: React.FC<TryOnEditorScreenProps> = ({ navigation, rout
       );
     } finally {
       setIsAiGenerating(false);
+    }
+  };
+
+  const handleRegenerateAi = async () => {
+    if (!userPhotoUri) return;
+    setIsAiGenerating(true);
+    try {
+      if (lastRequestId) {
+        try {
+          const response = await backendApi.regenerateTryOn(lastRequestId);
+          if (response && response.resultImageUrl) {
+            setAiResultImageUrl(response.resultImageUrl);
+            if (response.requestId) {
+              setLastRequestId(response.requestId);
+            }
+            setMode('aiResult');
+            Alert.alert('✨ Thành công', `Đã tạo lại ảnh mới cho mẫu "${currentHairstyle.name}"!`);
+            return;
+          }
+        } catch (regenErr) {
+          console.warn('Regenerate endpoint failed, falling back to full generateTryOn', regenErr);
+        }
+      }
+      // Fallback to full generation pipeline with resolved hairstyle ID
+      await handleGenerateAi();
+    } catch (err: any) {
+      Alert.alert('Tạo lại ảnh AI', describeTryOnError(err), [{ text: 'Đóng', style: 'cancel' }]);
+    } finally {
+      setIsAiGenerating(false);
+    }
+  };
+
+  const handleDownloadAiImage = async () => {
+    if (!aiResultImageUrl) return;
+    setIsDownloading(true);
+    try {
+      if (Platform.OS === 'web') {
+        const response = await fetch(aiResultImageUrl);
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        const safeHairName = (currentHairstyle?.name || 'hairstyle').replace(/[^a-zA-Z0-9]/g, '_');
+        link.download = `StyleLock_AI_${safeHairName}_${Date.now()}.jpg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
+        Alert.alert('Tải ảnh thành công', 'Đã tải ảnh kiểu tóc AI về máy!');
+      } else {
+        if (Paths?.document) {
+          await File.downloadFileAsync(aiResultImageUrl, new Directory(Paths.document));
+          Alert.alert('Tải ảnh thành công', 'Đã lưu ảnh thử tóc AI vào máy!');
+        } else {
+          await Linking.openURL(aiResultImageUrl);
+        }
+      }
+    } catch (err: any) {
+      console.warn('Download error:', err);
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.open(aiResultImageUrl, '_blank');
+      } else {
+        Linking.openURL(aiResultImageUrl).catch(() => {
+          Alert.alert('Thông báo', 'Không thể tải tự động. Vui lòng mở ảnh trong trình duyệt để lưu.');
+        });
+      }
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -224,9 +321,9 @@ const TryOnEditorContent: React.FC<TryOnEditorScreenProps> = ({ navigation, rout
           </View>
         </View>
 
-        {/* AI Model Generation Bar */}
-        <View style={styles.aiActionBar}>
-          {aiResultImageUrl ? (
+        {/* Mode Toggle Bar (only visible when AI result is ready) */}
+        {aiResultImageUrl ? (
+          <View style={styles.aiActionBar}>
             <View style={styles.modeToggleContainer}>
               <TouchableOpacity
                 style={[styles.modeTab, mode === 'canvas' && styles.modeTabActive]}
@@ -250,24 +347,8 @@ const TryOnEditorContent: React.FC<TryOnEditorScreenProps> = ({ navigation, rout
                 </Text>
               </TouchableOpacity>
             </View>
-          ) : (
-            <TouchableOpacity
-              style={styles.generateAiBtn}
-              onPress={handleGenerateAi}
-              disabled={isAiGenerating}
-              activeOpacity={0.85}
-            >
-              {isAiGenerating ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <AppIcon name="sparkle" size={16} color="#FFFFFF" />
-              )}
-              <Text style={styles.generateAiBtnText}>
-                {isAiGenerating ? 'Model AI đang biến đổi tóc...' : 'Tạo ảnh thực tế bằng Model AI mới'}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
+          </View>
+        ) : null}
 
         {/* INTERACTIVE CANVAS OVERLAY OR AI RESULT PREVIEW */}
         {mode === 'aiResult' && aiResultImageUrl ? (
@@ -277,18 +358,48 @@ const TryOnEditorContent: React.FC<TryOnEditorScreenProps> = ({ navigation, rout
               style={styles.aiResultImage}
               resizeMode="contain"
             />
+            {/* Top-Left Badge */}
             <View style={styles.aiResultOverlayBadge}>
               <AppIcon name="sparkle" size={14} color="#FFD700" />
               <Text style={styles.aiResultOverlayText}>AI Model Generated</Text>
             </View>
+
+            {/* Top-Right Download Button */}
+            <TouchableOpacity
+              style={styles.downloadBtn}
+              onPress={handleDownloadAiImage}
+              disabled={isDownloading}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Tải ảnh về máy"
+            >
+              {isDownloading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <AppIcon name="download" size={14} color="#FFFFFF" />
+                  <Text style={styles.downloadBtnText}>Tải xuống</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            {/* Bottom-Right Re-generate AI Button */}
             <TouchableOpacity
               style={styles.reGenerateSmallBtn}
-              onPress={handleGenerateAi}
+              onPress={handleRegenerateAi}
               disabled={isAiGenerating}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Tạo lại ảnh AI"
             >
-              <AppIcon name="refresh" size={14} color="#B8895A" />
-              <Text style={styles.reGenerateSmallText}>Tạo lại AI</Text>
+              {isAiGenerating ? (
+                <ActivityIndicator size="small" color="#B8895A" />
+              ) : (
+                <AppIcon name="refresh" size={14} color="#B8895A" />
+              )}
+              <Text style={styles.reGenerateSmallText}>
+                {isAiGenerating ? 'Đang tạo...' : 'Tạo lại AI'}
+              </Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -383,20 +494,44 @@ const TryOnEditorContent: React.FC<TryOnEditorScreenProps> = ({ navigation, rout
           </Text>
         </View>
 
-        {/* MAIN CONVERSION CTA BUTTON */}
-        <TouchableOpacity
-          style={styles.findSalonBtn}
-          activeOpacity={0.85}
-          onPress={handleProceedToFindSalon}
-          accessibilityRole="button"
-          accessibilityLabel="Đặt lịch làm kiểu tóc này"
-        >
-          <View style={styles.ctaContentRow}>
-            <AppIcon name="scissors" size={18} color="#FFFFFF" />
-            <Text style={styles.findSalonBtnText}>ĐẶT LỊCH LÀM KIỂU TÓC NÀY</Text>
-            <AppIcon name="arrowRight" size={16} color="#FFFFFF" />
-          </View>
-        </TouchableOpacity>
+        {/* BOTTOM ACTION GROUP: AI GENERATION & SALON BOOKING */}
+        <View style={styles.bottomActionGroup}>
+          <TouchableOpacity
+            style={styles.generateAiBtn}
+            onPress={handleGenerateAi}
+            disabled={isAiGenerating}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Bắt đầu tạo ảnh với AI"
+          >
+            {isAiGenerating ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <AppIcon name="sparkle" size={18} color="#FFD700" />
+            )}
+            <Text style={styles.generateAiBtnText}>
+              {isAiGenerating
+                ? 'Model AI đang biến đổi tóc...'
+                : aiResultImageUrl
+                ? 'TẠO LẠI ẢNH BẰNG MODEL AI'
+                : 'BẮT ĐẦU TẠO ẢNH VỚI AI'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.findSalonBtn}
+            activeOpacity={0.85}
+            onPress={handleProceedToFindSalon}
+            accessibilityRole="button"
+            accessibilityLabel="Đặt lịch làm kiểu tóc này"
+          >
+            <View style={styles.ctaContentRow}>
+              <AppIcon name="scissors" size={18} color="#FFFFFF" />
+              <Text style={styles.findSalonBtnText}>ĐẶT LỊCH LÀM KIỂU TÓC NÀY</Text>
+              <AppIcon name="arrowRight" size={16} color="#FFFFFF" />
+            </View>
+          </TouchableOpacity>
+        </View>
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -638,6 +773,10 @@ const styles = StyleSheet.create({
     color: '#7D6D5D',
     fontWeight: '500'
   },
+  bottomActionGroup: {
+    gap: 12,
+    marginTop: 6
+  },
   findSalonBtn: {
     backgroundColor: '#B8895A',
     borderRadius: 16,
@@ -665,24 +804,27 @@ const styles = StyleSheet.create({
     marginBottom: 12
   },
   generateAiBtn: {
-    backgroundColor: '#B8895A',
-    borderRadius: 14,
-    paddingVertical: 12,
+    backgroundColor: '#241F1A',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#B8895A',
+    paddingVertical: 15,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    shadowColor: '#B8895A',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 3
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4
   },
   generateAiBtnText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '800'
+    color: '#FAF5EE',
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.5
   },
   modeToggleContainer: {
     flexDirection: 'row',
@@ -752,13 +894,37 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800'
   },
+  downloadBtn: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(36, 31, 26, 0.85)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#B8895A',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3
+  },
+  downloadBtnText: {
+    color: '#FAF5EE',
+    fontSize: 11,
+    fontWeight: '700'
+  },
   reGenerateSmallBtn: {
     position: 'absolute',
     bottom: 14,
     right: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
     backgroundColor: 'rgba(255, 253, 249, 0.95)',
     paddingHorizontal: 12,
     paddingVertical: 6,

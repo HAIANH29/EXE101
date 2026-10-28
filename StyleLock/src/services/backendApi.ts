@@ -818,5 +818,17 @@ export const backendApi = {
     });
   },
 
+  async regenerateTryOn(requestId: number) {
+    return apiRequest<{
+      requestId: number;
+      userId?: number;
+      hairstyleId: number;
+      inputImageUrl: string;
+      resultImageUrl: string;
+      status: string;
+    }>(`/api/tryon/${requestId}/regenerate`, {
+      method: 'POST'
+    });
+  }
 };
 

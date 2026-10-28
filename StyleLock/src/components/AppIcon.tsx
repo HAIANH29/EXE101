@@ -51,6 +51,7 @@ export type AppIconName =
   | 'settings'
   | 'trendingUp'
   | 'arrowUp'
+  | 'download'
   | 'trash';
 
 const ICON_MAP: Record<AppIconName, FeatherName> = {
@@ -80,6 +81,7 @@ const ICON_MAP: Record<AppIconName, FeatherName> = {
   close: 'x',
   check: 'check',
   upload: 'upload',
+  download: 'download',
   refresh: 'refresh-cw',
   barChart: 'bar-chart-2',
   shield: 'shield',
