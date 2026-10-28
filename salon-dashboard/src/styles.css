@@ -1682,3 +1682,76 @@ button {
   margin-top: 24px;
 }
 
+/* ===== Admin Salon / Branch Management Styles ===== */
+.admin-nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #c0392b;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  box-shadow: 0 2px 6px rgba(192, 57, 43, 0.35);
+  animation: pulseBadge 2s infinite ease-in-out;
+}
+
+@keyframes pulseBadge {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.admin-callout-pending {
+  background: linear-gradient(135deg, #fff9f0 0%, #fdf2e2 100%);
+  border: 1.5px solid #e2be8a;
+  border-radius: 18px;
+  padding: 16px 20px;
+  box-shadow: 0 4px 16px rgba(185, 91, 18, 0.08);
+}
+
+.metric-card.active-metric {
+  border-color: var(--brand);
+  box-shadow: 0 4px 18px rgba(200, 110, 40, 0.15);
+  transform: translateY(-2px);
+}
+
+.pill-button {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pill-button:hover {
+  border-color: var(--brand);
+  color: var(--brand-dark);
+}
+
+.pill-button.active {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+  box-shadow: 0 4px 12px rgba(185, 91, 18, 0.2);
+}
+
+.pill-badge {
+  font-size: 11px;
+  opacity: 0.9;
+}
+
+

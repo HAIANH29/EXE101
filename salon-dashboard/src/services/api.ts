@@ -48,6 +48,57 @@ function readEnvelope<T>(payload: ApiEnvelope<T> | T | undefined): T {
   return payload as T;
 }
 
+let refreshPromise: Promise<AuthSession | null> | null = null;
+
+async function refreshSession(): Promise<AuthSession | null> {
+  const session = getStoredSession();
+  if (!session?.refreshToken) {
+    setStoredSession(null);
+    return null;
+  }
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ refreshToken: session.refreshToken })
+      });
+      const text = await response.text();
+      const payload = text ? JSON.parse(text) : undefined;
+      if (!response.ok) {
+        setStoredSession(null);
+        return null;
+      }
+      const data = payload?.data || payload;
+      if (!data?.accessToken) {
+        setStoredSession(null);
+        return null;
+      }
+      const nextSession: AuthSession = {
+        ...session,
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken || session.refreshToken,
+        tokenType: data.tokenType || session.tokenType || 'Bearer',
+        expiresIn: data.expiresIn || session.expiresIn
+      };
+      setStoredSession(nextSession);
+      return nextSession;
+    } catch {
+      setStoredSession(null);
+      return null;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
 export async function request<T>(path: string, options: RequestOptions = {}) {
   const { auth = true, ...fetchOptions } = options;
   const session = getStoredSession();
@@ -65,10 +116,22 @@ export async function request<T>(path: string, options: RequestOptions = {}) {
     headers.Authorization = `${session.tokenType || 'Bearer'} ${session.accessToken}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  let response = await fetch(`${API_BASE_URL}${path}`, {
     ...fetchOptions,
     headers
   });
+
+  // Tự động làm mới token nếu gặp 401 Unauthorized do token hết hạn
+  if (response.status === 401 && auth && session?.refreshToken && path !== '/api/auth/refresh') {
+    const refreshed = await refreshSession();
+    if (refreshed?.accessToken) {
+      headers.Authorization = `${refreshed.tokenType || 'Bearer'} ${refreshed.accessToken}`;
+      response = await fetch(`${API_BASE_URL}${path}`, {
+        ...fetchOptions,
+        headers
+      });
+    }
+  }
 
   const text = await response.text();
   const payload = text ? (JSON.parse(text) as ApiEnvelope<T> | T) : undefined;
@@ -93,6 +156,7 @@ export type SalonFormInput = {
   address?: string;
   description?: string;
   imageUrl?: string;
+  imageUrls?: string[];
 };
 
 export type ServiceFormInput = {
@@ -161,6 +225,16 @@ export const salonApi = {
       method: 'POST',
       body: JSON.stringify(input)
     });
+  },
+
+  async uploadSalonImage(file: File) {
+    const body = new FormData();
+    body.append('file', file);
+    const result = await request<{ url: string }>('/api/salons/images', {
+      method: 'POST',
+      body
+    });
+    return result.url;
   },
 
   async updateSalon(salonId: number, input: SalonFormInput) {

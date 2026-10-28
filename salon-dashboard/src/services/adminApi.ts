@@ -2,6 +2,7 @@ import { PageResponse, PaymentInfo, Salon, UserAccount } from '../types/salon';
 import {
   AdminBookingStats,
   AdminOverview,
+  AdminSalonStatus,
   AdminUserStatus,
   CreateSalonOwnerInput,
   Hairstyle,
@@ -17,6 +18,35 @@ export const adminApi = {
 
   getBookingStats() {
     return request<AdminBookingStats>('/api/dashboard/bookings/statistics');
+  },
+
+  getSalons(status: AdminSalonStatus | '', page: number, size = 10) {
+    const query = new URLSearchParams({ page: String(page), size: String(size) });
+    if (status) query.set('status', status);
+    return request<PageResponse<Salon>>(`/api/admin/salons?${query}`);
+  },
+
+  approveSalon(salonId: number) {
+    return request<Salon>(`/api/admin/salons/${salonId}/approve`, {
+      method: 'PATCH'
+    });
+  },
+
+  rejectSalon(salonId: number) {
+    return request<Salon>(`/api/admin/salons/${salonId}/reject`, {
+      method: 'PATCH'
+    });
+  },
+
+  updateSalonStatus(salonId: number, status: AdminSalonStatus) {
+    return request<Salon>(`/api/salons/${salonId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status })
+    });
+  },
+
+  getSalonDetail(salonId: number) {
+    return request<Salon>(`/api/salons/${salonId}`);
   },
 
   getUsers(status: AdminUserStatus | '', page: number, size = 10) {

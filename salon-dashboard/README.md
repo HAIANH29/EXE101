@@ -24,6 +24,6 @@ Mặc định FE gọi backend tại `http://localhost:8080`. Nếu backend ch�
 
 - Booking salon nên trả thêm tên, số điện thoại, email khách hàng thay vì chỉ có `customerId`.
 - Cần API tìm/chọn user hợp lệ để thêm stylist, hiện form phải nhập `userId` thủ công.
-- Cần API upload ảnh cho salon, service, stylist; hiện backend nhận `imageUrl`.
+- Đã có API upload ảnh cho salon (`POST /api/salons/images`) và hỗ trợ multi-image gallery; service và stylist hiện vẫn nhận `imageUrl`.
 - Cần dashboard/reporting theo `salonId`; hiện tab Analytics đang tổng hợp từ booking FE tải về.
 - Cần API customer CRM theo salon nếu muốn tab Customers có hồ sơ khách thật.

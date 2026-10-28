@@ -14,6 +14,9 @@ public class CreateSalonRequest {
     private String description;
     private String imageUrl;
 
+    /** Gallery ảnh (tối đa 10). Nếu có, ảnh đầu tiên được dùng làm ảnh bìa thay cho imageUrl. */
+    private java.util.List<String> imageUrls;
+
     public String getName() {
         return name;
     }
@@ -52,5 +55,13 @@ public class CreateSalonRequest {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public java.util.List<String> getImageUrls() {
+        return imageUrls;
+    }
+
+    public void setImageUrls(java.util.List<String> imageUrls) {
+        this.imageUrls = imageUrls;
     }
 }

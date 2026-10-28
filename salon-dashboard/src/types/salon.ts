@@ -44,6 +44,7 @@ export interface Salon {
   address?: string;
   description?: string;
   imageUrl?: string;
+  imageUrls?: string[];
   status?: string;
   businessHours?: BusinessHour[];
   createdAt?: string;

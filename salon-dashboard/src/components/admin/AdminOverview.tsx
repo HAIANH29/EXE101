@@ -14,11 +14,16 @@ type MetricProps = {
   note: string;
   icon: string;
   tone?: 'warning' | 'success' | '';
+  onClick?: () => void;
 };
 
-function Metric({ title, value, note, icon, tone = '' }: MetricProps) {
+function Metric({ title, value, note, icon, tone = '', onClick }: MetricProps) {
   return (
-    <div className={`metric-card ${tone}`}>
+    <div
+      className={`metric-card ${tone} ${onClick ? 'clickable' : ''}`}
+      onClick={onClick}
+      style={onClick ? { cursor: 'pointer' } : undefined}
+    >
       <div>
         <span>{title}</span>
         <strong>{value}</strong>
@@ -89,6 +94,32 @@ export function AdminOverview({ onNavigate }: AdminOverviewProps) {
 
       {overview && (
         <>
+          {overview.pendingApprovalSalons > 0 && (
+            <div className="admin-callout admin-callout-pending">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <span className="material-symbols-outlined callout-icon" style={{ fontSize: 32, color: 'var(--brand)' }}>
+                  pending_actions
+                </span>
+                <div>
+                  <strong style={{ fontSize: 16 }}>{at('slPendingAlertTitle', { count: overview.pendingApprovalSalons })}</strong>
+                  <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: 13 }}>
+                    {at('slPendingAlertDesc')}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="solid-button"
+                onClick={() => onNavigate('Salons')}
+              >
+                {at('slPendingReviewNow')}
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                  arrow_forward
+                </span>
+              </button>
+            </div>
+          )}
+
           <div className="metrics-grid admin-metrics">
             <Metric
               title={at('ovUsers')}
@@ -99,10 +130,25 @@ export function AdminOverview({ onNavigate }: AdminOverviewProps) {
             <Metric
               title={at('ovSalons')}
               value={overview.activeSalons}
-              note={at('ovSalonsOf', { count: overview.totalSalons })}
+              note={
+                overview.pendingApprovalSalons > 0
+                  ? `${at('ovSalonsOf', { count: overview.totalSalons })} · ${overview.pendingApprovalSalons} ${at('st_PENDING_APPROVAL').toLowerCase()}`
+                  : at('ovSalonsOf', { count: overview.totalSalons })
+              }
               icon="storefront"
-              tone="success"
+              tone={overview.pendingApprovalSalons > 0 ? 'warning' : 'success'}
+              onClick={() => onNavigate('Salons')}
             />
+            {overview.pendingApprovalSalons > 0 && (
+              <Metric
+                title={at('slPendingSalons')}
+                value={overview.pendingApprovalSalons}
+                note={at('hintSalons')}
+                icon="pending_actions"
+                tone="warning"
+                onClick={() => onNavigate('Salons')}
+              />
+            )}
             <Metric
               title={at('ovBookingsMonth')}
               value={overview.totalBookingsThisMonth}
@@ -117,7 +163,6 @@ export function AdminOverview({ onNavigate }: AdminOverviewProps) {
               tone="success"
             />
           </div>
-
         </>
       )}
 
