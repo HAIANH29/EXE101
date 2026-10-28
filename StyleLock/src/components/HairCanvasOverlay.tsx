@@ -376,6 +376,7 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
               min={50}
               max={150}
               step={1}
+              buttonStep={5}
               unit="%"
               value={Math.round((alignTarget === 'hair' ? scale : photoScale) * 100)}
               onValueChange={(pct) => {
@@ -396,6 +397,7 @@ export const HairCanvasOverlay: React.FC<HairCanvasOverlayProps> = ({
               min={-45}
               max={45}
               step={1}
+              buttonStep={5}
               value={alignTarget === 'hair' ? rotation : photoRotation}
               formatValue={(deg) => (deg > 0 ? `+${deg}°` : `${deg}°`)}
               onValueChange={(deg) => {

@@ -94,6 +94,8 @@ export type AppIconName =
   | 'arrowUp'
   | 'download'
   | 'wifi'
+  | 'plus'
+  | 'minus'
   | 'trash';
 
 const ICON_MAP: Record<AppIconName, FeatherName> = {
@@ -145,6 +147,8 @@ const ICON_MAP: Record<AppIconName, FeatherName> = {
   settings: 'settings',
   trendingUp: 'trending-up',
   wifi: 'wifi',
+  plus: 'plus',
+  minus: 'minus',
   trash: 'trash-2'
 };
 

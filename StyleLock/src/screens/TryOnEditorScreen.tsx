@@ -27,28 +27,30 @@ interface TryOnEditorScreenProps {
   route: any;
 }
 
+const DEFAULT_USER_PHOTO = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800';
+
 export const TryOnEditorScreen: React.FC<TryOnEditorScreenProps> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const topInset = Platform.OS === 'android'
     ? Math.max(insets.top, StatusBar.currentHeight || 0)
     : insets.top;
 
-  if (!route.params?.userPhotoUri || !route.params?.hairstyle) {
-    return (
-      <View style={[styles.container, { paddingTop: topInset }]}>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 16 }}>
-          <Text style={styles.hairName}>Chưa có ảnh hoặc kiểu tóc để thử.</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('CameraUpload')}>
-            <Text style={styles.seeAllText}>Quay lại chọn ảnh ➔</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
+  const userPhotoUri = route.params?.userPhotoUri || DEFAULT_USER_PHOTO;
+  const hairstyle = route.params?.hairstyle || FALLBACK_30_HAIRSTYLES[0];
 
   return (
     <View style={[styles.container, { paddingTop: topInset }]}>
-      <TryOnEditorContent navigation={navigation} route={route} />
+      <TryOnEditorContent
+        navigation={navigation}
+        route={{
+          ...route,
+          params: {
+            ...route.params,
+            userPhotoUri,
+            hairstyle
+          }
+        }}
+      />
     </View>
   );
 };
