@@ -7,6 +7,7 @@ import be.exe.salon.dto.response.SalonResponse;
 import be.exe.salon.dto.response.SalonSummaryResponse;
 import be.exe.salon.dto.request.UpdateBusinessHourRequest;
 import be.exe.salon.dto.response.BusinessHourResponse;
+import be.exe.salon.dto.response.SalonImageUploadResponse;
 import be.exe.salon.domain.SalonStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -56,4 +57,10 @@ public interface SalonService {
     void verifyOwner(Long salonId, Long ownerId);
 
     long countActiveStylists(Long salonId);
+
+    SalonResponse createSalonByAdmin(Long ownerId, CreateSalonRequest request);
+
+    SalonResponse updateSalonByAdmin(Long salonId, UpdateSalonRequest request);
+
+    void deleteSalonByAdmin(Long salonId);
 }

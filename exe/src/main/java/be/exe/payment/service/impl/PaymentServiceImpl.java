@@ -198,6 +198,27 @@ public class PaymentServiceImpl implements PaymentService {
         return toResponse(payment);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PaymentResponse> getAllPayments(String status, Pageable pageable) {
+        if (status != null && !status.isBlank()) {
+            try {
+                PaymentStatus paymentStatus = PaymentStatus.valueOf(status.trim());
+                return paymentRepository.findByStatus(paymentStatus, pageable).map(this::toResponse);
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        return paymentRepository.findAll(pageable).map(this::toResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaymentResponse getPaymentForAdmin(Long paymentId) {
+        Payment payment = paymentRepository.findById(Objects.requireNonNull(paymentId))
+                .orElseThrow(() -> new ResourceNotFoundException("Payment", paymentId));
+        return toResponse(payment);
+    }
+
     /**
      * Mã tham chiếu ngắn gọn, dễ gõ/copy vào nội dung chuyển khoản.
      * Ví dụ: "DH1023-A1B2". Phần random 4 ký tự cuối để tránh trùng nếu bookingId
@@ -228,7 +249,8 @@ public class PaymentServiceImpl implements PaymentService {
                 payment.getRefundReason(),
                 payment.getRefundReference(),
                 payment.getRefundRequestedAt(),
-                payment.getRefundedAt()
+                payment.getRefundedAt(),
+                payment.getCustomerId()
         );
     }
 }
