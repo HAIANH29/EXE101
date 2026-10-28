@@ -115,6 +115,7 @@ export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED' | 'REFUN
 
 export interface PaymentInfo {
   id: number;
+  customerId?: number | null;
   bookingId?: number | null;
   salonId?: number | null;
   paymentType: 'BOOKING_CONNECTION' | 'SALON_PRO_SUBSCRIPTION';
