@@ -35,6 +35,31 @@ function createDefaultHours(): BusinessHour[] {
 
 const imagesOf = (item?: Salon) => (item?.imageUrls?.length ? item.imageUrls : item?.imageUrl ? [item.imageUrl] : []);
 
+const hasGeoLink = (form: SalonFormInput) =>
+  Boolean(
+    form.geoapifyPlaceId &&
+      Number.isFinite(form.latitude) &&
+      Number.isFinite(form.longitude)
+  );
+
+const hasVerifiedCuratedSource = (salon?: Salon) =>
+  Boolean(
+    salon?.listingSource === 'PLATFORM_CURATED' &&
+      Number.isFinite(salon.latitude) &&
+      Number.isFinite(salon.longitude) &&
+      salon.sourceUrl &&
+      salon.sourcePlaceId &&
+      salon.locationVerifiedAt
+  );
+
+const sameAddress = (left?: string, right?: string) =>
+  (left || '').trim().toLocaleLowerCase('vi') === (right || '').trim().toLocaleLowerCase('vi');
+
+const geoMapUrl = (form: SalonFormInput) =>
+  hasGeoLink(form)
+    ? `https://www.google.com/maps/search/?api=1&query=${form.latitude},${form.longitude}`
+    : undefined;
+
 export function SettingsView({ salon, hasExistingSalons, onCancelCreate, onRefreshSalons }: SettingsViewProps) {
   const { t } = useI18n();
   const fileInput = useRef<HTMLInputElement | null>(null);
@@ -56,6 +81,7 @@ export function SettingsView({ salon, hasExistingSalons, onCancelCreate, onRefre
   const [geoQuery, setGeoQuery] = useState('');
   const [geoResults, setGeoResults] = useState<GeoapifySalonOption[]>([]);
   const [searchingGeoapify, setSearchingGeoapify] = useState(false);
+  const [geoSearchAttempted, setGeoSearchAttempted] = useState(false);
 
   useEffect(() => {
     if (!salon) {
@@ -65,6 +91,7 @@ export function SettingsView({ salon, hasExistingSalons, onCancelCreate, onRefre
       setHours(createDefaultHours());
       setGeoQuery('');
       setGeoResults([]);
+      setGeoSearchAttempted(false);
       return;
     }
 
@@ -85,16 +112,23 @@ export function SettingsView({ salon, hasExistingSalons, onCancelCreate, onRefre
     setHours(salon.businessHours?.length ? salon.businessHours : createDefaultHours());
     setGeoQuery(salon.address || '');
     setGeoResults([]);
+    setGeoSearchAttempted(false);
   }, [salon]);
 
   const searchGeoapify = async () => {
-    if (!geoQuery.trim()) return;
+    if (geoQuery.trim().length < 3) {
+      setError('Nhập ít nhất 3 ký tự để tìm địa điểm salon trên Geoapify.');
+      return;
+    }
     setSearchingGeoapify(true);
+    setGeoSearchAttempted(false);
     setError(undefined);
     try {
       setGeoResults(await salonApi.searchGeoapifySalons(geoQuery.trim()));
+      setGeoSearchAttempted(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Không thể tìm salon trên Geoapify');
+      setGeoSearchAttempted(true);
     } finally {
       setSearchingGeoapify(false);
     }
@@ -112,6 +146,7 @@ export function SettingsView({ salon, hasExistingSalons, onCancelCreate, onRefre
     }));
     setGeoQuery(option.address || option.name);
     setGeoResults([]);
+    setGeoSearchAttempted(false);
   };
 
   const slotsLeft = MAX_IMAGES - images.length;
@@ -193,6 +228,19 @@ export function SettingsView({ salon, hasExistingSalons, onCancelCreate, onRefre
 
   const submitSalon = async (event: FormEvent) => {
     event.preventDefault();
+    const preservesVerifiedCuratedLocation =
+      hasVerifiedCuratedSource(salon) && sameAddress(form.address, salon?.address);
+    const locationIsValid = salon?.listingSource === 'PLATFORM_CURATED'
+      ? preservesVerifiedCuratedLocation
+      : hasGeoLink(form);
+    if (!locationIsValid) {
+      setError(
+        salon?.listingSource === 'PLATFORM_CURATED'
+          ? 'Nguồn địa điểm khảo sát chưa đầy đủ hoặc địa chỉ đã bị thay đổi.'
+          : 'Bạn phải tìm và chọn đúng địa điểm Geoapify trước khi lưu chi nhánh.'
+      );
+      return;
+    }
     setSaving(true);
     setError(undefined);
 
@@ -235,6 +283,9 @@ export function SettingsView({ salon, hasExistingSalons, onCancelCreate, onRefre
     setHours((current) => current.map((hour) => (hour.dayOfWeek === dayOfWeek ? { ...hour, ...patch } : hour)));
   };
 
+  const isCuratedSalon = salon?.listingSource === 'PLATFORM_CURATED';
+  const curatedLocationLocked = Boolean(isCuratedSalon);
+
   return (
     <div className="screen-stack">
       <div className="screen-header">
@@ -265,10 +316,13 @@ export function SettingsView({ salon, hasExistingSalons, onCancelCreate, onRefre
 
           <form className="form-grid" onSubmit={submitSalon}>
             <div className="span-2" style={{ padding: 14, border: '1px solid var(--line)', borderRadius: 12 }}>
-              <strong>Liên kết salon có sẵn trên Geoapify</strong>
+              <strong>{isCuratedSalon ? 'Nguồn địa điểm khảo sát' : 'Liên kết salon có sẵn trên Geoapify'}</strong>
               <p style={{ margin: '4px 0 10px', fontSize: 12, color: 'var(--muted)' }}>
-                Tìm theo tên salon hoặc địa chỉ tại Việt Nam, sau đó chọn đúng địa điểm để liên kết.
+                {isCuratedSalon
+                  ? 'Địa điểm này do StyleLock khảo sát; nguồn và địa chỉ được khóa để bảo toàn dữ liệu xác minh.'
+                  : 'Tìm theo tên salon hoặc địa chỉ tại Việt Nam, sau đó chọn đúng địa điểm để liên kết.'}
               </p>
+              {!isCuratedSalon && (
               <div style={{ display: 'flex', gap: 8 }}>
                 <input
                   style={{ flex: 1 }}
@@ -286,12 +340,74 @@ export function SettingsView({ salon, hasExistingSalons, onCancelCreate, onRefre
                   {searchingGeoapify ? 'Đang tìm...' : 'Tìm Geoapify'}
                 </button>
               </div>
-              {form.geoapifyPlaceId && (
-                <small style={{ display: 'block', marginTop: 8, color: '#2f6b45' }}>
-                  Đã liên kết Geoapify: {form.geoapifyPlaceId}
-                </small>
               )}
-              {geoResults.length > 0 && (
+              {curatedLocationLocked && salon && (
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    gap: 10,
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    marginTop: 10,
+                    padding: 10,
+                    borderRadius: 10,
+                    background: 'rgba(47,107,69,.08)',
+                    color: '#2f6b45',
+                    fontSize: 12
+                  }}
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <strong style={{ display: 'block' }}>Địa điểm đã được StyleLock khảo sát và xác minh</strong>
+                    <span style={{ display: 'block', marginTop: 3 }}>
+                      Google Maps CID/Place ID: <code style={{ wordBreak: 'break-all' }}>{salon.sourcePlaceId}</code>
+                    </span>
+                    <span>{Number(salon.latitude).toFixed(6)}, {Number(salon.longitude).toFixed(6)}</span>
+                  </div>
+                  <a
+                    className="ghost-button mini"
+                    href={salon.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ textDecoration: 'none' }}
+                  >
+                    Mở nguồn Google Maps
+                  </a>
+                </div>
+              )}
+              {!isCuratedSalon && hasGeoLink(form) && (
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    gap: 10,
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    marginTop: 10,
+                    padding: 10,
+                    borderRadius: 10,
+                    background: 'rgba(47,107,69,.08)',
+                    color: '#2f6b45',
+                    fontSize: 12
+                  }}
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <strong style={{ display: 'block' }}>Đã liên kết địa điểm thật trên Geoapify</strong>
+                    <code style={{ display: 'block', marginTop: 3, wordBreak: 'break-all' }}>{form.geoapifyPlaceId}</code>
+                    <span>{Number(form.latitude).toFixed(6)}, {Number(form.longitude).toFixed(6)}</span>
+                  </div>
+                  <a
+                    className="ghost-button mini"
+                    href={geoMapUrl(form)}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ textDecoration: 'none' }}
+                  >
+                    Mở bản đồ
+                  </a>
+                </div>
+              )}
+              {!isCuratedSalon && geoResults.length > 0 && (
                 <div style={{ display: 'grid', gap: 6, marginTop: 10 }}>
                   {geoResults.map((option) => (
                     <button
@@ -303,8 +419,20 @@ export function SettingsView({ salon, hasExistingSalons, onCancelCreate, onRefre
                     >
                       <strong style={{ display: 'block' }}>{option.name}</strong>
                       <span style={{ fontSize: 12, color: 'var(--muted)' }}>{option.address}</span>
+                      {typeof option.distanceMeters === 'number' && (
+                        <span style={{ display: 'block', fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                          Cách tâm khu vực tìm kiếm khoảng {option.distanceMeters < 1000
+                            ? `${Math.round(option.distanceMeters)} m`
+                            : `${(option.distanceMeters / 1000).toFixed(1)} km`}
+                        </span>
+                      )}
                     </button>
                   ))}
+                </div>
+              )}
+              {!isCuratedSalon && geoSearchAttempted && !searchingGeoapify && geoResults.length === 0 && (
+                <div style={{ marginTop: 10, padding: 10, borderRadius: 10, background: 'var(--surface-soft)', fontSize: 12, color: 'var(--muted)' }}>
+                  Không tìm thấy salon phù hợp. Hãy thử tên salon kèm đường, phường hoặc quận/thành phố.
                 </div>
               )}
             </div>
@@ -318,7 +446,22 @@ export function SettingsView({ salon, hasExistingSalons, onCancelCreate, onRefre
             </label>
             <label className="span-2">
               {t('address')}
-              <input value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} />
+              <input
+                value={form.address}
+                readOnly={curatedLocationLocked}
+                onChange={(event) => setForm({
+                  ...form,
+                  address: event.target.value,
+                  geoapifyPlaceId: undefined,
+                  latitude: undefined,
+                  longitude: undefined
+                })}
+              />
+              <small className="field-hint">
+                {curatedLocationLocked
+                  ? 'Địa chỉ khảo sát được khóa để giữ đúng Google Maps CID/URL đã xác minh.'
+                  : 'Nếu sửa địa chỉ thủ công, bạn cần tìm và chọn lại địa điểm Geoapify.'}
+              </small>
             </label>
 
             <div className="span-2 image-manager">

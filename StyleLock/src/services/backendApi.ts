@@ -84,9 +84,17 @@ type BackendSalon = {
   latitude?: number;
   longitude?: number;
   demo?: boolean;
+  listingSource?: 'OWNER_SUBMITTED' | 'GEOAPIFY_DEMO' | 'PLATFORM_CURATED';
+  sourceProvider?: string;
+  sourceUrl?: string;
+  sourcePlaceId?: string;
+  locationVerifiedAt?: string;
+  bookingEnabled?: boolean;
+  platformManaged?: boolean;
+  businessHoursVerified?: boolean;
 };
 
-type ExternalSalon = {
+export type ExternalSalon = {
   placeId: string;
   name: string;
   address?: string;
@@ -243,16 +251,25 @@ function toDisplayTime(isoDate: string) {
 function formatBusinessHours(hours?: BackendBusinessHour[]) {
   if (!hours || hours.length === 0) return 'Liên hệ salon';
 
-  const openDays = hours.filter((hour) => !hour.closed && hour.openTime && hour.closeTime);
+  const openDays = hours.filter((hour) => !hour.closed);
   if (openDays.length === 0) return 'Tạm đóng cửa';
+  const hasFullWeek = new Set(hours.map((hour) => hour.dayOfWeek)).size === 7;
+  const scheduleSignatures = new Set(hours.map((hour) =>
+    hour.closed
+      ? 'CLOSED'
+      : `${hour.openTime?.slice(0, 5) || 'UNKNOWN'}-${hour.closeTime?.slice(0, 5) || 'UNKNOWN'}`));
+  const onlySignature = scheduleSignatures.size === 1 ? [...scheduleSignatures][0] : undefined;
+  if (!hasFullWeek || !onlySignature || onlySignature.includes('UNKNOWN')) {
+    return 'Xem lịch mở cửa chi tiết';
+  }
 
   const first = openDays[0];
-  return `${first.openTime?.slice(0, 5)} - ${first.closeTime?.slice(0, 5)}`;
+  return `Mỗi ngày ${first.openTime?.slice(0, 5)} - ${first.closeTime?.slice(0, 5)}`;
 }
 
 function formatPriceRange(services: ServiceItem[]) {
   const validPrices = services.map((service) => service.price).filter((p) => p > 0);
-  if (validPrices.length === 0) return '120k - 350k';
+  if (validPrices.length === 0) return 'Liên hệ';
 
   const min = Math.min(...validPrices);
   const max = Math.max(...validPrices);
@@ -280,6 +297,7 @@ function mapService(item: BackendService): ServiceItem {
     id: `api-srv-${item.id}`,
     apiId: item.id,
     name: item.name,
+    description: item.description,
     price: moneyToNumber(item.price),
     durationMinutes: item.durationMinutes
   };
@@ -290,7 +308,7 @@ function mapStylist(item: BackendStylist): StylistItem {
     id: `api-st-${item.id}`,
     apiId: item.id,
     name: item.fullName || `Stylist #${item.id}`,
-    role: item.bio || `${item.experienceYears || 0} năm kinh nghiệm`,
+    role: item.bio || (item.experienceYears ? `${item.experienceYears} năm kinh nghiệm` : undefined),
     avatar: item.avatarUrl
   };
 }
@@ -301,37 +319,98 @@ function mapSalon(
   hairstyles: Hairstyle[] = [],
   stylists: StylistItem[] = [],
   detail?: BackendSalonDetail,
-  reviewSummary?: BackendReviewSummary
+  reviewSummary?: BackendReviewSummary,
+  distanceKm?: number
 ): Salon {
   const rating = Number(reviewSummary?.averageRating || 0);
-  const distanceKm = Number(((((item.id || 1) * 7 + 3) % 35 + 8) / 10).toFixed(1));
   const validPrices = services.map((s) => s.price).filter((p) => p > 0);
-  const minPrice = validPrices.length > 0 ? Math.min(...validPrices) : 120000;
-  const maxPrice = validPrices.length > 0 ? Math.max(...validPrices) : 350000;
+  const minPrice = validPrices.length > 0 ? Math.min(...validPrices) : undefined;
+  const maxPrice = validPrices.length > 0 ? Math.max(...validPrices) : undefined;
+  const hasCoordinates = item.latitude !== undefined && item.longitude !== undefined;
 
   return {
     id: `api-sal-${item.id}`,
     apiId: item.id,
     name: item.name,
     address: item.address || 'Chưa cập nhật địa chỉ',
-    distance: `${distanceKm} km`,
+    distance: distanceKm === undefined ? (hasCoordinates ? 'Xem trên bản đồ' : 'Chưa có tọa độ') : `${distanceKm} km`,
     distanceKm,
-    rating: rating > 0 ? Number(rating.toFixed(1)) : 5.0,
-    reviewCount: reviewSummary?.totalReviews || 128,
+    rating: rating > 0 ? Number(rating.toFixed(1)) : 0,
+    reviewCount: reviewSummary?.totalReviews || 0,
     priceRange: formatPriceRange(services),
     minPrice,
     maxPrice,
     phone: item.phone || '',
-    imageUrl: item.imageUrl || FALLBACK_IMAGE,
+    imageUrl: item.imageUrl || '',
     openingHours: formatBusinessHours(detail?.businessHours),
     supportedHairstyles: hairstyles.map((hair) => hair.id),
     services,
     stylists,
+    description: item.description,
+    mapUrl: item.listingSource === 'PLATFORM_CURATED' && item.sourceUrl
+      ? item.sourceUrl
+      : hasCoordinates
+        ? `https://www.openstreetmap.org/?mlat=${item.latitude}&mlon=${item.longitude}#map=18/${item.latitude}/${item.longitude}`
+        : item.sourceUrl,
     latitude: item.latitude,
     longitude: item.longitude,
-    bookingEligible: item.status === 'ACTIVE' && services.length > 0 && stylists.length > 0,
-    demo: item.demo
+    bookingEligible: item.status === 'ACTIVE'
+      && item.bookingEnabled === true
+      && services.length > 0
+      && stylists.length > 0,
+    bookingEnabled: item.bookingEnabled === true,
+    status: item.status,
+    demo: item.demo,
+    externalPlaceId: item.geoapifyPlaceId || item.sourcePlaceId,
+    listingSource: item.listingSource,
+    sourceProvider: item.sourceProvider,
+    sourceUrl: item.sourceUrl,
+    sourcePlaceId: item.sourcePlaceId,
+    locationVerifiedAt: item.locationVerifiedAt,
+    platformManaged: item.platformManaged,
+    businessHoursVerified: item.businessHoursVerified
   };
+}
+
+function calculateDistanceKm(origin: SalonSearchLocation | undefined, salon: BackendSalon) {
+  if (!origin || salon.latitude === undefined || salon.longitude === undefined) return undefined;
+  const earthRadiusKm = 6371;
+  const toRadians = (value: number) => value * Math.PI / 180;
+  const deltaLat = toRadians(salon.latitude - origin.latitude);
+  const deltaLon = toRadians(salon.longitude - origin.longitude);
+  const a = Math.sin(deltaLat / 2) ** 2
+    + Math.cos(toRadians(origin.latitude)) * Math.cos(toRadians(salon.latitude))
+    * Math.sin(deltaLon / 2) ** 2;
+  return Number((earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))).toFixed(1));
+}
+
+function normalizeSalonName(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('vi-VN')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function isSameCuratedPlace(partner: Salon, external: ExternalSalon) {
+  if (partner.listingSource !== 'PLATFORM_CURATED'
+      || partner.latitude === undefined
+      || partner.longitude === undefined) {
+    return false;
+  }
+  const partnerName = normalizeSalonName(partner.name);
+  const externalName = normalizeSalonName(external.name);
+  const namesMatch = partnerName === externalName
+    || (partnerName.length >= 8 && externalName.includes(partnerName))
+    || (externalName.length >= 8 && partnerName.includes(externalName));
+  if (!namesMatch) return false;
+
+  const distanceKm = calculateDistanceKm(
+    { latitude: external.latitude, longitude: external.longitude },
+    { id: partner.apiId || 0, name: partner.name, latitude: partner.latitude, longitude: partner.longitude }
+  );
+  return distanceKm !== undefined && distanceKm <= 0.25;
 }
 
 function mapExternalSalon(item: ExternalSalon): Salon {
@@ -343,13 +422,13 @@ function mapExternalSalon(item: ExternalSalon): Salon {
     id: `external-${item.placeId}`,
     name: item.name,
     address: item.address || 'Địa chỉ đang cập nhật',
-    distance: distanceKm === undefined ? 'Gần bạn' : `${distanceKm} km`,
+    distance: distanceKm === undefined ? 'Xem trên bản đồ' : `${distanceKm} km`,
     distanceKm,
     rating: 0,
     reviewCount: 0,
     priceRange: 'Liên hệ',
     phone: item.phone || '',
-    imageUrl: FALLBACK_IMAGE,
+    imageUrl: '',
     openingHours: item.openingHours || 'Xem giờ mở cửa trên bản đồ',
     supportedHairstyles: [],
     services: [],
@@ -722,7 +801,15 @@ export const backendApi = {
           this.getSalonReviewSummary(salon.id).catch(() => undefined)
         ]);
 
-        return mapSalon(salon, services, hairstyles, stylists, detail, reviewSummary);
+        return mapSalon(
+          salon,
+          services,
+          hairstyles,
+          stylists,
+          detail,
+          reviewSummary,
+          calculateDistanceKm(location, salon)
+        );
       })
     );
 
@@ -733,7 +820,10 @@ export const backendApi = {
     );
     const matchedPartnerIds = new Set<number>();
     const nearbySalons = externalItems.map((external) => {
-      const partner = partnersByPlaceId.get(external.placeId);
+      const partner = partnersByPlaceId.get(external.placeId)
+        || partnerSalons.find((candidate) =>
+          (!candidate.apiId || !matchedPartnerIds.has(candidate.apiId))
+          && isSameCuratedPlace(candidate, external));
       if (!partner) return mapExternalSalon(external);
       if (partner.apiId) matchedPartnerIds.add(partner.apiId);
       const distanceKm = external.distanceMeters === undefined
@@ -743,15 +833,48 @@ export const backendApi = {
         ...partner,
         distanceKm,
         distance: distanceKm === undefined ? partner.distance : `${distanceKm} km`,
+        mapUrl: partner.listingSource === 'PLATFORM_CURATED' && partner.sourceUrl
+          ? partner.sourceUrl
+          : external.mapUrl || partner.mapUrl,
+        website: external.website || partner.website,
         latitude: external.latitude,
-        longitude: external.longitude
+        longitude: external.longitude,
+        externalPlaceId: partner.externalPlaceId || external.placeId
       };
     });
-    const remainingPartners = query?.trim()
-      ? []
-      : partnerSalons.filter((partner) => !partner.apiId || !matchedPartnerIds.has(partner.apiId));
+    const normalizedQuery = query?.trim() ? normalizeSalonName(query) : undefined;
+    const remainingPartners = partnerSalons.filter((partner) => {
+      if (partner.apiId && matchedPartnerIds.has(partner.apiId)) return false;
+      if (!normalizedQuery) return true;
+      return normalizeSalonName(`${partner.name} ${partner.address}`).includes(normalizedQuery);
+    });
 
     return [...nearbySalons, ...remainingPartners];
+  },
+
+  async searchGeoapifySalons(query: string) {
+    const normalizedQuery = query.trim();
+    if (normalizedQuery.length < 2) {
+      throw new Error('Nhập ít nhất 2 ký tự địa điểm hoặc tên salon.');
+    }
+    return apiRequest<ExternalSalon[]>(
+      `/api/public/salons/nearby?query=${encodeURIComponent(normalizedQuery)}&radius=10000`
+    );
+  },
+
+  async registerOwnerSalonFromGeoapify(place: ExternalSalon) {
+    const item = await apiRequest<BackendSalon>('/api/salons', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: place.name,
+        phone: place.phone,
+        address: place.address,
+        geoapifyPlaceId: place.placeId,
+        latitude: place.latitude,
+        longitude: place.longitude
+      })
+    });
+    return mapSalon(item);
   },
 
   async getSalonDetail(salonId: number) {

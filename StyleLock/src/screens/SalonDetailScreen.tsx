@@ -34,6 +34,9 @@ interface SalonDetailScreenProps {
 const SLOT_STEP_MINUTES = 30;
 const DEFAULT_DURATION_MINUTES = 30;
 
+const formatServicePrice = (price: number) =>
+  price > 0 ? `${price.toLocaleString('vi-VN')} đ` : 'Liên hệ / thanh toán tại salon';
+
 type TimeSlot = { value: string; disabled: boolean };
 type TabType = 'Services' | 'Portfolio' | 'Reviews' | 'About';
 
@@ -42,32 +45,6 @@ const TABS: { key: TabType; label: string }[] = [
   { key: 'Portfolio', label: 'Bộ sưu tập' },
   { key: 'Reviews', label: 'Đánh giá' },
   { key: 'About', label: 'Giới thiệu' }
-];
-
-const AMENITIES = [
-  { icon: 'wifi' as const, label: 'Wi-Fi tốc độ cao', desc: 'Miễn phí cho khách hàng' },
-  { icon: 'sparkle' as const, label: 'Điều hòa nhiệt độ', desc: 'Không gian mát mẻ 24/7' },
-  { icon: 'pin' as const, label: 'Chỗ gửi xe tiện lợi', desc: 'Có bảo vệ trông xe ô tô & xe máy' },
-  { icon: 'qr' as const, label: 'Thanh toán linh hoạt', desc: 'Tiền mặt, QR, Chuyển khoản, Thẻ' },
-  { icon: 'bottle' as const, label: 'Nước uống & Trà miễn phí', desc: 'Phục vụ chu đáo tại quầy' }
-];
-
-const SALON_SPACES = [
-  {
-    title: 'Khu vực tạo kiểu & Ghế cắt cao cấp',
-    desc: 'Trang thiết bị hiện đại, gương đèn LED chuẩn studio',
-    image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800'
-  },
-  {
-    title: 'Khu gội đầu dưỡng sinh & Thư giãn',
-    desc: 'Ghế nằm êm ái cùng liệu trình massage chăm sóc da đầu',
-    image: 'https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?w=800'
-  },
-  {
-    title: 'Lounge tiếp đón & Trà đàm đạo',
-    desc: 'Không gian ấm cúng, thư thái với trà hoa và tạp chí thời trang',
-    image: 'https://images.unsplash.com/photo-1633681926022-84c23e8cb2d6?w=800'
-  }
 ];
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -118,12 +95,7 @@ function getBusinessHoursDisplay(hours?: BackendBusinessHour[]) {
   };
 
   if (!hours || hours.length === 0) {
-    return [1, 2, 3, 4, 5, 6, 7].map((dayNum) => ({
-      dayName: dayLabels[dayNum],
-      time: dayNum >= 6 ? '08:30 - 21:00' : '08:30 - 20:30',
-      isToday: dayNum === currentBackendDay,
-      isClosed: false
-    }));
+    return [];
   }
 
   return [1, 2, 3, 4, 5, 6, 7].map((dayNum) => {
@@ -137,11 +109,11 @@ function getBusinessHoursDisplay(hours?: BackendBusinessHour[]) {
         isClosed: true
       };
     }
-    const open = found.openTime?.slice(0, 5) || '08:30';
-    const close = found.closeTime?.slice(0, 5) || '20:30';
+    const open = found.openTime?.slice(0, 5);
+    const close = found.closeTime?.slice(0, 5);
     return {
       dayName: dayLabels[dayNum],
-      time: `${open} - ${close}`,
+      time: open && close ? `${open} - ${close}` : 'Chưa cập nhật',
       isToday,
       isClosed: false
     };
@@ -162,11 +134,11 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
     ...rawSalon,
     apiId: salonApiId,
     id: rawSalon.id || (salonApiId ? `api-sal-${salonApiId}` : 'salon-unknown'),
-    name: rawSalon.name || 'StyleLock Salon',
+    name: rawSalon.name || 'Salon chưa cập nhật tên',
     address: rawSalon.address || 'Địa chỉ đang cập nhật',
-    rating: rawSalon.rating ?? 5.0,
+    rating: rawSalon.rating ?? 0,
     reviewCount: rawSalon.reviewCount || 0,
-    imageUrl: rawSalon.imageUrl || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600',
+    imageUrl: rawSalon.imageUrl || '',
     services: rawSalon.services || [],
     stylists: rawSalon.stylists || []
   };
@@ -503,7 +475,7 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
       ? Number(reviewSummary.averageRating)
       : reviewsList.length > 0
       ? reviewsList.reduce((acc, r) => acc + r.rating, 0) / reviewsList.length
-      : salon.rating ?? 5.0;
+      : salon.rating || 0;
 
   const starDistribution = [5, 4, 3, 2, 1].map((star) => {
     const count = reviewsList.filter((r) => Math.round(r.rating) === star).length;
@@ -537,6 +509,25 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
 
   // Business hours
   const businessHoursSchedule = getBusinessHoursDisplay(salonDetail?.businessHours);
+  const salonLatitude = salonDetail?.latitude ?? salon.latitude;
+  const salonLongitude = salonDetail?.longitude ?? salon.longitude;
+  const salonMapUrl = salon.mapUrl || (
+    salonLatitude !== undefined && salonLongitude !== undefined
+      ? `https://www.openstreetmap.org/?mlat=${salonLatitude}&mlon=${salonLongitude}#map=18/${salonLatitude}/${salonLongitude}`
+      : undefined
+  );
+
+  const handleOpenMap = async () => {
+    if (!salonMapUrl) {
+      Alert.alert('Chưa có tọa độ', 'Salon chưa cập nhật tọa độ bản đồ.');
+      return;
+    }
+    try {
+      await Linking.openURL(salonMapUrl);
+    } catch {
+      Alert.alert('Không mở được bản đồ', 'Vui lòng thử lại sau.');
+    }
+  };
 
   // =========================================================================
   // RENDER TAB: SERVICES (DỊCH VỤ)
@@ -574,13 +565,19 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
                 onPress={() => setSelectedStylist(st)}
                 activeOpacity={0.85}
               >
-                <Image source={{ uri: st.avatar || salon.imageUrl }} style={styles.stylistAvatarImg} />
+                {st.avatar ? (
+                  <Image source={{ uri: st.avatar }} style={styles.stylistAvatarImg} />
+                ) : (
+                  <View style={[styles.stylistAvatarImg, styles.avatarPlaceholder]}>
+                    <AppIcon name="user" size={20} color="#B8895A" />
+                  </View>
+                )}
                 <View style={styles.stylistInfoCol}>
                   <Text style={styles.stylistNameText} numberOfLines={1}>
                     {st.name}
                   </Text>
                   <Text style={styles.stylistRoleText} numberOfLines={1}>
-                    {st.role || 'Senior Stylist'}
+                    {st.role || 'Chưa cập nhật chuyên môn'}
                   </Text>
                 </View>
                 {isSelected && (
@@ -619,9 +616,9 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
                 >
                   <View style={styles.serviceMainCol}>
                     <Text style={styles.serviceNameText}>{srv.name}</Text>
-                    <Text style={styles.serviceDescText}>
-                      Quy trình chuẩn salon cao cấp với sản phẩm dưỡng tóc chuyên sâu.
-                    </Text>
+                    {srv.description ? (
+                      <Text style={styles.serviceDescText}>{srv.description}</Text>
+                    ) : null}
                     <View style={styles.durationRow}>
                       <AppIcon name="clock" size={13} color="#6F6255" style={styles.durIcon} />
                       <Text style={styles.durationText}>{srv.durationMinutes} phút</Text>
@@ -629,7 +626,7 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
                   </View>
 
                   <View style={styles.servicePriceCol}>
-                    <Text style={styles.priceValueText}>{srv.price.toLocaleString('vi-VN')} đ</Text>
+                    <Text style={styles.priceValueText}>{formatServicePrice(srv.price)}</Text>
                     <View style={[styles.selectBadge, isSelected && styles.selectBadgeActive]}>
                       <Text style={[styles.selectBadgeText, isSelected && styles.selectBadgeTextActive]}>
                         {isSelected ? 'Đã chọn' : 'Chọn dịch vụ'}
@@ -717,23 +714,28 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
       {/* Location Section */}
       <View style={styles.sectionContainer}>
         <Text style={styles.sectionHeading}>Vị trí & Đường đi</Text>
-        <View style={styles.locationMapCard}>
-          <Image
-            source={{
-              uri: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?w=800'
-            }}
-            style={styles.locationMapImg}
-            resizeMode="cover"
-          />
-          <View style={styles.mapPinCenterOverlay}>
-            <View style={styles.pinCircleHolder}>
-              <AppIcon name="pin" size={26} color="#B65A4B" />
-            </View>
+        <TouchableOpacity
+          style={[styles.locationMapCard, !salonMapUrl && styles.locationMapCardDisabled]}
+          onPress={() => void handleOpenMap()}
+          activeOpacity={salonMapUrl ? 0.8 : 1}
+        >
+          <View style={styles.pinCircleHolder}>
+            <AppIcon name="pin" size={26} color="#B65A4B" />
           </View>
-        </View>
+          <Text style={styles.mapCardTitle}>
+            {salonMapUrl ? 'Mở vị trí thật trên bản đồ' : 'Salon chưa cập nhật tọa độ'}
+          </Text>
+          {salonLatitude !== undefined && salonLongitude !== undefined && (
+            <Text style={styles.mapCoordinates}>
+              {salonLatitude.toFixed(6)}, {salonLongitude.toFixed(6)}
+            </Text>
+          )}
+        </TouchableOpacity>
         <Text style={styles.locationFullAddress}>{salon.address}</Text>
         <Text style={styles.locationDistanceText}>
-          {salon.distance ? `${salon.distance} từ vị trí của bạn` : 'Gần bạn · Dễ tìm đỗ xe'}
+          {salon.distanceKm !== undefined
+            ? `${salon.distanceKm} km từ vị trí tìm kiếm`
+            : 'Khoảng cách chưa được xác định'}
         </Text>
       </View>
     </View>
@@ -965,15 +967,15 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
       <View style={styles.reviewOverviewCard}>
         <View style={styles.reviewScoreCol}>
           <Text style={styles.reviewBigScore}>
-            {totalReviewsCount > 0 ? currentAverageRating.toFixed(1) : '5.0'}
+            {totalReviewsCount > 0 ? currentAverageRating.toFixed(1) : '—'}
           </Text>
-          <View style={styles.starsRow}>
-            {[1, 2, 3, 4, 5].map((s) => (
-              <Text key={s} style={styles.goldStar}>
-                ★
-              </Text>
-            ))}
-          </View>
+          {totalReviewsCount > 0 && (
+            <View style={styles.starsRow}>
+              {[1, 2, 3, 4, 5].map((s) => (
+                <Text key={s} style={styles.goldStar}>★</Text>
+              ))}
+            </View>
+          )}
           <Text style={styles.totalReviewsLabel}>
             {totalReviewsCount > 0 ? `${totalReviewsCount} đánh giá thực tế` : 'Chưa có đánh giá'}
           </Text>
@@ -1223,7 +1225,9 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
         <View style={styles.aboutHeaderBadgeRow}>
           <View style={styles.salonVerifiedBadge}>
             <AppIcon name="shield" size={13} color="#B8895A" style={{ marginRight: 4 }} />
-            <Text style={styles.salonVerifiedBadgeText}>Salon Đối Tác Chính Thức StyleLock</Text>
+            <Text style={styles.salonVerifiedBadgeText}>
+              {salon.status === 'ACTIVE' ? 'Đang hoạt động trên StyleLock' : 'Thông tin salon'}
+            </Text>
           </View>
         </View>
 
@@ -1231,41 +1235,8 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
         <Text style={styles.aboutSalonDesc}>
           {salonDetail?.description ||
             salon.description ||
-            `${salon.name} mang đến trải nghiệm làm tóc và chăm sóc sắc đẹp hiện đại, chuyên nghiệp. Không gian được thiết kế theo phong cách thư thái, thanh lịch cùng đội ngũ chuyên gia giàu kinh nghiệm sẵn sàng lắng nghe và tư vấn phong cách tóc chuẩn đường nét khuôn mặt cho từng khách hàng.`}
+            'Salon chưa cập nhật phần giới thiệu.'}
         </Text>
-
-        {/* Commitment Badges */}
-        <View style={styles.commitmentsGrid}>
-          <View style={styles.commitBadgeItem}>
-            <View style={styles.commitIconCircle}>
-              <AppIcon name="scissors" size={16} color="#B8895A" />
-            </View>
-            <View style={styles.commitTextCol}>
-              <Text style={styles.commitTitle}>Tay nghề chuyên môn cao</Text>
-              <Text style={styles.commitSubtitle}>Được đào tạo bài bản và định kỳ cập nhật xu hướng tóc quốc tế</Text>
-            </View>
-          </View>
-
-          <View style={styles.commitBadgeItem}>
-            <View style={styles.commitIconCircle}>
-              <AppIcon name="shield" size={16} color="#B8895A" />
-            </View>
-            <View style={styles.commitTextCol}>
-              <Text style={styles.commitTitle}>Mỹ phẩm tóc chính hãng</Text>
-              <Text style={styles.commitSubtitle}>100% dòng sản phẩm hữu cơ, an toàn tuyệt đối cho da đầu và sợi tóc</Text>
-            </View>
-          </View>
-
-          <View style={styles.commitBadgeItem}>
-            <View style={styles.commitIconCircle}>
-              <AppIcon name="sparkle" size={16} color="#B8895A" />
-            </View>
-            <View style={styles.commitTextCol}>
-              <Text style={styles.commitTitle}>Tư vấn AI thông minh</Text>
-              <Text style={styles.commitSubtitle}>Ứng dụng công nghệ thử tóc AI trực quan trước khi thực hiện cắt</Text>
-            </View>
-          </View>
-        </View>
       </View>
 
       {/* B. Dịch vụ nổi bật */}
@@ -1282,9 +1253,9 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
             <View key={srv.id} style={styles.featuredServiceItem}>
               <View style={styles.featuredServiceInfo}>
                 <Text style={styles.featuredServiceName}>{srv.name}</Text>
-                <Text style={styles.featuredServiceDur}>{srv.durationMinutes} phút · Tư vấn tận tâm</Text>
+                <Text style={styles.featuredServiceDur}>{srv.durationMinutes} phút</Text>
               </View>
-              <Text style={styles.featuredServicePrice}>{srv.price.toLocaleString('vi-VN')} đ</Text>
+              <Text style={styles.featuredServicePrice}>{formatServicePrice(srv.price)}</Text>
             </View>
           ))}
         </View>
@@ -1298,26 +1269,6 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
         </TouchableOpacity>
       </View>
 
-      {/* C. Không gian salon thực tế */}
-      <View style={styles.aboutCard}>
-        <Text style={styles.aboutSectionHeading}>Không gian & Cơ sở vật chất</Text>
-        <Text style={styles.aboutSectionSubtitle}>
-          Được thiết kế tối ưu với ánh sáng chuẩn studio, không gian thoáng đãng mang lại sự thư thái tối đa trong suốt thời gian làm đẹp.
-        </Text>
-
-        <View style={styles.spacesGallery}>
-          {SALON_SPACES.map((space, idx) => (
-            <View key={idx} style={styles.spaceCard}>
-              <Image source={{ uri: space.image }} style={styles.spaceImg} resizeMode="cover" />
-              <View style={styles.spaceTextOverlay}>
-                <Text style={styles.spaceTitle}>{space.title}</Text>
-                <Text style={styles.spaceDesc}>{space.desc}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
-      </View>
-
       {/* D. Đội ngũ thợ làm tóc */}
       <View style={styles.aboutCard}>
         <View style={styles.aboutSectionTitleRow}>
@@ -1325,18 +1276,21 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
           <Text style={styles.aboutSectionCount}>{salonStylists.length} chuyên viên</Text>
         </View>
         <Text style={styles.aboutSectionSubtitle}>
-          Mỗi thợ tại {salon.name} đều có thế mạnh riêng về kỹ thuật cắt tỉa, uốn sóng hoặc nhuộm balayage thời thượng.
+          Danh sách nhân sự được tổng hợp trên StyleLock; salon sẽ xác nhận khi tiếp nhận lịch.
         </Text>
 
         <View style={styles.stylistTeamGrid}>
           {salonStylists.map((st) => (
             <View key={st.id} style={styles.stylistTeamCard}>
-              <Image source={{ uri: st.avatar || salon.imageUrl }} style={styles.stylistTeamAvatar} />
+              {st.avatar ? (
+                <Image source={{ uri: st.avatar }} style={styles.stylistTeamAvatar} />
+              ) : (
+                <View style={[styles.stylistTeamAvatar, styles.avatarPlaceholder]}>
+                  <AppIcon name="user" size={24} color="#B8895A" />
+                </View>
+              )}
               <Text style={styles.stylistTeamName} numberOfLines={1}>{st.name}</Text>
-              <Text style={styles.stylistTeamRole} numberOfLines={1}>{st.role || 'Senior Stylist'}</Text>
-              <View style={styles.stylistExpBadge}>
-                <Text style={styles.stylistExpText}>Tay nghề chuyên nghiệp</Text>
-              </View>
+              <Text style={styles.stylistTeamRole} numberOfLines={1}>{st.role || 'Chưa cập nhật chuyên môn'}</Text>
             </View>
           ))}
         </View>
@@ -1351,11 +1305,11 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
           <View style={styles.scheduleHeaderRow}>
             <AppIcon name="clock" size={15} color="#B8895A" style={{ marginRight: 6 }} />
             <Text style={styles.scheduleHeaderTitle}>Thời gian phục vụ</Text>
-            <View style={styles.openNowBadge}>
-              <Text style={styles.openNowText}>Đang mở cửa</Text>
-            </View>
           </View>
 
+          {businessHoursSchedule.length === 0 && (
+            <Text style={styles.aboutSectionSubtitle}>Salon chưa cập nhật giờ mở cửa.</Text>
+          )}
           {businessHoursSchedule.map((item, idx) => (
             <View key={idx} style={[styles.scheduleRow, item.isToday && styles.scheduleRowToday]}>
               <View style={styles.scheduleDayCol}>
@@ -1405,24 +1359,6 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
           )}
         </View>
 
-        {/* Amenities List */}
-        <Text style={[styles.aboutSectionHeading, { marginTop: 20, marginBottom: 10 }]}>
-          Tiện ích dành cho khách hàng
-        </Text>
-        <View style={styles.amenitiesList}>
-          {AMENITIES.map((am, idx) => (
-            <View key={idx} style={styles.amenityRow}>
-              <View style={styles.amenityIconCircle}>
-                <AppIcon name={am.icon} size={15} color="#B8895A" />
-              </View>
-              <View style={styles.amenityTextCol}>
-                <Text style={styles.amenityName}>{am.label}</Text>
-                <Text style={styles.amenityDesc}>{am.desc}</Text>
-              </View>
-              <AppIcon name="check" size={14} color="#34A853" />
-            </View>
-          ))}
-        </View>
       </View>
 
       {/* F. CTA Banner */}
@@ -1473,7 +1409,14 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Rounded Hero Image Section */}
         <View style={styles.heroWrapper}>
-          <Image source={{ uri: salon.imageUrl }} style={styles.heroImage} resizeMode="cover" />
+          {salon.imageUrl ? (
+            <Image source={{ uri: salon.imageUrl }} style={styles.heroImage} resizeMode="cover" />
+          ) : (
+            <View style={[styles.heroImage, styles.heroImagePlaceholder]}>
+              <AppIcon name="salon" size={42} color="#B8895A" />
+              <Text style={styles.heroImagePlaceholderText}>Salon chưa cập nhật ảnh</Text>
+            </View>
+          )}
         </View>
 
         {/* Salon Title & Main Overview */}
@@ -1492,8 +1435,9 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
           <View style={styles.ratingRow}>
             <Text style={styles.starText}>★</Text>
             <Text style={styles.ratingText}>
-              {totalReviewsCount > 0 ? currentAverageRating.toFixed(1) : '5.0'}{' '}
-              ({totalReviewsCount > 0 ? `${totalReviewsCount} đánh giá` : 'Đang cập nhật đánh giá'})
+              {totalReviewsCount > 0
+                ? `${currentAverageRating.toFixed(1)} (${totalReviewsCount} đánh giá)`
+                : 'Chưa có đánh giá'}
             </Text>
           </View>
         </View>
@@ -1607,6 +1551,17 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 24
+  },
+  heroImagePlaceholder: {
+    backgroundColor: '#F3E7D8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8
+  },
+  heroImagePlaceholderText: {
+    color: '#8A6A4C',
+    fontSize: 13,
+    fontWeight: '600'
   },
   salonInfoSection: {
     paddingHorizontal: 16,
@@ -1770,6 +1725,10 @@ const styles = StyleSheet.create({
     borderRadius: 23,
     marginRight: 10,
     backgroundColor: '#F3E7D8'
+  },
+  avatarPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   stylistInfoCol: {
     flex: 1
@@ -1951,29 +1910,20 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 155,
     borderRadius: 20,
-    overflow: 'hidden',
-    position: 'relative',
-    backgroundColor: '#D8B98E',
+    backgroundColor: '#F7EFE4',
     borderWidth: 1,
-    borderColor: '#E5D9CA',
+    borderColor: '#D8B98E',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6 },
       android: { elevation: 2 },
       web: { boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }
     })
   },
-  locationMapImg: {
-    width: '100%',
-    height: '100%'
-  },
-  mapPinCenterOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center'
+  locationMapCardDisabled: {
+    opacity: 0.7
   },
   pinCircleHolder: {
     width: 44,
@@ -1986,7 +1936,19 @@ const styles = StyleSheet.create({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4 },
       android: { elevation: 4 },
       web: { boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }
-    })
+    }),
+    marginBottom: 10
+  },
+  mapCardTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#6B4227',
+    textAlign: 'center'
+  },
+  mapCoordinates: {
+    fontSize: 12,
+    color: '#6F6255',
+    marginTop: 4
   },
   locationFullAddress: {
     fontSize: 14,

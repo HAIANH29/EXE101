@@ -18,6 +18,7 @@ export interface ServiceItem {
   id: string;
   apiId?: number;
   name: string;
+  description?: string;
   price: number;
   durationMinutes: number;
 }
@@ -47,8 +48,17 @@ export interface Salon {
   latitude?: number;
   longitude?: number;
   bookingEligible?: boolean;
+  bookingEnabled?: boolean;
+  status?: string;
   demo?: boolean;
   externalPlaceId?: string;
+  listingSource?: 'OWNER_SUBMITTED' | 'GEOAPIFY_DEMO' | 'PLATFORM_CURATED';
+  sourceProvider?: string;
+  sourceUrl?: string;
+  sourcePlaceId?: string;
+  locationVerifiedAt?: string;
+  platformManaged?: boolean;
+  businessHoursVerified?: boolean;
 }
 
 export interface StylistItem {

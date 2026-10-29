@@ -2,7 +2,7 @@ import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 're
 import { useI18n } from '../../i18n';
 import { useAdminT } from '../../adminI18n';
 import { adminApi } from '../../services/adminApi';
-import { SalonFormInput } from '../../services/api';
+import { GeoapifySalonOption, SalonFormInput, salonApi } from '../../services/api';
 import { AdminOverview, AdminSalonStatus } from '../../types/admin';
 import { BusinessHour, Salon } from '../../types/salon';
 import { Pager, StatusPill } from './AdminParts';
@@ -51,6 +51,45 @@ const EMPTY_FORM: SalonFormInput = {
   imageUrls: []
 };
 
+type GeoVerification = {
+  loading: boolean;
+  checked: boolean;
+  match?: GeoapifySalonOption;
+  candidateCount: number;
+  error?: string;
+};
+
+const hasCoordinates = (salon?: Salon | null) =>
+  Boolean(Number.isFinite(salon?.latitude) && Number.isFinite(salon?.longitude));
+
+const hasGeoLink = (salon?: Salon | null) =>
+  Boolean(salon?.geoapifyPlaceId && hasCoordinates(salon));
+
+const isVerifiedCuratedLocation = (salon?: Salon | null) =>
+  Boolean(
+    salon?.listingSource === 'PLATFORM_CURATED' &&
+      hasCoordinates(salon) &&
+      salon.sourceUrl &&
+      salon.sourcePlaceId &&
+      salon.locationVerifiedAt
+  );
+
+const hasApprovalReadyLocation = (salon?: Salon | null) =>
+  salon?.listingSource === 'PLATFORM_CURATED'
+    ? isVerifiedCuratedLocation(salon)
+    : hasGeoLink(salon);
+
+const sourceLabel = (salon: Salon) => {
+  if (salon.listingSource === 'PLATFORM_CURATED') return 'Google Maps đã khảo sát';
+  if (salon.listingSource === 'GEOAPIFY_DEMO') return 'Geoapify DEMO';
+  return hasGeoLink(salon) ? 'Geoapify đã liên kết' : 'Thiếu liên kết Geoapify';
+};
+
+const coordinatesMapUrl = (salon: Salon) =>
+  salon.sourceUrl || (hasCoordinates(salon)
+    ? `https://www.google.com/maps/search/?api=1&query=${salon.latitude},${salon.longitude}`
+    : undefined);
+
 const imagesOf = (item?: Salon | null): string[] =>
   item?.imageUrls?.length ? item.imageUrls : item?.imageUrl ? [item.imageUrl] : [];
 
@@ -75,6 +114,11 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
   const [detailSalon, setDetailSalon] = useState<Salon | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string>();
+  const [geoVerification, setGeoVerification] = useState<GeoVerification>({
+    loading: false,
+    checked: false,
+    candidateCount: 0
+  });
 
   // Modal Thêm / Sửa salon
   const [salonModalMode, setSalonModalMode] = useState<'edit' | null>(null);
@@ -124,6 +168,15 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
 
   /* ────── Duyệt salon ────── */
   const handleApprove = async (salon: Salon) => {
+    if (!hasApprovalReadyLocation(salon)) {
+      setError(
+        salon.listingSource === 'PLATFORM_CURATED'
+          ? `Không thể phê duyệt ${salon.name}: địa điểm khảo sát chưa đủ URL/CID, tọa độ hoặc thời điểm xác minh.`
+          : `Không thể phê duyệt ${salon.name}: Owner chưa liên kết địa điểm Geoapify hợp lệ.`
+      );
+      setDetailSalon(salon);
+      return;
+    }
     if (!window.confirm(at('slApproveConfirm', { name: salon.name }))) return;
     setBusyId(salon.id);
     setError(undefined);
@@ -210,6 +263,7 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
   const openDetail = async (salon: Salon) => {
     setDetailSalon(salon);
     setSelectedImage(salon.imageUrl || salon.imageUrls?.[0]);
+    setGeoVerification({ loading: false, checked: false, candidateCount: 0 });
     setLoadingDetail(true);
     try {
       const full = await adminApi.getSalonDetail(salon.id);
@@ -219,6 +273,40 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
       // Giữ nguyên thông tin salon cơ bản nếu gọi detail bị lỗi
     } finally {
       setLoadingDetail(false);
+    }
+  };
+
+  const verifyGeoapifyLocation = async (salon: Salon) => {
+    const query = [salon.name, salon.address].filter(Boolean).join(', ');
+    if (!query) return;
+
+    setGeoVerification({ loading: true, checked: false, candidateCount: 0 });
+    try {
+      const candidates = await salonApi.searchGeoapifySalons(query);
+      const exactPlaceMatch = salon.geoapifyPlaceId
+        ? candidates.find((candidate) => candidate.placeId === salon.geoapifyPlaceId)
+        : undefined;
+      const coordinateMatch = hasGeoLink(salon)
+        ? candidates.find(
+            (candidate) =>
+              Math.abs(candidate.latitude - Number(salon.latitude)) < 0.0005 &&
+              Math.abs(candidate.longitude - Number(salon.longitude)) < 0.0005
+          )
+        : undefined;
+
+      setGeoVerification({
+        loading: false,
+        checked: true,
+        match: exactPlaceMatch || coordinateMatch,
+        candidateCount: candidates.length
+      });
+    } catch (err) {
+      setGeoVerification({
+        loading: false,
+        checked: true,
+        candidateCount: 0,
+        error: err instanceof Error ? err.message : 'Không thể xác minh địa điểm Geoapify'
+      });
     }
   };
 
@@ -355,6 +443,11 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
   const activeCount = overview?.activeSalons ?? 0;
   const totalSalons = overview?.totalSalons ?? totalElements;
   const inactiveCount = Math.max(0, totalSalons - activeCount - pendingCount);
+  const editingSalonIsCurated = Boolean(
+    editingSalonId && salons.some(
+      (salon) => salon.id === editingSalonId && salon.listingSource === 'PLATFORM_CURATED'
+    )
+  );
 
   return (
     <div className="screen-stack">
@@ -590,6 +683,49 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
                         <span>#{salon.id}</span>
                         {salon.ownerId && <span>· {at('slOwnerId', { id: salon.ownerId })}</span>}
                       </div>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 5 }}>
+                        <span
+                          style={{
+                            padding: '2px 7px',
+                            borderRadius: 999,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: hasApprovalReadyLocation(salon) ? '#2f6b45' : '#9a5b15',
+                            background: hasApprovalReadyLocation(salon) ? 'rgba(47,107,69,.1)' : 'rgba(185,91,18,.1)'
+                          }}
+                        >
+                          {sourceLabel(salon)}
+                        </span>
+                        {salon.listingSource !== 'PLATFORM_CURATED' &&
+                          (salon.listingSource === 'GEOAPIFY_DEMO' || salon.demo) && (
+                          <span
+                            style={{
+                              padding: '2px 7px',
+                              borderRadius: 999,
+                              fontSize: 10,
+                              fontWeight: 700,
+                              color: '#75500b',
+                              background: 'rgba(212,160,23,.12)'
+                            }}
+                          >
+                            DEMO
+                          </span>
+                        )}
+                        {typeof salon.bookingEnabled === 'boolean' && (
+                          <span
+                            style={{
+                              padding: '2px 7px',
+                              borderRadius: 999,
+                              fontSize: 10,
+                              fontWeight: 700,
+                              color: salon.bookingEnabled ? '#2f6b45' : '#8a3b32',
+                              background: salon.bookingEnabled ? 'rgba(47,107,69,.1)' : 'rgba(192,57,43,.08)'
+                            }}
+                          >
+                            {salon.bookingEnabled ? 'Có thể đặt lịch' : 'Chưa nhận lịch'}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -624,9 +760,13 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
                           type="button"
                           className="solid-button mini"
                           style={{ background: '#2f6b45', color: '#fff', borderColor: '#2f6b45' }}
-                          disabled={isBusy}
+                          disabled={isBusy || !hasApprovalReadyLocation(salon)}
                           onClick={() => void handleApprove(salon)}
-                          title={at('slApprove')}
+                          title={hasApprovalReadyLocation(salon)
+                            ? at('slApprove')
+                            : salon.listingSource === 'PLATFORM_CURATED'
+                              ? 'Salon khảo sát phải có URL/CID, tọa độ và thời điểm xác minh'
+                              : 'Owner phải liên kết Geoapify trước khi được duyệt'}
                         >
                           <span className="material-symbols-outlined" style={{ fontSize: 16 }}>check</span>
                           {at('slApprove')}
@@ -662,10 +802,10 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
                         type="button"
                         className="ghost-button mini"
                         disabled={isBusy}
-                        onClick={() => void handleToggleStatus(salon, 'ACTIVE')}
-                        title={at('slActivate')}
+                        onClick={() => void handleToggleStatus(salon, 'PENDING_APPROVAL')}
+                        title="Đưa salon về chờ duyệt để kiểm tra lại điều kiện vị trí"
                       >
-                        {at('slActivate')}
+                        Đưa về chờ duyệt
                       </button>
                     )}
 
@@ -765,9 +905,15 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
                   {at('slAddress')}
                   <input
                     value={salonForm.address || ''}
+                    readOnly={editingSalonIsCurated}
                     onChange={(e) => setSalonForm({ ...salonForm, address: e.target.value })}
                     placeholder="123 Nguyễn Huệ, P. Bến Nghé, Q.1, TP.HCM"
                   />
+                  {editingSalonIsCurated && (
+                    <small className="field-hint">
+                      Địa chỉ khảo sát được khóa theo Google Maps CID/URL đã xác minh.
+                    </small>
+                  )}
                 </label>
 
                 <label className="full">
@@ -1023,6 +1169,119 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
                 )}
               </div>
 
+              {/* Nguồn địa điểm thật dùng khi duyệt chi nhánh */}
+              <div
+                style={{
+                  padding: 14,
+                  borderRadius: 14,
+                  border: `1px solid ${hasApprovalReadyLocation(detailSalon) ? 'rgba(47,107,69,.28)' : 'rgba(185,91,18,.32)'}`,
+                  background: hasApprovalReadyLocation(detailSalon) ? 'rgba(47,107,69,.05)' : 'rgba(185,91,18,.06)'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                  <div>
+                    <strong style={{ display: 'block', color: 'var(--ink)' }}>Nguồn dữ liệu địa điểm thực</strong>
+                    <small style={{ color: 'var(--muted)' }}>
+                      {detailSalon.listingSource === 'PLATFORM_CURATED'
+                        ? isVerifiedCuratedLocation(detailSalon)
+                          ? 'StyleLock đã khảo sát và xác minh địa điểm từ Google Maps.'
+                          : 'Salon khảo sát chưa đủ URL/CID, tọa độ hoặc thời điểm xác minh.'
+                        : hasGeoLink(detailSalon)
+                          ? 'Owner đã liên kết chi nhánh với một địa điểm thật trên Geoapify.'
+                          : 'Chưa có Geoapify Place ID hoặc tọa độ hợp lệ. Chi nhánh này chưa thể được phê duyệt.'}
+                    </small>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {coordinatesMapUrl(detailSalon) && (
+                      <a
+                        className="ghost-button mini"
+                        href={coordinatesMapUrl(detailSalon)}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ textDecoration: 'none' }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>map</span>
+                        Mở bản đồ
+                      </a>
+                    )}
+                    <button
+                      type="button"
+                      className="ghost-button mini"
+                      disabled={
+                        geoVerification.loading ||
+                        !hasGeoLink(detailSalon) ||
+                        detailSalon.listingSource === 'PLATFORM_CURATED'
+                      }
+                      onClick={() => void verifyGeoapifyLocation(detailSalon)}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>travel_explore</span>
+                      {geoVerification.loading ? 'Đang xác minh...' : 'Xác minh Geoapify'}
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gap: 4, marginTop: 10, fontSize: 12 }}>
+                    <span><strong>Nguồn:</strong> {sourceLabel(detailSalon)}</span>
+                    {detailSalon.listingSource === 'PLATFORM_CURATED' ? (
+                      <>
+                        <span>
+                          <strong>Google Maps CID/Place ID:</strong>{' '}
+                          <code style={{ wordBreak: 'break-all' }}>{detailSalon.sourcePlaceId || 'Chưa có'}</code>
+                        </span>
+                        <span>
+                          <strong>URL nguồn:</strong>{' '}
+                          {detailSalon.sourceUrl ? (
+                            <a href={detailSalon.sourceUrl} target="_blank" rel="noreferrer" style={{ wordBreak: 'break-all' }}>
+                              {detailSalon.sourceUrl}
+                            </a>
+                          ) : 'Chưa có'}
+                        </span>
+                        <span>
+                          <strong>Xác minh lúc:</strong>{' '}
+                          {detailSalon.locationVerifiedAt ? date(detailSalon.locationVerifiedAt) : 'Chưa có'}
+                        </span>
+                      </>
+                    ) : detailSalon.geoapifyPlaceId ? (
+                      <span>
+                        <strong>Geoapify Place ID:</strong>{' '}
+                        <code style={{ wordBreak: 'break-all' }}>{detailSalon.geoapifyPlaceId}</code>
+                      </span>
+                    ) : null}
+                    {hasCoordinates(detailSalon) && (
+                      <span>
+                        <strong>Tọa độ:</strong> {Number(detailSalon.latitude).toFixed(6)}, {Number(detailSalon.longitude).toFixed(6)}
+                      </span>
+                    )}
+                    {typeof detailSalon.bookingEnabled === 'boolean' && (
+                      <span>
+                        <strong>Nhận đặt lịch:</strong>{' '}
+                        <span style={{ color: detailSalon.bookingEnabled ? '#2f6b45' : '#8a3b32', fontWeight: 700 }}>
+                          {detailSalon.bookingEnabled ? 'Đã bật' : 'Chưa bật'}
+                        </span>
+                      </span>
+                    )}
+                </div>
+
+                {detailSalon.listingSource !== 'PLATFORM_CURATED' && geoVerification.checked && (
+                  <div
+                    style={{
+                      marginTop: 10,
+                      padding: '8px 10px',
+                      borderRadius: 10,
+                      fontSize: 12,
+                      color: geoVerification.error || !geoVerification.match ? '#9a5b15' : '#2f6b45',
+                      background: geoVerification.error || !geoVerification.match ? 'rgba(185,91,18,.08)' : 'rgba(47,107,69,.08)'
+                    }}
+                  >
+                    {geoVerification.error
+                      ? `Không thể xác minh: ${geoVerification.error}`
+                      : geoVerification.match
+                        ? `Đã đối chiếu với Geoapify: ${geoVerification.match.name} — ${geoVerification.match.address || 'không có địa chỉ'}`
+                        : `Geoapify trả về ${geoVerification.candidateCount} địa điểm gần đó nhưng chưa tìm thấy Place ID/tọa độ trùng. Vui lòng kiểm tra thủ công trước khi duyệt.`}
+                  </div>
+                )}
+              </div>
+
               {/* Giờ mở cửa */}
               <div>
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 8, color: 'var(--ink)' }}>
@@ -1101,7 +1360,7 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
                       type="button"
                       className="solid-button"
                       style={{ background: '#2f6b45', borderColor: '#2f6b45' }}
-                      disabled={busyId === detailSalon.id}
+                      disabled={busyId === detailSalon.id || !hasApprovalReadyLocation(detailSalon)}
                       onClick={() => void handleApprove(detailSalon)}
                     >
                       <span className="material-symbols-outlined">check</span>

@@ -49,6 +49,11 @@ export interface Salon {
   latitude?: number;
   longitude?: number;
   demo?: boolean;
+  listingSource?: 'OWNER_SUBMITTED' | 'GEOAPIFY_DEMO' | 'PLATFORM_CURATED';
+  sourceUrl?: string;
+  sourcePlaceId?: string;
+  locationVerifiedAt?: string;
+  bookingEnabled?: boolean;
   status?: string;
   businessHours?: BusinessHour[];
   createdAt?: string;

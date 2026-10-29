@@ -6,7 +6,8 @@ import {
   Image,
   SafeAreaView,
   ScrollView,
-  Platform
+  Platform,
+  Linking
 } from 'react-native';
 import * as Location from 'expo-location';
 import { LocalizedText as Text, LocalizedTextInput as TextInput, LocalizedAlert as Alert } from '../i18n/LocalizedComponents';
@@ -24,7 +25,7 @@ interface SalonListScreenProps {
   route?: { params?: { selectedHairstyle?: Hairstyle; userPhotoUri?: string } };
 }
 
-type MainFilterType = 'All' | 'Distance' | 'Rating' | 'Price' | 'Open Now';
+type MainFilterType = 'All' | 'Distance' | 'Rating' | 'Price';
 type DistanceSubFilter = 'nearest' | '2km' | '5km' | '10km';
 type PriceSubFilter = 'lowToHigh' | 'highToLow' | 'under200' | '200to400' | 'over400';
 type RatingSubFilter = 'highest' | '4.8' | '4.5' | '4.0';
@@ -47,24 +48,6 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
   const [loadError, setLoadError] = useState<string | undefined>();
   const [reloadKey, setReloadKey] = useState<number>(0);
   const [usingFallbackLocation, setUsingFallbackLocation] = useState<boolean>(false);
-
-  const enrichSalon = (s: Salon, idx: number): Salon => {
-    if (s.isExternal) return s;
-    const distanceKm = s.distanceKm ?? Number(((((s.apiId || idx + 1) * 7 + 3) % 35 + 8) / 10).toFixed(1));
-    const validPrices = (s.services || []).map((srv) => srv.price).filter((p) => p > 0);
-    const minPrice = s.minPrice ?? (validPrices.length > 0 ? Math.min(...validPrices) : 120000);
-    const maxPrice = s.maxPrice ?? (validPrices.length > 0 ? Math.max(...validPrices) : 350000);
-    const cleanDistance = !s.distance || s.distance.includes('Theo vị trí') ? `${distanceKm} km` : s.distance;
-
-    return {
-      ...s,
-      distance: cleanDistance,
-      distanceKm,
-      minPrice,
-      maxPrice,
-      priceRange: s.priceRange && s.priceRange !== 'Liên hệ' ? s.priceRange : '120k - 350k'
-    };
-  };
 
   useEffect(() => {
     let isMounted = true;
@@ -92,7 +75,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
         }
         if (isMounted) setUsingFallbackLocation(!location && !appliedLocationQuery);
         const apiSalons = await backendApi.getSalons(location, appliedLocationQuery);
-        if (isMounted) setSalons(apiSalons.map(enrichSalon));
+        if (isMounted) setSalons(apiSalons);
       } catch (error) {
         if (isMounted) setLoadError(error instanceof Error ? error.message : 'Không tải được danh sách salon.');
       } finally {
@@ -132,7 +115,8 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
     let list = salons.filter((salon) => {
       // Filter by Distance
       if (activeFilter === 'Distance') {
-        const d = salon.distanceKm ?? parseFloat(salon.distance) ?? 1.5;
+        const d = salon.distanceKm;
+        if (d === undefined) return distanceSubFilter === 'nearest';
         if (distanceSubFilter === '2km') return d <= 2.0;
         if (distanceSubFilter === '5km') return d <= 5.0;
         if (distanceSubFilter === '10km') return d <= 10.0;
@@ -141,7 +125,8 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
 
       // Filter by Price
       if (activeFilter === 'Price') {
-        const min = salon.minPrice ?? 120000;
+        const min = salon.minPrice;
+        if (min === undefined) return priceSubFilter === 'lowToHigh' || priceSubFilter === 'highToLow';
         if (priceSubFilter === 'under200') return min <= 200000;
         if (priceSubFilter === '200to400') return min >= 200000 && min <= 400000;
         if (priceSubFilter === 'over400') return min >= 400000;
@@ -156,11 +141,6 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
         return true;
       }
 
-      // Filter by Open Now
-      if (activeFilter === 'Open Now') {
-        return !salon.openingHours || !salon.openingHours.toLowerCase().includes('đóng cửa');
-      }
-
       return true;
     });
 
@@ -173,8 +153,11 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
       });
     } else if (activeFilter === 'Price') {
       list = [...list].sort((a, b) => {
-        const pa = a.minPrice ?? 0;
-        const pb = b.minPrice ?? 0;
+        if (a.minPrice === undefined && b.minPrice === undefined) return 0;
+        if (a.minPrice === undefined) return 1;
+        if (b.minPrice === undefined) return -1;
+        const pa = a.minPrice;
+        const pb = b.minPrice;
         return priceSubFilter === 'highToLow' ? pb - pa : pa - pb;
       });
     } else if (activeFilter === 'Rating') {
@@ -186,21 +169,14 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
 
   const handleSelectSalon = async (salon: Salon) => {
     if (salon.isExternal) {
-      if (!backendApi.isAuthenticated()) {
-        Alert.alert('Cần đăng nhập', 'Vui lòng đăng nhập để tạo booking demo.', [
-          { text: 'Đóng', style: 'cancel' },
-          { text: 'Đăng nhập', onPress: () => navigation.navigate('Login') }
-        ]);
-        return;
-      }
-      try {
-        setLoading(true);
-        const demoSalon = await backendApi.materializeDemoSalon(salon);
-        navigation.navigate('SalonDetail', { salon: demoSalon, selectedHairstyle, userPhotoUri });
-      } catch (error) {
-        Alert.alert('Không thể tạo salon demo', error instanceof Error ? error.message : 'Vui lòng thử lại.');
-      } finally {
-        setLoading(false);
+      if (salon.mapUrl) {
+        try {
+          await Linking.openURL(salon.mapUrl);
+        } catch {
+          Alert.alert('Không mở được bản đồ', 'Vui lòng thử lại sau.');
+        }
+      } else {
+        navigation.navigate('SalonDetail', { salon, selectedHairstyle, userPhotoUri });
       }
       return;
     }
@@ -249,7 +225,9 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
             <View style={styles.contextText}>
               <Text style={styles.contextTitle}>SELECTED HAIRSTYLE</Text>
               <Text style={styles.contextName}>{selectedHairstyle.name}</Text>
-              <Text style={styles.contextSub}>Partner salons matching this hairstyle</Text>
+              <Text style={styles.contextSub}>
+                {language === 'vi' ? 'Salon có dữ liệu phù hợp với kiểu tóc này' : 'Salons matching this hairstyle'}
+              </Text>
             </View>
           </View>
         )}
@@ -316,16 +294,6 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
               </Text>
             </TouchableOpacity>
 
-            {/* Open Now */}
-            <TouchableOpacity
-              style={[styles.filterChip, activeFilter === 'Open Now' && styles.activeChip]}
-              onPress={() => handleToggleFilter('Open Now')}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.chipText, activeFilter === 'Open Now' && styles.activeChipText]}>
-                Open Now
-              </Text>
-            </TouchableOpacity>
           </ScrollView>
 
           {/* Sub-Filter Options Bar (Appears when Distance, Price, or Rating is selected) */}
@@ -471,13 +439,21 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
               ? salon.supportedHairstyles.includes(selectedHairstyle.id)
               : true;
 
-            const areaName = salon.address.split(',')[1]?.trim() || 'Downtown';
+            const addressParts = salon.address.split(',').map((part) => part.trim()).filter(Boolean);
+            const areaName = addressParts.slice(-3, -1).join(', ') || salon.address;
 
             return (
               <View key={salon.id} style={styles.salonCard}>
                 {/* Salon Image + Favorite Heart Button + Highlight Badge */}
                 <View style={styles.imageContainer}>
-                  <Image source={{ uri: salon.imageUrl }} style={styles.salonImg} resizeMode="cover" />
+                  {salon.imageUrl ? (
+                    <Image source={{ uri: salon.imageUrl }} style={styles.salonImg} resizeMode="cover" />
+                  ) : (
+                    <View style={[styles.salonImg, styles.salonImgPlaceholder]}>
+                      <AppIcon name="salon" size={34} color="#B8895A" />
+                      <Text style={styles.salonImgPlaceholderText}>Salon chưa cập nhật ảnh</Text>
+                    </View>
+                  )}
                   
                   {/* Floating Price/Distance Badge on Image */}
                   <View style={[
@@ -488,7 +464,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
                     <Text style={styles.imageHighlightText}>
                       {activeFilter === 'Distance'
                         ? `📍 ${salon.distance}`
-                        : `🏷️ ${salon.priceRange || '120k - 350k'}`}
+                        : `🏷️ ${salon.priceRange}`}
                     </Text>
                   </View>
 
@@ -513,16 +489,22 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
                     <View style={styles.ratingRow}>
                       <Text style={styles.starIcon}>★</Text>
                       <Text style={styles.ratingScore}>
-                        {salon.isExternal ? 'Geoapify' : salon.rating.toFixed(1)}
+                        {salon.isExternal
+                          ? 'Geoapify'
+                          : salon.reviewCount > 0
+                            ? salon.rating.toFixed(1)
+                            : (language === 'vi' ? 'Chưa có đánh giá' : 'No reviews')}
                       </Text>
                     </View>
                   </View>
 
                   {/* Subtitle / Specialization */}
                   <Text style={styles.serviceDesc} numberOfLines={1}>
-                    {language === 'vi'
-                      ? `Dịch vụ tạo kiểu tóc & màu cao cấp`
-                      : `Premium hair styling & color`}
+                    {salon.services.length > 0
+                      ? salon.services.slice(0, 3).map((service) => service.name).join(' · ')
+                      : salon.isExternal
+                        ? (language === 'vi' ? 'Địa điểm từ Geoapify' : 'Location from Geoapify')
+                        : (language === 'vi' ? 'Salon chưa cập nhật dịch vụ' : 'Services not updated')}
                   </Text>
 
                   {/* Distance & Location */}
@@ -552,7 +534,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
                         {language === 'vi' ? 'Bảng giá: ' : 'Price: '}
                       </Text>
                       <Text style={[styles.priceTagValue, activeFilter === 'Price' && styles.priceTagValueActive]}>
-                        {salon.priceRange || '120k - 350k'}
+                        {salon.priceRange}
                       </Text>
                     </View>
                     {salon.minPrice ? (
@@ -565,7 +547,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
                   </View>
 
                   {/* Hairstyle Match Tag (if applicable) */}
-                  {selectedHairstyle && (
+                  {selectedHairstyle && isSupported && (
                     <View
                       style={[
                         styles.matchBadge,
@@ -578,7 +560,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
                           isSupported ? styles.matchSupportedText : styles.matchWarningText
                         ]}
                       >
-                        {isSupported ? '✓ Nhận làm chuẩn mẫu tóc này' : '• Tham vấn thợ trước khi làm'}
+                        ✓ Kiểu tóc có trong danh mục của salon
                       </Text>
                     </View>
                   )}
@@ -592,7 +574,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
                     >
                       <Text style={styles.bookBtnText}>
                         {salon.isExternal
-                          ? (language === 'vi' ? 'Đặt lịch demo' : 'Demo booking')
+                          ? (language === 'vi' ? 'Xem vị trí' : 'View location')
                           : !salon.bookingEligible
                             ? (language === 'vi' ? 'Chưa nhận lịch' : 'Not bookable')
                           : (language === 'vi' ? 'Đặt lịch' : 'Book')}
@@ -820,6 +802,17 @@ const styles = StyleSheet.create({
   salonImg: {
     width: '100%',
     height: '100%'
+  },
+  salonImgPlaceholder: {
+    backgroundColor: '#F3E7D8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7
+  },
+  salonImgPlaceholderText: {
+    color: '#8A6A4C',
+    fontSize: 12,
+    fontWeight: '600'
   },
   imageHighlightBadge: {
     position: 'absolute',

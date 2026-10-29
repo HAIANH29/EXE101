@@ -5,10 +5,17 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
-  Image
+  Image,
+  Modal,
+  ActivityIndicator,
+  Linking
 } from 'react-native';
-import { LocalizedText as Text, LocalizedAlert as Alert } from '../i18n/LocalizedComponents';
-import { backendApi } from '../services/backendApi';
+import {
+  LocalizedText as Text,
+  LocalizedTextInput as TextInput,
+  LocalizedAlert as Alert
+} from '../i18n/LocalizedComponents';
+import { backendApi, ExternalSalon } from '../services/backendApi';
 import { DataState } from '../components/DataState';
 import { Booking, Salon } from '../types';
 import { AppIcon, IconBadge } from '../components/AppIcon';
@@ -25,9 +32,15 @@ export const SalonDashboardScreen: React.FC<SalonDashboardScreenProps> = ({ navi
   const [loading, setLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string | undefined>();
   const [reloadKey, setReloadKey] = useState<number>(0);
+  const [geoModalVisible, setGeoModalVisible] = useState<boolean>(false);
+  const [geoQuery, setGeoQuery] = useState<string>('');
+  const [geoResults, setGeoResults] = useState<ExternalSalon[]>([]);
+  const [geoLoading, setGeoLoading] = useState<boolean>(false);
+  const [geoError, setGeoError] = useState<string | undefined>();
+  const [registeringPlaceId, setRegisteringPlaceId] = useState<string | undefined>();
 
   const canManage =
-    backendApi.isAuthenticated() && (backendApi.hasRole('SALON_OWNER') || backendApi.hasRole('ADMIN'));
+    backendApi.isAuthenticated() && backendApi.hasRole('SALON_OWNER');
 
   // Danh sách salon của chủ salon đang đăng nhập
   useEffect(() => {
@@ -81,6 +94,54 @@ export const SalonDashboardScreen: React.FC<SalonDashboardScreenProps> = ({ navi
     if (statusFilter === 'ALL') return true;
     return b.status === statusFilter;
   });
+  const selectedSalon = salons.find((salon) => salon.apiId === selectedSalonId);
+
+  const handleGeoSearch = async () => {
+    setGeoLoading(true);
+    setGeoError(undefined);
+    try {
+      setGeoResults(await backendApi.searchGeoapifySalons(geoQuery));
+    } catch (error) {
+      setGeoResults([]);
+      setGeoError(error instanceof Error ? error.message : 'Không tìm được địa điểm salon.');
+    } finally {
+      setGeoLoading(false);
+    }
+  };
+
+  const handleRegisterGeoSalon = async (place: ExternalSalon) => {
+    setRegisteringPlaceId(place.placeId);
+    try {
+      await backendApi.registerOwnerSalonFromGeoapify(place);
+      setGeoModalVisible(false);
+      setGeoQuery('');
+      setGeoResults([]);
+      setReloadKey((value) => value + 1);
+      Alert.alert(
+        'Đã gửi đăng ký chi nhánh',
+        `${place.name} đã được liên kết với địa điểm Geoapify. Hãy bổ sung dịch vụ, stylist và giờ làm việc trên Salon Dashboard web trước khi đề nghị Admin phê duyệt.`
+      );
+    } catch (error) {
+      Alert.alert(
+        'Không thể đăng ký chi nhánh',
+        error instanceof Error ? error.message : 'Vui lòng thử lại sau.'
+      );
+    } finally {
+      setRegisteringPlaceId(undefined);
+    }
+  };
+
+  const handleOpenSalonMap = async () => {
+    if (!selectedSalon?.mapUrl) {
+      Alert.alert('Chưa có tọa độ', 'Chi nhánh này chưa liên kết vị trí bản đồ.');
+      return;
+    }
+    try {
+      await Linking.openURL(selectedSalon.mapUrl);
+    } catch {
+      Alert.alert('Không mở được bản đồ', 'Vui lòng thử lại sau.');
+    }
+  };
 
   const handleUpdateStatus = async (bookingId: string, action: 'CONFIRMED' | 'COMPLETED' | 'CANCELLED') => {
     try {
@@ -134,7 +195,7 @@ export const SalonDashboardScreen: React.FC<SalonDashboardScreenProps> = ({ navi
         )}
 
         {/* Salon Selector Pill */}
-        <Text style={styles.sectionLabel}>Đang quản lý với tư cách Salon đối tác:</Text>
+        <Text style={styles.sectionLabel}>Chi nhánh StyleLock đang quản lý:</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.salonSelectorScroll}>
           {salons.map((s) => (
             <TouchableOpacity
@@ -143,11 +204,48 @@ export const SalonDashboardScreen: React.FC<SalonDashboardScreenProps> = ({ navi
               onPress={() => setSelectedSalonId(s.apiId)}
             >
               <Text style={[styles.salonPillText, selectedSalonId === s.apiId && styles.activeSalonPillText]}>
-                {s.name}
+                {s.name}{s.status === 'PENDING_APPROVAL' ? ' · Chờ duyệt' : ''}
               </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
+
+        {canManage && selectedSalon && (
+          <View style={styles.locationCard}>
+            <View style={styles.locationCardHeader}>
+              <AppIcon name="pin" size={18} color="#B8895A" />
+              <View style={styles.locationCardText}>
+                <Text style={styles.locationCardTitle}>Địa điểm chi nhánh</Text>
+                <Text style={styles.locationCardAddress}>{selectedSalon.address}</Text>
+                {selectedSalon.latitude !== undefined && selectedSalon.longitude !== undefined && (
+                  <Text style={styles.locationCoordinates}>
+                    {selectedSalon.latitude.toFixed(6)}, {selectedSalon.longitude.toFixed(6)}
+                  </Text>
+                )}
+              </View>
+            </View>
+            <TouchableOpacity
+              style={[styles.mapBtn, !selectedSalon.mapUrl && styles.disabledBtn]}
+              onPress={() => void handleOpenSalonMap()}
+              activeOpacity={selectedSalon.mapUrl ? 0.8 : 1}
+            >
+              <Text style={styles.mapBtnText}>
+                {selectedSalon.mapUrl ? 'Mở bản đồ' : 'Chưa liên kết bản đồ'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {backendApi.hasRole('SALON_OWNER') && (
+          <TouchableOpacity
+            style={styles.registerBranchBtn}
+            onPress={() => setGeoModalVisible(true)}
+            activeOpacity={0.85}
+          >
+            <AppIcon name="pin" size={16} color="#FFFFFF" />
+            <Text style={styles.registerBranchBtnText}>Đăng ký chi nhánh từ Geoapify</Text>
+          </TouchableOpacity>
+        )}
 
         {/* DOUBLE BOOKING PROTECTION BANNER */}
         <View style={styles.protectionCard}>
@@ -263,14 +361,14 @@ export const SalonDashboardScreen: React.FC<SalonDashboardScreenProps> = ({ navi
                       style={styles.completeBtn}
                       onPress={() => handleUpdateStatus(b.id, 'COMPLETED')}
                     >
-                      <Text style={styles.completeBtnText}>XÁC NHẬN THANH TOÁN</Text>
+                      <Text style={styles.completeBtnText}>HOÀN TẤT DỊCH VỤ</Text>
                     </TouchableOpacity>
                   </>
                 )}
 
                 {b.status === 'COMPLETED' && (
                   <View style={styles.completedBadge}>
-                    <Text style={styles.completedBadgeText}>Đã hoàn tất & Đã thu tiền</Text>
+                    <Text style={styles.completedBadgeText}>Đã hoàn tất dịch vụ</Text>
                   </View>
                 )}
 
@@ -284,6 +382,81 @@ export const SalonDashboardScreen: React.FC<SalonDashboardScreenProps> = ({ navi
           ))
         )}
       </ScrollView>
+
+      <Modal
+        visible={geoModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setGeoModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.geoModalCard}>
+            <View style={styles.geoModalHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.geoModalTitle}>Liên kết salon thật</Text>
+                <Text style={styles.geoModalSubtitle}>
+                  Tìm theo tên salon, đường, phường, quận hoặc thành phố tại Việt Nam.
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setGeoModalVisible(false)} style={styles.closeModalBtn}>
+                <Text style={styles.closeModalText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.geoSearchRow}>
+              <TextInput
+                style={styles.geoSearchInput}
+                value={geoQuery}
+                onChangeText={setGeoQuery}
+                placeholder="Ví dụ: Traky Hair Salon, Thủ Đức"
+                returnKeyType="search"
+                onSubmitEditing={() => void handleGeoSearch()}
+              />
+              <TouchableOpacity
+                style={styles.geoSearchBtn}
+                onPress={() => void handleGeoSearch()}
+                disabled={geoLoading}
+              >
+                {geoLoading
+                  ? <ActivityIndicator color="#FFFFFF" size="small" />
+                  : <Text style={styles.geoSearchBtnText}>Tìm</Text>}
+              </TouchableOpacity>
+            </View>
+
+            {geoError && <Text style={styles.geoErrorText}>{geoError}</Text>}
+            {!geoLoading && !geoError && geoResults.length === 0 && (
+              <Text style={styles.geoEmptyText}>Nhập địa điểm để tìm dữ liệu Geoapify.</Text>
+            )}
+
+            <ScrollView style={styles.geoResultsList} keyboardShouldPersistTaps="handled">
+              {geoResults.map((place) => (
+                <View key={place.placeId} style={styles.geoResultCard}>
+                  <View style={styles.geoResultInfo}>
+                    <Text style={styles.geoResultName}>{place.name}</Text>
+                    <Text style={styles.geoResultAddress}>{place.address || 'Chưa có địa chỉ'}</Text>
+                    <Text style={styles.locationCoordinates}>
+                      {place.latitude.toFixed(6)}, {place.longitude.toFixed(6)}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.selectGeoBtn}
+                    onPress={() => void handleRegisterGeoSalon(place)}
+                    disabled={registeringPlaceId !== undefined}
+                  >
+                    {registeringPlaceId === place.placeId
+                      ? <ActivityIndicator color="#FFFFFF" size="small" />
+                      : <Text style={styles.selectGeoBtnText}>Tạo yêu cầu</Text>}
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+            <Text style={styles.geoNoticeText}>
+              Chi nhánh mới ở trạng thái chờ duyệt và chưa thể nhận booking. Owner cần bổ sung dịch vụ,
+              stylist và giờ làm việc trên Salon Dashboard web; Admin không tự tạo salon.
+            </Text>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -587,6 +760,196 @@ const styles = StyleSheet.create({
     color: '#B65A4B',
     fontSize: 12,
     fontWeight: '700'
+  },
+  locationCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#DDCBB5',
+    padding: 12,
+    marginBottom: 10
+  },
+  locationCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 9
+  },
+  locationCardText: {
+    flex: 1
+  },
+  locationCardTitle: {
+    color: '#241F1A',
+    fontWeight: '800',
+    fontSize: 13,
+    marginBottom: 3
+  },
+  locationCardAddress: {
+    color: '#6F6255',
+    fontSize: 12,
+    lineHeight: 17
+  },
+  locationCoordinates: {
+    color: '#9B8B7A',
+    fontSize: 10,
+    marginTop: 3
+  },
+  mapBtn: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#F3E7D8',
+    borderRadius: 9,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    marginTop: 10
+  },
+  disabledBtn: {
+    opacity: 0.55
+  },
+  mapBtnText: {
+    color: '#8A5B34',
+    fontSize: 12,
+    fontWeight: '700'
+  },
+  registerBranchBtn: {
+    backgroundColor: '#B8895A',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    marginBottom: 14
+  },
+  registerBranchBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 13
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(36,31,26,0.48)',
+    justifyContent: 'flex-end'
+  },
+  geoModalCard: {
+    maxHeight: '88%',
+    backgroundColor: '#FFFDF9',
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    padding: 18
+  },
+  geoModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 14
+  },
+  geoModalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#241F1A'
+  },
+  geoModalSubtitle: {
+    fontSize: 12,
+    color: '#6F6255',
+    lineHeight: 17,
+    marginTop: 3,
+    paddingRight: 8
+  },
+  closeModalBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3E7D8',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  closeModalText: {
+    color: '#6B4227',
+    fontWeight: '800'
+  },
+  geoSearchRow: {
+    flexDirection: 'row',
+    gap: 8
+  },
+  geoSearchInput: {
+    flex: 1,
+    minHeight: 44,
+    borderWidth: 1,
+    borderColor: '#DDCBB5',
+    borderRadius: 11,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    color: '#241F1A'
+  },
+  geoSearchBtn: {
+    minWidth: 62,
+    minHeight: 44,
+    borderRadius: 11,
+    backgroundColor: '#B8895A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12
+  },
+  geoSearchBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '800'
+  },
+  geoErrorText: {
+    color: '#B65A4B',
+    fontSize: 12,
+    marginTop: 10
+  },
+  geoEmptyText: {
+    color: '#9B8B7A',
+    fontSize: 12,
+    textAlign: 'center',
+    paddingVertical: 24
+  },
+  geoResultsList: {
+    marginTop: 10
+  },
+  geoResultCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5D9CA',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 11,
+    marginBottom: 8,
+    gap: 8
+  },
+  geoResultInfo: {
+    flex: 1
+  },
+  geoResultName: {
+    color: '#241F1A',
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  geoResultAddress: {
+    color: '#6F6255',
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 2
+  },
+  selectGeoBtn: {
+    backgroundColor: '#B8895A',
+    borderRadius: 9,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    minWidth: 72,
+    alignItems: 'center'
+  },
+  selectGeoBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800'
+  },
+  geoNoticeText: {
+    color: '#6F6255',
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 8
   }
 });
 

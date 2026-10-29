@@ -167,7 +167,7 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ navi
             <View style={styles.monetizationRow}>
               <View style={styles.dotPill} />
               <Text style={styles.monetizationText}>
-                <Text style={styles.boldText}>Gói Salon Pro:</Text> 150,000 VNĐ / tháng / salon đối tác
+                <Text style={styles.boldText}>Gói Salon Pro:</Text> 150,000 VNĐ / tháng / salon đăng ký gói
               </Text>
             </View>
           </View>
@@ -192,7 +192,7 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ navi
               <AppIcon name="calendar" size={16} color="#8A7748" />
               <Text style={styles.mgmtNum}>{overview ? `${overview.activeSalons}/${overview.totalSalons}` : '-'}</Text>
             </View>
-            <Text style={styles.mgmtLabel}>Salon đối tác hoạt động</Text>
+            <Text style={styles.mgmtLabel}>Salon đang hoạt động</Text>
           </View>
         </View>
       </ScrollView>
