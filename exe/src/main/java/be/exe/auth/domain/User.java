@@ -72,6 +72,10 @@ public class User {
         this.passwordHash = newPasswordHash;
     }
 
+    public void changeEmail(String newEmail) {
+        this.email = newEmail;
+    }
+
     public void updateProfile(String fullName, String phone) {
         this.fullName = fullName;
         this.phone = phone;

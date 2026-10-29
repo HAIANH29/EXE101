@@ -147,6 +147,10 @@ public class SalonServiceImpl implements SalonService {
 
     @Override
     public SalonResponse updateSalonStatus(Long salonId, SalonStatus status) {
+        if (status == SalonStatus.ACTIVE) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED,
+                    "Không thể kích hoạt salon qua API đổi trạng thái; hãy dùng quy trình phê duyệt salon");
+        }
         Salon salon = findOrThrow(salonId);
         salon.changeStatus(status);
         List<String> images = getImagesForSalon(salonId, salon.getImageUrl());
@@ -164,6 +168,8 @@ public class SalonServiceImpl implements SalonService {
                     "Chỉ có thể phê duyệt salon đang ở trạng thái chờ duyệt (PENDING_APPROVAL). Trạng thái hiện tại: " + salon.getStatus()
             );
         }
+
+        validateSalonReadyForBooking(salon);
 
         salon.changeStatus(SalonStatus.ACTIVE);
         List<String> images = getImagesForSalon(salonId, salon.getImageUrl());
@@ -231,6 +237,7 @@ public class SalonServiceImpl implements SalonService {
             hour.update(req.getOpenTime(), req.getCloseTime(), req.isClosed());
             businessHourRepository.save(hour);
         }
+        salon.markBusinessHoursVerified();
     }
 
     @Override

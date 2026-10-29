@@ -41,6 +41,25 @@ http://localhost:8080/swagger-ui.html
 The `dev` profile loads schema migrations from `db/migration` and demo seed data from
 `db/dev-migration`. The `prod` profile does not load demo seed data.
 
+## Curated real salon listings
+
+Migrations `V25` and `V26` add the surveyed Thủ Đức salon directory. These are
+real location records managed by the StyleLock team; they are not marked as
+DEMO and do not claim that the businesses have joined StyleLock.
+
+Set both variables in Render before deploying so the team can log in as the
+platform owner and manage bookings for these records:
+
+```properties
+STYLELOCK_CURATED_OWNER_EMAIL=team-owner@example.com
+STYLELOCK_CURATED_OWNER_PASSWORD=<strong-secret-from-render>
+```
+
+Do not commit the real password. If either variable is absent, the curated
+owner remains `INACTIVE`. Production also defaults `STYLELOCK_DEMO_ENABLED` to
+`false`; only enable it deliberately in development/test with an environment
+supplied demo password.
+
 ## Demo accounts
 
 All demo accounts use password `Password@123`.

@@ -10,4 +10,8 @@ public record SalonSummaryResponse(
     public boolean isActive() {
         return "ACTIVE".equals(status);
     }
+
+    public boolean isBookable() {
+        return isActive() && bookingEnabled;
+    }
 }

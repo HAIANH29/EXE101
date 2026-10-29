@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.List;
 
@@ -26,6 +27,22 @@ import java.util.List;
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    /**
+     * Spring ném NoResourceFoundException khi URL không khớp controller/static resource nào.
+     * Bắt riêng để endpoint chưa được deploy trả đúng 404 thay vì bị handler tổng quát đổi thành 500.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFoundException(
+            NoResourceFoundException ex, HttpServletRequest request) {
+
+        ErrorResponse body = new ErrorResponse(
+                ErrorCode.RESOURCE_NOT_FOUND.getCode(),
+                "Endpoint không tồn tại",
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
 
     /**
      * Bắt toàn bộ lỗi nghiệp vụ (BusinessException và các lớp con: ResourceNotFoundException,

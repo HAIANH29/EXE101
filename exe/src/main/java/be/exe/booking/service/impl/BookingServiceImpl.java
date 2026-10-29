@@ -92,6 +92,11 @@ public class BookingServiceImpl implements BookingService {
         }
 
         // 2. Validate stylist - phải thuộc đúng salon và đang active
+        if (!salon.isBookable()) {
+            throw new ValidationException(
+                    "Salon này chỉ là dữ liệu địa điểm tham khảo và chưa được bật nhận lịch trên StyleLock");
+        }
+
         StylistSummaryResponse stylist = stylistService.getStylistOrThrow(request.getStylistId());
         if (!stylist.salonId().equals(request.getSalonId())) {
             throw new ValidationException("Stylist này không thuộc salon đã chọn");
@@ -120,6 +125,21 @@ public class BookingServiceImpl implements BookingService {
         // 5. Tính endAt từ thời lượng dịch vụ, snapshot giá tại thời điểm đặt
         Instant startAt = request.getStartAt();
         Instant endAt = startAt.plus(service.durationMinutes(), ChronoUnit.MINUTES);
+
+        ZoneId businessZone = ZoneId.of("Asia/Ho_Chi_Minh");
+        var localStart = startAt.atZone(businessZone);
+        var localEnd = endAt.atZone(businessZone);
+        var businessHour = salonService.getBusinessHour(
+                request.getSalonId(), localStart.getDayOfWeek());
+        boolean outsideBusinessHours = businessHour.closed()
+                || businessHour.openTime() == null
+                || businessHour.closeTime() == null
+                || !localStart.toLocalDate().equals(localEnd.toLocalDate())
+                || localStart.toLocalTime().isBefore(businessHour.openTime())
+                || localEnd.toLocalTime().isAfter(businessHour.closeTime());
+        if (outsideBusinessHours) {
+            throw new ValidationException("Thời gian đặt lịch nằm ngoài giờ nhận lịch của salon");
+        }
 
         // 6. Kiểm tra trùng lịch (application-level check - lớp bảo vệ đầu tiên)
         if (bookingRepository.existsOverlappingBooking(request.getStylistId(), startAt, endAt)) {
@@ -155,8 +175,9 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public BookingResponse confirmBooking(Long bookingId) {
+    public BookingResponse confirmBooking(Long bookingId, Long requesterId, boolean admin) {
         Booking booking = findOrThrow(bookingId);
+        verifyCanManageBooking(booking, requesterId, admin);
         booking.confirm();
 
         eventPublisher.publishEvent(new BookingConfirmedEvent(booking.getId(), booking.getCustomerId()));
@@ -235,8 +256,9 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public BookingResponse completeBooking(Long bookingId) {
+    public BookingResponse completeBooking(Long bookingId, Long requesterId, boolean admin) {
         Booking booking = findOrThrow(bookingId);
+        verifyCanManageBooking(booking, requesterId, admin);
         booking.complete();
 
         eventPublisher.publishEvent(new BookingCompletedEvent(
@@ -395,6 +417,25 @@ public class BookingServiceImpl implements BookingService {
     private Booking findOrThrow(Long bookingId) {
         return bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
+    }
+
+    private void verifyCanManageBooking(Booking booking, Long requesterId, boolean admin) {
+        if (admin) {
+            return;
+        }
+
+        SalonSummaryResponse salon = salonService.getSalonOrThrow(booking.getSalonId());
+        if (salon.ownerId().equals(requesterId)) {
+            return;
+        }
+
+        StylistResponse stylist = stylistService.getStylist(booking.getStylistId());
+        if (stylist.salonId().equals(booking.getSalonId())
+                && stylist.userId().equals(requesterId)) {
+            return;
+        }
+
+        throw new ForbiddenException("Bạn không có quyền quản lý lịch hẹn này");
     }
 
     private BookingResponse toEnrichedResponse(Booking booking) {

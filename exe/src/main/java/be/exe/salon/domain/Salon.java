@@ -84,6 +84,41 @@ public class Salon {
 
     public void changeStatus(SalonStatus status) {
         this.status = status;
+        if (status != SalonStatus.ACTIVE) {
+            this.bookingEnabled = false;
+        }
+    }
+
+    public void linkGeoapifyLocation(String placeId, Double latitude, Double longitude) {
+        this.geoapifyPlaceId = placeId;
+        this.sourceProvider = "GEOAPIFY";
+        this.sourcePlaceId = placeId;
+        this.latitude = latitude;
+        this.longitude = longitude;
+    }
+
+    public void markDemo() {
+        this.demo = true;
+        this.listingSource = SalonListingSource.GEOAPIFY_DEMO;
+        this.sourceProvider = "GEOAPIFY";
+        this.sourcePlaceId = this.geoapifyPlaceId;
+        this.bookingEnabled = true;
+    }
+
+    public void disableBooking() {
+        this.bookingEnabled = false;
+    }
+
+    public void enableBooking() {
+        this.bookingEnabled = true;
+    }
+
+    public void markLocationVerified() {
+        this.locationVerifiedAt = Instant.now();
+    }
+
+    public void markBusinessHoursVerified() {
+        this.businessHoursVerified = true;
     }
 
     public void linkGeoapifyLocation(String placeId, Double latitude, Double longitude) {

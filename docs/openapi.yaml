@@ -109,7 +109,9 @@ paths:
   /api/salons:
     post:
       tags: [Salon]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SalonRequest' } } } }
+      summary: Salon Owner đăng ký salon từ địa điểm Geoapify đã chọn
+      description: Backend gọi Geoapify Place Details để xác minh Place ID, salon tóc, quốc gia Việt Nam và tọa độ; tên/địa chỉ canonical từ Geoapify được lưu và salon chờ Admin duyệt.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateSalonRequest' } } } }
       responses: { '200': { $ref: '#/components/responses/SalonResponse' }, '400': { $ref: '#/components/responses/ValidationError' }, '403': { $ref: '#/components/responses/Error' } }
     get:
       tags: [Salon]
@@ -159,8 +161,9 @@ paths:
       responses: { '200': { $ref: '#/components/responses/SalonResponse' } }
     put:
       tags: [Salon]
+      description: Đổi tên/địa chỉ salon Owner yêu cầu chọn lại địa điểm Geoapify và được Place Details xác minh. Địa điểm PLATFORM_CURATED không đổi qua API này.
       parameters: [{ $ref: '#/components/parameters/salonId' }]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SalonRequest' } } } }
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UpdateSalonRequest' } } } }
       responses: { '200': { $ref: '#/components/responses/SalonResponse' }, '400': { $ref: '#/components/responses/ValidationError' }, '403': { $ref: '#/components/responses/Error' } }
   /api/salons/{salonId}/status:
     patch:

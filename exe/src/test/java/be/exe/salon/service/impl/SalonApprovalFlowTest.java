@@ -21,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
+import java.time.LocalTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -50,6 +51,9 @@ public class SalonApprovalFlowTest {
     @Mock
     private PaymentService paymentService;
 
+    @Mock
+    private be.exe.catalog.service.ServiceCatalogService serviceCatalogService;
+
     @InjectMocks
     private SalonServiceImpl salonService;
 
@@ -57,7 +61,8 @@ public class SalonApprovalFlowTest {
 
     @BeforeEach
     void setUp() {
-        adminService = new AdminServiceImpl(authService, salonService, paymentService);
+        adminService = new AdminServiceImpl(authService, salonService, paymentService,
+                serviceCatalogService);
     }
 
     @Test
@@ -67,9 +72,16 @@ public class SalonApprovalFlowTest {
         request.setName("Barber Shop 1");
         request.setPhone("0987654321");
         request.setAddress("Hanoi");
+        request.setGeoapifyPlaceId("geo-create-1");
+        request.setLatitude(21.0285);
+        request.setLongitude(105.8542);
 
         when(salonRepository.existsByOwnerIdAndStatus(ownerId, SalonStatus.PENDING_APPROVAL))
                 .thenReturn(false);
+        when(geoapifySalonService.validateSalonPlace("geo-create-1", 21.0285, 105.8542))
+                .thenReturn(new be.exe.publicapi.GeoapifySalonService.ValidatedSalonPlace(
+                        "geo-create-canonical", "Barber Shop 1", "Hanoi",
+                        21.0285, 105.8542));
         when(salonRepository.saveAndFlush(any(Salon.class))).thenAnswer(invocation -> {
             Salon s = invocation.getArgument(0);
             ReflectionTestUtils.setField(s, "id", 1L);
@@ -110,8 +122,18 @@ public class SalonApprovalFlowTest {
         Salon salon = new Salon(ownerId, "Pending Salon");
         ReflectionTestUtils.setField(salon, "id", salonId);
         ReflectionTestUtils.setField(salon, "status", SalonStatus.PENDING_APPROVAL);
+        salon.linkGeoapifyLocation("geo-approved-10", 10.8505, 106.7585);
+        salon.markLocationVerified();
 
+        when(serviceCatalogService.hasActiveServices(salonId)).thenReturn(true);
         when(salonRepository.findByIdForUpdate(salonId)).thenReturn(Optional.of(salon));
+        when(stylistRepository.countBySalonIdAndStatus(
+                salonId, be.exe.salon.domain.StylistStatus.ACTIVE)).thenReturn(1L);
+        when(businessHourRepository.findBySalonIdOrderByDayOfWeek(salonId)).thenReturn(
+                java.util.stream.IntStream.rangeClosed(1, 7)
+                        .mapToObj(day -> new be.exe.salon.domain.SalonBusinessHour(
+                                salonId, (short) day, LocalTime.of(9, 0), LocalTime.of(18, 0), false))
+                        .toList());
         SalonResponse response = adminService.approveSalon(salonId);
 
         assertNotNull(response);
@@ -128,6 +150,7 @@ public class SalonApprovalFlowTest {
         ReflectionTestUtils.setField(salon, "id", salonId);
         ReflectionTestUtils.setField(salon, "status", SalonStatus.ACTIVE);
 
+        when(serviceCatalogService.hasActiveServices(salonId)).thenReturn(true);
         when(salonRepository.findByIdForUpdate(salonId)).thenReturn(Optional.of(salon));
 
         BusinessException ex = assertThrows(BusinessException.class, () ->

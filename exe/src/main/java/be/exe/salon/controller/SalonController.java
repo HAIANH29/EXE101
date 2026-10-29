@@ -32,7 +32,7 @@ public class SalonController {
     }
 
     @PostMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('SALON_OWNER')")
     public ResponseEntity<ApiResponse<SalonResponse>> createSalon(
             @AuthenticationPrincipal CustomUserDetails principal,
             @Valid @RequestBody CreateSalonRequest request) {

@@ -90,8 +90,11 @@ public class BookingController {
 
     @PatchMapping("/{bookingId}/confirm")
     @PreAuthorize("hasRole('SALON_OWNER') or hasRole('STAFF') or hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<BookingResponse>> confirmBooking(@PathVariable Long bookingId) {
-        return ResponseEntity.ok(ApiResponse.success(bookingService.confirmBooking(bookingId)));
+    public ResponseEntity<ApiResponse<BookingResponse>> confirmBooking(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @PathVariable Long bookingId) {
+        return ResponseEntity.ok(ApiResponse.success(bookingService.confirmBooking(
+                bookingId, principal.getUserId(), isAdmin(principal))));
     }
 
     @PatchMapping("/{bookingId}/cancel")
@@ -115,7 +118,15 @@ public class BookingController {
 
     @PatchMapping("/{bookingId}/complete")
     @PreAuthorize("hasRole('SALON_OWNER') or hasRole('STAFF') or hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<BookingResponse>> completeBooking(@PathVariable Long bookingId) {
-        return ResponseEntity.ok(ApiResponse.success(bookingService.completeBooking(bookingId)));
+    public ResponseEntity<ApiResponse<BookingResponse>> completeBooking(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @PathVariable Long bookingId) {
+        return ResponseEntity.ok(ApiResponse.success(bookingService.completeBooking(
+                bookingId, principal.getUserId(), isAdmin(principal))));
+    }
+
+    private boolean isAdmin(CustomUserDetails principal) {
+        return principal.getAuthorities().stream()
+                .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
     }
 }
