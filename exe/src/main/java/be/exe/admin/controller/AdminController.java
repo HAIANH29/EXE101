@@ -7,8 +7,10 @@ import be.exe.auth.dto.response.UserResponse;
 import be.exe.common.response.ApiResponse;
 import be.exe.common.response.PageResponse;
 import be.exe.common.util.PaginationUtils;
+import be.exe.salon.dto.request.UpdateSalonRequest;
 import be.exe.salon.dto.response.SalonResponse;
 import be.exe.payment.dto.response.PaymentResponse;
+import be.exe.payment.dto.response.PaidUserResponse;
 import be.exe.admin.dto.request.RefundPaymentRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -92,7 +94,45 @@ public class AdminController {
                 "Đã từ chối salon", adminService.rejectSalon(salonId)));
     }
 
+    @PutMapping("/salons/{salonId}")
+    public ResponseEntity<ApiResponse<SalonResponse>> updateSalon(
+            @PathVariable Long salonId,
+            @Valid @RequestBody UpdateSalonRequest request) {
+        SalonResponse response = adminService.updateSalon(salonId, request);
+        return ResponseEntity.ok(ApiResponse.success("Đã cập nhật thông tin salon", response));
+    }
+
+    @DeleteMapping("/salons/{salonId}")
+    public ResponseEntity<ApiResponse<Void>> deleteSalon(@PathVariable Long salonId) {
+        adminService.deleteSalon(salonId);
+        return ResponseEntity.ok(ApiResponse.success("Đã chuyển salon sang trạng thái ngừng hoạt động"));
+    }
+
     // ===== Quản lý thanh toán =====
+
+    @GetMapping("/payments")
+    public ResponseEntity<ApiResponse<PageResponse<PaymentResponse>>> getPayments(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        var pageable = PaginationUtils.of(page, size, "createdAt", "DESC");
+        var result = adminService.getPayments(status, pageable);
+        return ResponseEntity.ok(ApiResponse.success(PageResponse.from(result)));
+    }
+
+    @GetMapping("/payments/paid-users")
+    public ResponseEntity<ApiResponse<PageResponse<PaidUserResponse>>> getPaidUsers(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        var result = adminService.getPaidUsers(PaginationUtils.of(page, size));
+        return ResponseEntity.ok(ApiResponse.success(PageResponse.from(result)));
+    }
+
+    @GetMapping("/payments/{paymentId}")
+    public ResponseEntity<ApiResponse<PaymentResponse>> getPaymentDetail(@PathVariable Long paymentId) {
+        PaymentResponse response = adminService.getPaymentDetail(paymentId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
 
     @PatchMapping("/payments/{paymentId}/refund")
     public ResponseEntity<ApiResponse<PaymentResponse>> refundPayment(

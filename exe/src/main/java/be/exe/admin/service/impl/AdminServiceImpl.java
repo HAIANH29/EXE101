@@ -94,10 +94,40 @@ public class AdminServiceImpl implements AdminService {
         return salonService.rejectSalon(salonId);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public SalonResponse updateSalon(Long salonId, be.exe.salon.dto.request.UpdateSalonRequest request) {
+        return salonService.updateSalonByAdmin(salonId, request);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteSalon(Long salonId) {
+        salonService.deleteSalonByAdmin(salonId);
+    }
+
     // ===== Quản lý thanh toán =====
 
     @Override
     public PaymentResponse refundPayment(Long adminId, Long paymentId, RefundPaymentRequest request) {
         return paymentService.refundPayment(paymentId, request.refundAmount(), request.refundReference(), request.note(), adminId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PaymentResponse> getPayments(String status, Pageable pageable) {
+        return paymentService.getAllPayments(status, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<be.exe.payment.dto.response.PaidUserResponse> getPaidUsers(Pageable pageable) {
+        return paymentService.getPaidUsers(pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaymentResponse getPaymentDetail(Long paymentId) {
+        return paymentService.getPaymentForAdmin(paymentId);
     }
 }

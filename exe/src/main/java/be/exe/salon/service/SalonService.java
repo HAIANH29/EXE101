@@ -7,6 +7,7 @@ import be.exe.salon.dto.response.SalonResponse;
 import be.exe.salon.dto.response.SalonSummaryResponse;
 import be.exe.salon.dto.request.UpdateBusinessHourRequest;
 import be.exe.salon.dto.response.BusinessHourResponse;
+import be.exe.salon.dto.response.SalonImageUploadResponse;
 import be.exe.salon.domain.SalonStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -38,6 +39,8 @@ public interface SalonService {
 
     SalonDetailResponse getSalonDetail(Long salonId);
 
+    SalonImageUploadResponse uploadImage(org.springframework.web.multipart.MultipartFile file);
+
     Page<SalonResponse> getSalons(SalonStatus statusFilter, Pageable pageable);
 
     Page<SalonResponse> getSalonsByOwner(Long ownerId, Pageable pageable);
@@ -54,4 +57,8 @@ public interface SalonService {
     void verifyOwner(Long salonId, Long ownerId);
 
     long countActiveStylists(Long salonId);
+
+    SalonResponse updateSalonByAdmin(Long salonId, UpdateSalonRequest request);
+
+    void deleteSalonByAdmin(Long salonId);
 }

@@ -11,4 +11,6 @@ public interface SalonBusinessHourRepository extends JpaRepository<SalonBusiness
     List<SalonBusinessHour> findBySalonIdOrderByDayOfWeek(Long salonId);
 
     Optional<SalonBusinessHour> findBySalonIdAndDayOfWeek(Long salonId, Short dayOfWeek);
+
+    boolean existsBySalonId(Long salonId);
 }

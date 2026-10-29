@@ -24,6 +24,10 @@ spring:
             client-secret: test-secret
 
 app:
+  demo:
+    enabled: true
+    owner-email: demo.owner@stylelock.local
+    owner-password: DemoOwner123!
   jwt:
     secret: test-secret-key-that-is-at-least-32-characters-long
     access-token-expiration-ms: 900000

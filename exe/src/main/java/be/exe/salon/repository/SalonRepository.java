@@ -22,6 +22,12 @@ public interface SalonRepository extends JpaRepository<Salon, Long> {
 
     boolean existsByOwnerIdAndStatus(Long ownerId, SalonStatus status);
 
+    boolean existsByGeoapifyPlaceId(String geoapifyPlaceId);
+
+    boolean existsByGeoapifyPlaceIdAndIdNot(String geoapifyPlaceId, Long id);
+
+    Optional<Salon> findByGeoapifyPlaceId(String geoapifyPlaceId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT s FROM Salon s WHERE s.id = :id")
     Optional<Salon> findByIdForUpdate(@Param("id") Long id);

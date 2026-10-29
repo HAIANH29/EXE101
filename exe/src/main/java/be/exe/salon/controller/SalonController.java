@@ -41,6 +41,14 @@ public class SalonController {
             "Đã tạo salon, đang chờ admin duyệt", response));
     }
 
+    @PostMapping(value = "/images", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<be.exe.salon.dto.response.SalonImageUploadResponse>> uploadSalonImage(
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        return ResponseEntity.ok(ApiResponse.success(
+                "Đã tải ảnh lên", salonService.uploadImage(file)));
+    }
+
     @PutMapping("/{salonId}")
     @PreAuthorize("hasRole('SALON_OWNER')")
     public ResponseEntity<ApiResponse<SalonResponse>> updateSalon(

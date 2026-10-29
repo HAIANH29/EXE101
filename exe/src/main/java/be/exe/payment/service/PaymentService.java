@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import be.exe.payment.dto.response.PaymentResponse;
+import be.exe.payment.dto.response.PaidUserResponse;
 
 public interface PaymentService {
 
@@ -33,4 +34,12 @@ public interface PaymentService {
     Page<PaymentResponse> getPaymentHistory(Long requesterId, Pageable pageable);
 
     PaymentResponse refundPayment(Long paymentId, BigDecimal refundAmount, String refundReference, String note, Long adminId);
+
+    Page<PaymentResponse> getAllPayments(String status, Pageable pageable);
+
+    Page<PaidUserResponse> getPaidUsers(Pageable pageable);
+
+    PaymentResponse getPaymentForAdmin(Long paymentId);
+
+    PaymentResponse confirmDemoPayment(Long paymentId, Long requesterId);
 }

@@ -2,45 +2,68 @@ package be.exe.salon.service.impl;
 
 import be.exe.salon.domain.Salon;
 import be.exe.salon.domain.SalonBusinessHour;
+import be.exe.salon.domain.SalonImage;
 import be.exe.salon.domain.SalonStatus;
 import be.exe.salon.dto.request.CreateSalonRequest;
 import be.exe.salon.dto.request.UpdateBusinessHourRequest;
 import be.exe.salon.dto.request.UpdateSalonRequest;
 import be.exe.salon.dto.response.SalonDetailResponse;
+import be.exe.salon.dto.response.SalonImageUploadResponse;
 import be.exe.salon.dto.response.SalonResponse;
 import be.exe.salon.dto.response.SalonSummaryResponse;
 import be.exe.salon.dto.response.BusinessHourResponse;
 import be.exe.salon.mapper.SalonMapper;
 import be.exe.salon.repository.SalonBusinessHourRepository;
+import be.exe.salon.repository.SalonImageRepository;
 import be.exe.salon.repository.SalonRepository;
-import be.exe.salon.service.SalonService;
 import be.exe.salon.repository.StylistRepository;
+import be.exe.salon.service.SalonService;
 import be.exe.common.exception.BusinessException;
 import be.exe.common.exception.ErrorCode;
 import be.exe.common.exception.ForbiddenException;
 import be.exe.common.exception.ResourceNotFoundException;
+import be.exe.common.storage.StorageService;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
 import java.time.DayOfWeek;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
 public class SalonServiceImpl implements SalonService {
 
+    private static final List<String> ALLOWED_IMAGE_TYPES = List.of(
+            "image/jpeg", "image/png", "image/webp"
+    );
+    private static final long MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5MB
+    private static final String UPLOAD_FOLDER = "salons";
+    private static final int MAX_IMAGES = 10;
+
     private final SalonRepository salonRepository;
     private final SalonBusinessHourRepository businessHourRepository;
     private final StylistRepository stylistRepository;
+    private final SalonImageRepository salonImageRepository;
+    private final StorageService storageService;
 
     public SalonServiceImpl(SalonRepository salonRepository,
-                             SalonBusinessHourRepository businessHourRepository,
-                             StylistRepository stylistRepository) {
+                            SalonBusinessHourRepository businessHourRepository,
+                            StylistRepository stylistRepository,
+                            SalonImageRepository salonImageRepository,
+                            StorageService storageService) {
         this.salonRepository = salonRepository;
         this.businessHourRepository = businessHourRepository;
         this.stylistRepository = stylistRepository;
+        this.salonImageRepository = salonImageRepository;
+        this.storageService = storageService;
     }
 
     @Override
@@ -48,6 +71,20 @@ public class SalonServiceImpl implements SalonService {
     public SalonSummaryResponse getSalonOrThrow(Long salonId) {
         Salon salon = findOrThrow(salonId);
         return SalonMapper.toSummary(salon);
+    }
+
+    @Override
+    public SalonImageUploadResponse uploadImage(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Vui lòng chọn file ảnh");
+        }
+        if (file.getContentType() == null || !ALLOWED_IMAGE_TYPES.contains(file.getContentType().toLowerCase())) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Chỉ chấp nhận ảnh JPG, PNG hoặc WEBP");
+        }
+        if (file.getSize() > MAX_UPLOAD_BYTES) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Ảnh tối đa 5MB");
+        }
+        return new SalonImageUploadResponse(storageService.upload(file, UPLOAD_FOLDER));
     }
 
     @Override
@@ -59,12 +96,22 @@ public class SalonServiceImpl implements SalonService {
             );
         }
 
+        List<String> images = resolveImages(request.getImageUrl(), request.getImageUrls());
+        String coverImage = images.isEmpty() ? null : images.get(0);
+
         Salon salon = new Salon(ownerId, request.getName());
         salon.updateInfo(request.getName(), request.getPhone(), request.getAddress(),
-                request.getDescription(), request.getImageUrl());
+                request.getDescription(), coverImage);
+        linkGeoapifyLocation(salon, request.getGeoapifyPlaceId(),
+                request.getLatitude(), request.getLongitude(), null);
         // Salon mới tạo luôn ở trạng thái chờ duyệt, admin phải approve mới ACTIVE được
         salon = salonRepository.saveAndFlush(salon);
-        return SalonMapper.toResponse(salon);
+
+        if (!images.isEmpty()) {
+            replaceGallery(salon.getId(), images);
+        }
+
+        return SalonMapper.toResponse(salon, images);
     }
 
     @Override
@@ -75,17 +122,35 @@ public class SalonServiceImpl implements SalonService {
             throw new ForbiddenException("Bạn không phải chủ sở hữu salon này");
         }
 
-        salon.updateInfo(request.getName(), request.getPhone(), request.getAddress(),
-                request.getDescription(), request.getImageUrl());
+        List<String> images = resolveImages(request.getImageUrl(), request.getImageUrls());
+        String coverImage = images.isEmpty() ? null : images.get(0);
 
-        return SalonMapper.toResponse(salon);
+        salon.updateInfo(request.getName(), request.getPhone(), request.getAddress(),
+                request.getDescription(), coverImage);
+        if (hasGeoapifyLocation(request.getGeoapifyPlaceId(), request.getLatitude(), request.getLongitude())) {
+            String requestedPlaceId = request.getGeoapifyPlaceId() == null
+                    ? null : request.getGeoapifyPlaceId().trim();
+            boolean locationChanged = !java.util.Objects.equals(requestedPlaceId, salon.getGeoapifyPlaceId())
+                    || !java.util.Objects.equals(request.getLatitude(), salon.getLatitude())
+                    || !java.util.Objects.equals(request.getLongitude(), salon.getLongitude());
+            linkGeoapifyLocation(salon, request.getGeoapifyPlaceId(),
+                    request.getLatitude(), request.getLongitude(), salonId);
+            if (locationChanged) {
+                salon.changeStatus(SalonStatus.PENDING_APPROVAL);
+            }
+        }
+
+        replaceGallery(salon.getId(), images);
+
+        return SalonMapper.toResponse(salon, images);
     }
 
     @Override
     public SalonResponse updateSalonStatus(Long salonId, SalonStatus status) {
         Salon salon = findOrThrow(salonId);
         salon.changeStatus(status);
-        return SalonMapper.toResponse(salon);
+        List<String> images = getImagesForSalon(salonId, salon.getImageUrl());
+        return SalonMapper.toResponse(salon, images);
     }
 
     @Override
@@ -101,7 +166,8 @@ public class SalonServiceImpl implements SalonService {
         }
 
         salon.changeStatus(SalonStatus.ACTIVE);
-        return SalonMapper.toResponse(salon);
+        List<String> images = getImagesForSalon(salonId, salon.getImageUrl());
+        return SalonMapper.toResponse(salon, images);
     }
 
     @Override
@@ -117,7 +183,8 @@ public class SalonServiceImpl implements SalonService {
         }
 
         salon.changeStatus(SalonStatus.INACTIVE);
-        return SalonMapper.toResponse(salon);
+        List<String> images = getImagesForSalon(salonId, salon.getImageUrl());
+        return SalonMapper.toResponse(salon, images);
     }
 
     @Override
@@ -125,7 +192,8 @@ public class SalonServiceImpl implements SalonService {
     public SalonDetailResponse getSalonDetail(Long salonId) {
         Salon salon = findOrThrow(salonId);
         var hours = businessHourRepository.findBySalonIdOrderByDayOfWeek(salonId);
-        return SalonMapper.toDetailResponse(salon, hours);
+        List<String> images = getImagesForSalon(salonId, salon.getImageUrl());
+        return SalonMapper.toDetailResponse(salon, hours, images);
     }
 
     @Override
@@ -134,13 +202,16 @@ public class SalonServiceImpl implements SalonService {
         Page<Salon> page = (statusFilter != null)
                 ? salonRepository.findByStatus(statusFilter, pageable)
                 : salonRepository.findAll(pageable);
-        return page.map(SalonMapper::toResponse);
+        List<SalonResponse> content = toResponses(page.getContent());
+        return new PageImpl<>(content, pageable, page.getTotalElements());
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<SalonResponse> getSalonsByOwner(Long ownerId, Pageable pageable) {
-        return salonRepository.findByOwnerId(ownerId, pageable).map(SalonMapper::toResponse);
+        Page<Salon> page = salonRepository.findByOwnerId(ownerId, pageable);
+        List<SalonResponse> content = toResponses(page.getContent());
+        return new PageImpl<>(content, pageable, page.getTotalElements());
     }
 
     @Override
@@ -199,6 +270,116 @@ public class SalonServiceImpl implements SalonService {
     public long countActiveStylists(Long salonId) {
         return stylistRepository.countBySalonIdAndStatus(
                 salonId, be.exe.salon.domain.StylistStatus.ACTIVE);
+    }
+
+    @Override
+    public SalonResponse updateSalonByAdmin(Long salonId, UpdateSalonRequest request) {
+        Salon salon = findOrThrow(salonId);
+
+        List<String> images = resolveImages(request.getImageUrl(), request.getImageUrls());
+        String coverImage = images.isEmpty() ? null : images.get(0);
+
+        salon.updateInfo(request.getName(), request.getPhone(), request.getAddress(),
+                request.getDescription(), coverImage);
+        if (hasGeoapifyLocation(request.getGeoapifyPlaceId(), request.getLatitude(), request.getLongitude())) {
+            linkGeoapifyLocation(salon, request.getGeoapifyPlaceId(),
+                    request.getLatitude(), request.getLongitude(), salonId);
+        }
+
+        replaceGallery(salon.getId(), images);
+
+        return SalonMapper.toResponse(salon, images);
+    }
+
+    @Override
+    public void deleteSalonByAdmin(Long salonId) {
+        Salon salon = findOrThrow(salonId);
+        salon.changeStatus(SalonStatus.INACTIVE);
+    }
+
+    private List<String> getImagesForSalon(Long salonId, String fallbackCover) {
+        List<String> images = salonImageRepository.findBySalonIdOrderBySortOrderAsc(salonId).stream()
+                .map(SalonImage::getImageUrl)
+                .toList();
+        if (images.isEmpty() && fallbackCover != null && !fallbackCover.isBlank()) {
+            return List.of(fallbackCover);
+        }
+        return images;
+    }
+
+    private List<SalonResponse> toResponses(List<Salon> salons) {
+        if (salons.isEmpty()) {
+            return List.of();
+        }
+        List<Long> ids = salons.stream().map(Salon::getId).toList();
+        Map<Long, List<String>> gallery = salonImageRepository
+                .findBySalonIdInOrderBySalonIdAscSortOrderAsc(ids).stream()
+                .collect(Collectors.groupingBy(SalonImage::getSalonId,
+                        Collectors.mapping(SalonImage::getImageUrl, Collectors.toList())));
+        return salons.stream()
+                .map(s -> SalonMapper.toResponse(s, gallery.getOrDefault(s.getId(),
+                        s.getImageUrl() != null && !s.getImageUrl().isBlank()
+                                ? List.of(s.getImageUrl())
+                                : List.of())))
+                .toList();
+    }
+
+    private List<String> resolveImages(String imageUrl, List<String> imageUrls) {
+        Set<String> cleaned = new LinkedHashSet<>();
+        if (imageUrls != null) {
+            for (String url : imageUrls) {
+                if (url != null && !url.isBlank()) {
+                    cleaned.add(url.trim());
+                }
+            }
+        }
+        if (cleaned.isEmpty() && imageUrl != null && !imageUrl.isBlank()) {
+            cleaned.add(imageUrl.trim());
+        }
+        if (cleaned.size() > MAX_IMAGES) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED,
+                    "Mỗi salon tối đa " + MAX_IMAGES + " ảnh");
+        }
+        for (String url : cleaned) {
+            String lower = url.toLowerCase();
+            if (!lower.startsWith("http://") && !lower.startsWith("https://")) {
+                throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Link ảnh phải bắt đầu bằng http:// hoặc https://");
+            }
+        }
+        return List.copyOf(cleaned);
+    }
+
+    private void replaceGallery(Long salonId, List<String> images) {
+        salonImageRepository.deleteBySalonId(salonId);
+        for (int i = 0; i < images.size(); i++) {
+            salonImageRepository.save(new SalonImage(salonId, images.get(i), i));
+        }
+    }
+
+    private boolean hasGeoapifyLocation(String placeId, Double latitude, Double longitude) {
+        return (placeId != null && !placeId.isBlank()) || latitude != null || longitude != null;
+    }
+
+    private void linkGeoapifyLocation(Salon salon, String placeId, Double latitude,
+                                      Double longitude, Long currentSalonId) {
+        if (!hasGeoapifyLocation(placeId, latitude, longitude)) {
+            return;
+        }
+        if (placeId == null || placeId.isBlank() || latitude == null || longitude == null
+                || !Double.isFinite(latitude) || latitude < -90 || latitude > 90
+                || !Double.isFinite(longitude) || longitude < -180 || longitude > 180) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED,
+                    "Liên kết Geoapify phải có placeId và tọa độ hợp lệ");
+        }
+        String normalizedPlaceId = placeId.trim();
+        boolean alreadyLinked = currentSalonId == null
+                ? salonRepository.existsByGeoapifyPlaceId(normalizedPlaceId)
+                : salonRepository.existsByGeoapifyPlaceIdAndIdNot(normalizedPlaceId, currentSalonId);
+        if (alreadyLinked) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED,
+                    "Salon Geoapify này đã được liên kết với một tài khoản StyleLock khác");
+        }
+        salon.linkGeoapifyLocation(normalizedPlaceId, latitude, longitude);
     }
 
     private Salon findOrThrow(Long salonId) {

@@ -15,6 +15,12 @@ public final class SalonMapper {
     }
 
     public static SalonResponse toResponse(Salon salon) {
+        return toResponse(salon, salon.getImageUrl() != null && !salon.getImageUrl().isBlank()
+                ? List.of(salon.getImageUrl())
+                : List.of());
+    }
+
+    public static SalonResponse toResponse(Salon salon, List<String> imageUrls) {
         return new SalonResponse(
                 salon.getId(),
                 salon.getOwnerId(),
@@ -23,12 +29,23 @@ public final class SalonMapper {
                 salon.getAddress(),
                 salon.getDescription(),
                 salon.getImageUrl(),
+                imageUrls != null ? imageUrls : List.of(),
+                salon.getGeoapifyPlaceId(),
+                salon.getLatitude(),
+                salon.getLongitude(),
+                salon.isDemo(),
                 salon.getStatus().name(),
                 salon.getCreatedAt()
         );
     }
 
     public static SalonDetailResponse toDetailResponse(Salon salon, List<SalonBusinessHour> hours) {
+        return toDetailResponse(salon, hours, salon.getImageUrl() != null && !salon.getImageUrl().isBlank()
+                ? List.of(salon.getImageUrl())
+                : List.of());
+    }
+
+    public static SalonDetailResponse toDetailResponse(Salon salon, List<SalonBusinessHour> hours, List<String> imageUrls) {
         List<BusinessHourResponse> hourResponses = hours.stream()
                 .map(h -> new BusinessHourResponse(
                         h.getDayOfWeek(), h.getOpenTime(), h.getCloseTime(), h.isClosed()))
@@ -42,6 +59,11 @@ public final class SalonMapper {
                 salon.getAddress(),
                 salon.getDescription(),
                 salon.getImageUrl(),
+                imageUrls != null ? imageUrls : List.of(),
+                salon.getGeoapifyPlaceId(),
+                salon.getLatitude(),
+                salon.getLongitude(),
+                salon.isDemo(),
                 salon.getStatus().name(),
                 hourResponses,
                 salon.getCreatedAt()
@@ -50,6 +72,6 @@ public final class SalonMapper {
 
     public static SalonSummaryResponse toSummary(Salon salon) {
         return new SalonSummaryResponse(
-                salon.getId(), salon.getOwnerId(), salon.getName(), salon.getStatus().name());
+                salon.getId(), salon.getOwnerId(), salon.getName(), salon.getStatus().name(), salon.isDemo());
     }
 }

@@ -29,5 +29,17 @@ public interface AdminService {
 
     SalonResponse rejectSalon(Long salonId);
 
+    SalonResponse updateSalon(Long salonId, be.exe.salon.dto.request.UpdateSalonRequest request);
+
+    void deleteSalon(Long salonId);
+
+    // ===== Quản lý thanh toán =====
+
     be.exe.payment.dto.response.PaymentResponse refundPayment(Long adminId, Long paymentId, be.exe.admin.dto.request.RefundPaymentRequest request);
+
+    Page<be.exe.payment.dto.response.PaymentResponse> getPayments(String status, Pageable pageable);
+
+    Page<be.exe.payment.dto.response.PaidUserResponse> getPaidUsers(Pageable pageable);
+
+    be.exe.payment.dto.response.PaymentResponse getPaymentDetail(Long paymentId);
 }

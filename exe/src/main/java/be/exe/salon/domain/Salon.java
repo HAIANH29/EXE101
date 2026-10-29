@@ -33,6 +33,18 @@ public class Salon {
     @Column(name = "image_url", columnDefinition = "TEXT")
     private String imageUrl;
 
+    @Column(name = "geoapify_place_id", unique = true, length = 255)
+    private String geoapifyPlaceId;
+
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
+
+    @Column(name = "is_demo", nullable = false)
+    private boolean demo = false;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
     private SalonStatus status = SalonStatus.PENDING_APPROVAL;
@@ -74,6 +86,16 @@ public class Salon {
         this.status = status;
     }
 
+    public void linkGeoapifyLocation(String placeId, Double latitude, Double longitude) {
+        this.geoapifyPlaceId = placeId;
+        this.latitude = latitude;
+        this.longitude = longitude;
+    }
+
+    public void markDemo() {
+        this.demo = true;
+    }
+
     public Long getId() {
         return id;
     }
@@ -100,6 +122,22 @@ public class Salon {
 
     public String getImageUrl() {
         return imageUrl;
+    }
+
+    public String getGeoapifyPlaceId() {
+        return geoapifyPlaceId;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public boolean isDemo() {
+        return demo;
     }
 
     public SalonStatus getStatus() {

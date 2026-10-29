@@ -13,6 +13,12 @@ public class UpdateSalonRequest {
     private String address;
     private String description;
     private String imageUrl;
+    private String geoapifyPlaceId;
+    private Double latitude;
+    private Double longitude;
+
+    /** Gallery ảnh (tối đa 10). Nếu có, ảnh đầu tiên được dùng làm ảnh bìa thay cho imageUrl. */
+    private java.util.List<String> imageUrls;
 
     public String getName() {
         return name;
@@ -52,5 +58,20 @@ public class UpdateSalonRequest {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public String getGeoapifyPlaceId() { return geoapifyPlaceId; }
+    public void setGeoapifyPlaceId(String geoapifyPlaceId) { this.geoapifyPlaceId = geoapifyPlaceId; }
+    public Double getLatitude() { return latitude; }
+    public void setLatitude(Double latitude) { this.latitude = latitude; }
+    public Double getLongitude() { return longitude; }
+    public void setLongitude(Double longitude) { this.longitude = longitude; }
+
+    public java.util.List<String> getImageUrls() {
+        return imageUrls;
+    }
+
+    public void setImageUrls(java.util.List<String> imageUrls) {
+        this.imageUrls = imageUrls;
     }
 }

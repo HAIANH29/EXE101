@@ -24,7 +24,6 @@ import be.exe.auth.dto.request.VerifyOtpRequest;
 import be.exe.auth.dto.request.ForgotPasswordRequest;
 import be.exe.auth.dto.request.ResetPasswordRequest;
 import be.exe.notification.service.EmailService;
-import org.springframework.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Value;
 import be.exe.auth.service.AuthService;
 import be.exe.common.exception.BusinessException;
