@@ -21,7 +21,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.time.LocalDate;
+import java.time.ZoneId;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -107,7 +108,9 @@ class DemoBookingFlowE2ETest {
         assertThat(stylists.path("data").path("content").size()).isGreaterThanOrEqualTo(1);
         assertThat(salonDetail.path("data").path("businessHours").size()).isEqualTo(7);
 
-        Instant startAt = Instant.now().plus(2, ChronoUnit.DAYS).truncatedTo(ChronoUnit.MINUTES);
+        ZoneId vietnam = ZoneId.of("Asia/Ho_Chi_Minh");
+        Instant startAt = LocalDate.now(vietnam).plusDays(2)
+                .atTime(10, 0).atZone(vietnam).toInstant();
         String bookingJson = """
                 {"salonId":%d,"stylistId":%d,"serviceId":%d,"startAt":"%s","note":"E2E demo booking"}
                 """.formatted(salonId, stylistId, serviceId, startAt);

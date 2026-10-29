@@ -46,6 +46,31 @@ public class Salon {
     private boolean demo = false;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "listing_source", nullable = false, length = 30)
+    private SalonListingSource listingSource = SalonListingSource.OWNER_SUBMITTED;
+
+    @Column(name = "source_provider", nullable = false, length = 30)
+    private String sourceProvider = "OWNER";
+
+    @Column(name = "source_url", columnDefinition = "TEXT")
+    private String sourceUrl;
+
+    @Column(name = "source_place_id", length = 255)
+    private String sourcePlaceId;
+
+    @Column(name = "location_verified_at")
+    private Instant locationVerifiedAt;
+
+    @Column(name = "booking_enabled", nullable = false)
+    private boolean bookingEnabled = false;
+
+    @Column(name = "platform_managed", nullable = false)
+    private boolean platformManaged = false;
+
+    @Column(name = "business_hours_verified", nullable = false)
+    private boolean businessHoursVerified = false;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
     private SalonStatus status = SalonStatus.PENDING_APPROVAL;
 
@@ -84,16 +109,41 @@ public class Salon {
 
     public void changeStatus(SalonStatus status) {
         this.status = status;
+        if (status != SalonStatus.ACTIVE) {
+            this.bookingEnabled = false;
+        }
     }
 
     public void linkGeoapifyLocation(String placeId, Double latitude, Double longitude) {
         this.geoapifyPlaceId = placeId;
+        this.sourceProvider = "GEOAPIFY";
+        this.sourcePlaceId = placeId;
         this.latitude = latitude;
         this.longitude = longitude;
     }
 
     public void markDemo() {
         this.demo = true;
+        this.listingSource = SalonListingSource.GEOAPIFY_DEMO;
+        this.sourceProvider = "GEOAPIFY";
+        this.sourcePlaceId = this.geoapifyPlaceId;
+        this.bookingEnabled = true;
+    }
+
+    public void disableBooking() {
+        this.bookingEnabled = false;
+    }
+
+    public void enableBooking() {
+        this.bookingEnabled = true;
+    }
+
+    public void markLocationVerified() {
+        this.locationVerifiedAt = Instant.now();
+    }
+
+    public void markBusinessHoursVerified() {
+        this.businessHoursVerified = true;
     }
 
     public Long getId() {
@@ -138,6 +188,38 @@ public class Salon {
 
     public boolean isDemo() {
         return demo;
+    }
+
+    public SalonListingSource getListingSource() {
+        return listingSource;
+    }
+
+    public String getSourceUrl() {
+        return sourceUrl;
+    }
+
+    public String getSourceProvider() {
+        return sourceProvider;
+    }
+
+    public String getSourcePlaceId() {
+        return sourcePlaceId;
+    }
+
+    public Instant getLocationVerifiedAt() {
+        return locationVerifiedAt;
+    }
+
+    public boolean isBookingEnabled() {
+        return bookingEnabled;
+    }
+
+    public boolean isPlatformManaged() {
+        return platformManaged;
+    }
+
+    public boolean isBusinessHoursVerified() {
+        return businessHoursVerified;
     }
 
     public SalonStatus getStatus() {

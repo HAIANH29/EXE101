@@ -34,6 +34,14 @@ public final class SalonMapper {
                 salon.getLatitude(),
                 salon.getLongitude(),
                 salon.isDemo(),
+                salon.getListingSource().name(),
+                salon.getSourceProvider(),
+                salon.getSourceUrl(),
+                salon.getSourcePlaceId(),
+                salon.getLocationVerifiedAt(),
+                salon.isBookingEnabled(),
+                salon.isPlatformManaged(),
+                salon.isBusinessHoursVerified(),
                 salon.getStatus().name(),
                 salon.getCreatedAt()
         );
@@ -64,6 +72,14 @@ public final class SalonMapper {
                 salon.getLatitude(),
                 salon.getLongitude(),
                 salon.isDemo(),
+                salon.getListingSource().name(),
+                salon.getSourceProvider(),
+                salon.getSourceUrl(),
+                salon.getSourcePlaceId(),
+                salon.getLocationVerifiedAt(),
+                salon.isBookingEnabled(),
+                salon.isPlatformManaged(),
+                salon.isBusinessHoursVerified(),
                 salon.getStatus().name(),
                 hourResponses,
                 salon.getCreatedAt()
@@ -72,6 +88,7 @@ public final class SalonMapper {
 
     public static SalonSummaryResponse toSummary(Salon salon) {
         return new SalonSummaryResponse(
-                salon.getId(), salon.getOwnerId(), salon.getName(), salon.getStatus().name(), salon.isDemo());
+                salon.getId(), salon.getOwnerId(), salon.getName(), salon.getStatus().name(),
+                salon.isDemo(), salon.isBookingEnabled());
     }
 }

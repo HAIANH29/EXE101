@@ -69,6 +69,11 @@ server:
   port: ${SERVER_PORT:8080}
 
 app:
+  curated-owner:
+    # Optional team-managed login for PLATFORM_CURATED salons. When either
+    # value is absent, the deterministic system owner remains INACTIVE.
+    email: ${STYLELOCK_CURATED_OWNER_EMAIL:}
+    password: ${STYLELOCK_CURATED_OWNER_PASSWORD:}
   demo:
     enabled: false
     owner-email: demo.owner@stylelock.local

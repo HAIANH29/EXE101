@@ -5,9 +5,14 @@ public record SalonSummaryResponse(
         Long ownerId,
         String name,
         String status,
-        boolean demo
+        boolean demo,
+        boolean bookingEnabled
 ) {
     public boolean isActive() {
         return "ACTIVE".equals(status);
+    }
+
+    public boolean isBookable() {
+        return isActive() && bookingEnabled;
     }
 }

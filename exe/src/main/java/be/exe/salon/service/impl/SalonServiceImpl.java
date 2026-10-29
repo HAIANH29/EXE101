@@ -23,6 +23,7 @@ import be.exe.common.exception.ErrorCode;
 import be.exe.common.exception.ForbiddenException;
 import be.exe.common.exception.ResourceNotFoundException;
 import be.exe.common.storage.StorageService;
+import be.exe.publicapi.GeoapifySalonService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -53,17 +54,20 @@ public class SalonServiceImpl implements SalonService {
     private final StylistRepository stylistRepository;
     private final SalonImageRepository salonImageRepository;
     private final StorageService storageService;
+    private final GeoapifySalonService geoapifySalonService;
 
     public SalonServiceImpl(SalonRepository salonRepository,
                             SalonBusinessHourRepository businessHourRepository,
                             StylistRepository stylistRepository,
                             SalonImageRepository salonImageRepository,
-                            StorageService storageService) {
+                            StorageService storageService,
+                            GeoapifySalonService geoapifySalonService) {
         this.salonRepository = salonRepository;
         this.businessHourRepository = businessHourRepository;
         this.stylistRepository = stylistRepository;
         this.salonImageRepository = salonImageRepository;
         this.storageService = storageService;
+        this.geoapifySalonService = geoapifySalonService;
     }
 
     @Override
@@ -96,14 +100,24 @@ public class SalonServiceImpl implements SalonService {
             );
         }
 
+        if (!hasGeoapifyLocation(
+                request.getGeoapifyPlaceId(), request.getLatitude(), request.getLongitude())) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED,
+                    "Salon Owner phải chọn một địa điểm salon hợp lệ từ Geoapify");
+        }
+
         List<String> images = resolveImages(request.getImageUrl(), request.getImageUrls());
         String coverImage = images.isEmpty() ? null : images.get(0);
 
         Salon salon = new Salon(ownerId, request.getName());
         salon.updateInfo(request.getName(), request.getPhone(), request.getAddress(),
                 request.getDescription(), coverImage);
-        linkGeoapifyLocation(salon, request.getGeoapifyPlaceId(),
+        var verifiedPlace = linkGeoapifyLocation(salon, request.getGeoapifyPlaceId(),
                 request.getLatitude(), request.getLongitude(), null);
+        if (verifiedPlace != null) {
+            salon.updateInfo(verifiedPlace.name(), request.getPhone(), verifiedPlace.address(),
+                    request.getDescription(), coverImage);
+        }
         // Salon mới tạo luôn ở trạng thái chờ duyệt, admin phải approve mới ACTIVE được
         salon = salonRepository.saveAndFlush(salon);
 
@@ -125,18 +139,50 @@ public class SalonServiceImpl implements SalonService {
         List<String> images = resolveImages(request.getImageUrl(), request.getImageUrls());
         String coverImage = images.isEmpty() ? null : images.get(0);
 
-        salon.updateInfo(request.getName(), request.getPhone(), request.getAddress(),
+        boolean hasGeoapifyPayload = hasGeoapifyLocation(
+                request.getGeoapifyPlaceId(), request.getLatitude(), request.getLongitude());
+        String requestedAddress = salon.isPlatformManaged() && request.getAddress() == null
+                ? salon.getAddress() : request.getAddress();
+        if (salon.isPlatformManaged()) {
+            boolean changesCuratedLocation = (request.getGeoapifyPlaceId() != null
+                    && !request.getGeoapifyPlaceId().isBlank())
+                    || (request.getLatitude() != null
+                        && !java.util.Objects.equals(request.getLatitude(), salon.getLatitude()))
+                    || (request.getLongitude() != null
+                        && !java.util.Objects.equals(request.getLongitude(), salon.getLongitude()))
+                    || !java.util.Objects.equals(
+                            normalizedText(requestedAddress), normalizedText(salon.getAddress()));
+            if (changesCuratedLocation) {
+                throw new BusinessException(ErrorCode.VALIDATION_FAILED,
+                        "Địa điểm salon khảo sát chỉ được thay đổi qua quy trình xác minh dữ liệu riêng");
+            }
+            hasGeoapifyPayload = false;
+        }
+        if (salon.getListingSource() == be.exe.salon.domain.SalonListingSource.OWNER_SUBMITTED
+                && !hasGeoapifyPayload
+                && (!java.util.Objects.equals(normalizedText(request.getName()), normalizedText(salon.getName()))
+                    || !java.util.Objects.equals(normalizedText(request.getAddress()), normalizedText(salon.getAddress())))) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED,
+                    "Muốn đổi tên hoặc địa chỉ, Salon Owner phải chọn lại địa điểm từ Geoapify");
+        }
+
+        salon.updateInfo(request.getName(), request.getPhone(), requestedAddress,
                 request.getDescription(), coverImage);
-        if (hasGeoapifyLocation(request.getGeoapifyPlaceId(), request.getLatitude(), request.getLongitude())) {
-            String requestedPlaceId = request.getGeoapifyPlaceId() == null
-                    ? null : request.getGeoapifyPlaceId().trim();
-            boolean locationChanged = !java.util.Objects.equals(requestedPlaceId, salon.getGeoapifyPlaceId())
-                    || !java.util.Objects.equals(request.getLatitude(), salon.getLatitude())
-                    || !java.util.Objects.equals(request.getLongitude(), salon.getLongitude());
-            linkGeoapifyLocation(salon, request.getGeoapifyPlaceId(),
+        if (hasGeoapifyPayload) {
+            String previousPlaceId = salon.getGeoapifyPlaceId();
+            Double previousLatitude = salon.getLatitude();
+            Double previousLongitude = salon.getLongitude();
+            var verifiedPlace = linkGeoapifyLocation(salon, request.getGeoapifyPlaceId(),
                     request.getLatitude(), request.getLongitude(), salonId);
+            salon.updateInfo(verifiedPlace.name(), request.getPhone(), verifiedPlace.address(),
+                    request.getDescription(), coverImage);
+            boolean locationChanged = !java.util.Objects.equals(
+                    verifiedPlace.placeId(), previousPlaceId)
+                    || !java.util.Objects.equals(verifiedPlace.latitude(), previousLatitude)
+                    || !java.util.Objects.equals(verifiedPlace.longitude(), previousLongitude);
             if (locationChanged) {
                 salon.changeStatus(SalonStatus.PENDING_APPROVAL);
+                salon.disableBooking();
             }
         }
 
@@ -147,6 +193,10 @@ public class SalonServiceImpl implements SalonService {
 
     @Override
     public SalonResponse updateSalonStatus(Long salonId, SalonStatus status) {
+        if (status == SalonStatus.ACTIVE) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED,
+                    "Không thể kích hoạt salon qua API đổi trạng thái; hãy dùng quy trình phê duyệt salon");
+        }
         Salon salon = findOrThrow(salonId);
         salon.changeStatus(status);
         List<String> images = getImagesForSalon(salonId, salon.getImageUrl());
@@ -165,7 +215,10 @@ public class SalonServiceImpl implements SalonService {
             );
         }
 
+        validateSalonReadyForBooking(salon);
+
         salon.changeStatus(SalonStatus.ACTIVE);
+        salon.enableBooking();
         List<String> images = getImagesForSalon(salonId, salon.getImageUrl());
         return SalonMapper.toResponse(salon, images);
     }
@@ -231,6 +284,7 @@ public class SalonServiceImpl implements SalonService {
             hour.update(req.getOpenTime(), req.getCloseTime(), req.isClosed());
             businessHourRepository.save(hour);
         }
+        salon.markBusinessHoursVerified();
     }
 
     @Override
@@ -276,14 +330,37 @@ public class SalonServiceImpl implements SalonService {
     public SalonResponse updateSalonByAdmin(Long salonId, UpdateSalonRequest request) {
         Salon salon = findOrThrow(salonId);
 
+        boolean hasGeoapifyPayload = hasGeoapifyLocation(
+                request.getGeoapifyPlaceId(), request.getLatitude(), request.getLongitude());
+        String requestedAddress = salon.isPlatformManaged() && request.getAddress() == null
+                ? salon.getAddress() : request.getAddress();
+        if (salon.isPlatformManaged()) {
+            boolean changesCuratedLocation = (request.getGeoapifyPlaceId() != null
+                    && !request.getGeoapifyPlaceId().isBlank())
+                    || (request.getLatitude() != null
+                        && !java.util.Objects.equals(request.getLatitude(), salon.getLatitude()))
+                    || (request.getLongitude() != null
+                        && !java.util.Objects.equals(request.getLongitude(), salon.getLongitude()))
+                    || !java.util.Objects.equals(
+                            normalizedText(requestedAddress), normalizedText(salon.getAddress()));
+            if (changesCuratedLocation) {
+                throw new BusinessException(ErrorCode.VALIDATION_FAILED,
+                        "Địa điểm salon khảo sát chỉ được thay đổi qua quy trình xác minh dữ liệu riêng");
+            }
+            hasGeoapifyPayload = false;
+        }
+
         List<String> images = resolveImages(request.getImageUrl(), request.getImageUrls());
         String coverImage = images.isEmpty() ? null : images.get(0);
 
-        salon.updateInfo(request.getName(), request.getPhone(), request.getAddress(),
+        salon.updateInfo(request.getName(), request.getPhone(), requestedAddress,
                 request.getDescription(), coverImage);
-        if (hasGeoapifyLocation(request.getGeoapifyPlaceId(), request.getLatitude(), request.getLongitude())) {
-            linkGeoapifyLocation(salon, request.getGeoapifyPlaceId(),
+        if (hasGeoapifyPayload) {
+            var verifiedPlace = linkGeoapifyLocation(salon, request.getGeoapifyPlaceId(),
                     request.getLatitude(), request.getLongitude(), salonId);
+            salon.updateInfo(verifiedPlace.name(), request.getPhone(), verifiedPlace.address(),
+                    request.getDescription(), coverImage);
+            salon.disableBooking();
         }
 
         replaceGallery(salon.getId(), images);
@@ -360,10 +437,44 @@ public class SalonServiceImpl implements SalonService {
         return (placeId != null && !placeId.isBlank()) || latitude != null || longitude != null;
     }
 
-    private void linkGeoapifyLocation(Salon salon, String placeId, Double latitude,
-                                      Double longitude, Long currentSalonId) {
+    private String normalizedText(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private void validateSalonReadyForBooking(Salon salon) {
+        boolean hasGeoapifyLocation = salon.getGeoapifyPlaceId() != null
+                && !salon.getGeoapifyPlaceId().isBlank()
+                && salon.getLocationVerifiedAt() != null
+                && salon.getLatitude() != null && salon.getLongitude() != null;
+        boolean hasVerifiedCuratedLocation = salon.isPlatformManaged()
+                && salon.getSourcePlaceId() != null && !salon.getSourcePlaceId().isBlank()
+                && salon.getLocationVerifiedAt() != null
+                && salon.getLatitude() != null && salon.getLongitude() != null;
+        if (!hasGeoapifyLocation && !hasVerifiedCuratedLocation) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED,
+                    "Salon phải có địa điểm Geoapify hoặc nguồn khảo sát đã xác minh trước khi được phê duyệt");
+        }
+        if (stylistRepository.countBySalonIdAndStatus(
+                salon.getId(), be.exe.salon.domain.StylistStatus.ACTIVE) < 1) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED,
+                    "Salon phải có ít nhất một stylist đang hoạt động trước khi được phê duyệt");
+        }
+        List<SalonBusinessHour> hours = businessHourRepository
+                .findBySalonIdOrderByDayOfWeek(salon.getId());
+        boolean hasSevenDays = hours.size() == 7;
+        boolean hasOpenDay = hours.stream().anyMatch(hour -> !hour.isClosed()
+                && hour.getOpenTime() != null && hour.getCloseTime() != null);
+        if (!hasSevenDays || !hasOpenDay) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED,
+                    "Salon phải khai báo đủ 7 ngày và có ít nhất một ngày mở cửa trước khi được phê duyệt");
+        }
+    }
+
+    private GeoapifySalonService.ValidatedSalonPlace linkGeoapifyLocation(
+            Salon salon, String placeId, Double latitude,
+            Double longitude, Long currentSalonId) {
         if (!hasGeoapifyLocation(placeId, latitude, longitude)) {
-            return;
+            return null;
         }
         if (placeId == null || placeId.isBlank() || latitude == null || longitude == null
                 || !Double.isFinite(latitude) || latitude < -90 || latitude > 90
@@ -372,14 +483,20 @@ public class SalonServiceImpl implements SalonService {
                     "Liên kết Geoapify phải có placeId và tọa độ hợp lệ");
         }
         String normalizedPlaceId = placeId.trim();
+        var verifiedPlace = geoapifySalonService.validateSalonPlace(
+                normalizedPlaceId, latitude, longitude);
         boolean alreadyLinked = currentSalonId == null
-                ? salonRepository.existsByGeoapifyPlaceId(normalizedPlaceId)
-                : salonRepository.existsByGeoapifyPlaceIdAndIdNot(normalizedPlaceId, currentSalonId);
+                ? salonRepository.existsByGeoapifyPlaceId(verifiedPlace.placeId())
+                : salonRepository.existsByGeoapifyPlaceIdAndIdNot(
+                        verifiedPlace.placeId(), currentSalonId);
         if (alreadyLinked) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED,
                     "Salon Geoapify này đã được liên kết với một tài khoản StyleLock khác");
         }
-        salon.linkGeoapifyLocation(normalizedPlaceId, latitude, longitude);
+        salon.linkGeoapifyLocation(verifiedPlace.placeId(),
+                verifiedPlace.latitude(), verifiedPlace.longitude());
+        salon.markLocationVerified();
+        return verifiedPlace;
     }
 
     private Salon findOrThrow(Long salonId) {

@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import be.exe.payment.service.PaymentService;
 import be.exe.payment.dto.response.PaymentResponse;
 import be.exe.admin.dto.request.RefundPaymentRequest;
+import be.exe.catalog.service.ServiceCatalogService;
 
 /**
  * Module admin KHÔNG có domain/repository riêng - toàn bộ thao tác đi qua Service interface
@@ -30,11 +31,15 @@ public class AdminServiceImpl implements AdminService {
     private final AuthService authService;
     private final SalonService salonService;
     private final PaymentService paymentService;
+    private final ServiceCatalogService serviceCatalogService;
 
-    public AdminServiceImpl(AuthService authService, SalonService salonService, PaymentService paymentService) {
+    public AdminServiceImpl(AuthService authService, SalonService salonService,
+                            PaymentService paymentService,
+                            ServiceCatalogService serviceCatalogService) {
         this.authService = authService;
         this.salonService = salonService;
         this.paymentService = paymentService;
+        this.serviceCatalogService = serviceCatalogService;
     }
 
     // ===== Quản lý người dùng =====
@@ -85,6 +90,10 @@ public class AdminServiceImpl implements AdminService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public SalonResponse approveSalon(Long salonId) {
+        if (!serviceCatalogService.hasActiveServices(salonId)) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED,
+                    "Salon phải có ít nhất một dịch vụ đang hoạt động trước khi được bật nhận lịch");
+        }
         return salonService.approveSalon(salonId);
     }
 

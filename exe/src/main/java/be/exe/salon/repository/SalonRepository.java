@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.Modifying;
 
 import java.util.Optional;
 
@@ -28,8 +29,14 @@ public interface SalonRepository extends JpaRepository<Salon, Long> {
 
     Optional<Salon> findByGeoapifyPlaceId(String geoapifyPlaceId);
 
+    Optional<Salon> findFirstByPlatformManagedTrue();
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT s FROM Salon s WHERE s.id = :id")
     Optional<Salon> findByIdForUpdate(@Param("id") Long id);
+
+    @Modifying
+    @Query("UPDATE Salon s SET s.ownerId = :ownerId WHERE s.platformManaged = true")
+    int reassignPlatformManagedOwner(@Param("ownerId") Long ownerId);
 }
 

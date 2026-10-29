@@ -109,7 +109,9 @@ paths:
   /api/salons:
     post:
       tags: [Salon]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SalonRequest' } } } }
+      summary: Salon Owner đăng ký salon từ địa điểm Geoapify đã chọn
+      description: Backend gọi Geoapify Place Details để xác minh Place ID, salon tóc, quốc gia Việt Nam và tọa độ; tên/địa chỉ canonical từ Geoapify được lưu và salon chờ Admin duyệt.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateSalonRequest' } } } }
       responses: { '200': { $ref: '#/components/responses/SalonResponse' }, '400': { $ref: '#/components/responses/ValidationError' }, '403': { $ref: '#/components/responses/Error' } }
     get:
       tags: [Salon]
@@ -120,11 +122,11 @@ paths:
       tags: [Salon]
       security: []
       summary: Tìm salon tóc gần một tọa độ bằng Geoapify Places
-      description: Mặc định tìm trong bán kính 10 km quanh trung tâm TP.HCM khi không truyền tọa độ. API key Geoapify chỉ được cấu hình ở backend.
+      description: Mặc định tìm trong bán kính 10 km quanh trung tâm TP.HCM khi không truyền tọa độ. Chỉ nhận tọa độ tại Việt Nam và chỉ trả địa điểm có tên, Place ID và country_code=vn. API key Geoapify chỉ được cấu hình ở backend.
       parameters:
         - { name: query, in: query, required: false, schema: { type: string }, description: Vietnamese street, ward, district or city; takes precedence over coordinates }
-        - { name: latitude, in: query, required: false, schema: { type: number, format: double, minimum: -90, maximum: 90 } }
-        - { name: longitude, in: query, required: false, schema: { type: number, format: double, minimum: -180, maximum: 180 } }
+        - { name: latitude, in: query, required: false, schema: { type: number, format: double, minimum: 8, maximum: 24 } }
+        - { name: longitude, in: query, required: false, schema: { type: number, format: double, minimum: 102, maximum: 110 } }
         - { name: radius, in: query, required: false, schema: { type: integer, minimum: 100, maximum: 50000, default: 10000 } }
       responses: { '200': { $ref: '#/components/responses/ExternalSalonListSuccess' }, '400': { $ref: '#/components/responses/Error' }, '500': { $ref: '#/components/responses/Error' } }
   /api/demo/salons/materialize:
@@ -159,8 +161,9 @@ paths:
       responses: { '200': { $ref: '#/components/responses/SalonResponse' } }
     put:
       tags: [Salon]
+      description: Đổi tên/địa chỉ salon Owner yêu cầu chọn lại địa điểm Geoapify và được Place Details xác minh. Địa điểm PLATFORM_CURATED không đổi qua API này.
       parameters: [{ $ref: '#/components/parameters/salonId' }]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SalonRequest' } } } }
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UpdateSalonRequest' } } } }
       responses: { '200': { $ref: '#/components/responses/SalonResponse' }, '400': { $ref: '#/components/responses/ValidationError' }, '403': { $ref: '#/components/responses/Error' } }
   /api/salons/{salonId}/status:
     patch:
@@ -433,7 +436,39 @@ components:
     ChangePasswordRequest: { type: object, required: [oldPassword, newPassword], properties: { oldPassword: { type: string }, newPassword: { type: string, minLength: 6, maxLength: 100 } } }
     CreateBookingRequest: { type: object, required: [salonId, stylistId, serviceId, startAt], properties: { salonId: { type: integer, format: int64 }, stylistId: { type: integer, format: int64 }, serviceId: { type: integer, format: int64 }, hairstyleId: { type: integer, format: int64, nullable: true }, startAt: { type: string, format: date-time }, note: { type: string, nullable: true } } }
     CancelBookingRequest: { type: object, properties: { reason: { type: string, nullable: true } } }
-    SalonRequest: { type: object, required: [name], properties: { name: { type: string, maxLength: 200 }, phone: { type: string }, address: { type: string }, description: { type: string }, imageUrl: { type: string }, imageUrls: { type: array, maxItems: 10, items: { type: string } }, geoapifyPlaceId: { type: string }, latitude: { type: number, format: double }, longitude: { type: number, format: double } } }
+    SalonRequest: { type: object, required: [name], properties: { name: { type: string, maxLength: 200 }, phone: { type: string }, address: { type: string }, description: { type: string }, imageUrl: { type: string }, imageUrls: { type: array, maxItems: 10, items: { type: string } }, geoapifyPlaceId: { type: string, description: Place ID do Geoapify trả về }, latitude: { type: number, format: double, minimum: 8, maximum: 24 }, longitude: { type: number, format: double, minimum: 102, maximum: 110 } } }
+    CreateSalonRequest:
+      allOf:
+        - { $ref: '#/components/schemas/SalonRequest' }
+        - { type: object, required: [geoapifyPlaceId, latitude, longitude] }
+    UpdateSalonRequest: { $ref: '#/components/schemas/SalonRequest' }
+    Salon:
+      type: object
+      required: [id, ownerId, name, demo, listingSource, sourceProvider, bookingEnabled, platformManaged, businessHoursVerified, status, createdAt]
+      properties:
+        id: { type: integer, format: int64 }
+        ownerId: { type: integer, format: int64 }
+        name: { type: string }
+        phone: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        description: { type: string, nullable: true }
+        imageUrl: { type: string, nullable: true }
+        imageUrls: { type: array, items: { type: string } }
+        geoapifyPlaceId: { type: string, nullable: true }
+        latitude: { type: number, format: double, nullable: true }
+        longitude: { type: number, format: double, nullable: true }
+        demo: { type: boolean }
+        listingSource: { type: string, enum: [OWNER_SUBMITTED, GEOAPIFY_DEMO, PLATFORM_CURATED] }
+        sourceProvider: { type: string, enum: [OWNER, GEOAPIFY, GOOGLE_MAPS] }
+        sourceUrl: { type: string, format: uri, nullable: true }
+        sourcePlaceId: { type: string, nullable: true }
+        locationVerifiedAt: { type: string, format: date-time, nullable: true }
+        bookingEnabled: { type: boolean }
+        platformManaged: { type: boolean }
+        businessHoursVerified: { type: boolean }
+        status: { type: string, enum: [PENDING_APPROVAL, ACTIVE, INACTIVE] }
+        businessHours: { type: array, items: { $ref: '#/components/schemas/BusinessHourRequest' } }
+        createdAt: { type: string, format: date-time }
     ExternalSalon:
       type: object
       required: [placeId, name, address, latitude, longitude, distanceMeters, mapUrl]
@@ -532,7 +567,7 @@ components:
     UserEnvelope: { description: Success, content: { application/json: { schema: { allOf: [{ $ref: '#/components/schemas/Envelope' }, { type: object, properties: { data: { $ref: '#/components/schemas/User' } } }] } } } }
     BookingEnvelope: { description: Success, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
     BookingResponse: { description: Success, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
-    SalonResponse: { description: Success, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+    SalonResponse: { description: Success, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' }, example: { success: true, data: { id: 1, name: "Salon", bookingEnabled: true, listingSource: "PLATFORM_CURATED", sourceProvider: "GOOGLE_MAPS" } } } } }
     ExternalSalonListSuccess: { description: Success, content: { application/json: { schema: { allOf: [{ $ref: '#/components/schemas/Envelope' }, { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/ExternalSalon' } } } }] } } } }
     StylistResponse: { description: Success, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
     ServiceResponse: { description: Success, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }

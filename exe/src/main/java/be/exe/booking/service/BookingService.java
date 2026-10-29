@@ -18,13 +18,13 @@ public interface BookingService {
 
     BookingResponse createBooking(Long customerId, CreateBookingRequest request);
 
-    BookingResponse confirmBooking(Long bookingId);
+    BookingResponse confirmBooking(Long bookingId, Long requesterId, boolean admin);
 
     BookingResponse cancelBooking(Long bookingId, Long requesterId, CancelBookingRequest request);
 
     BookingResponse rescheduleBooking(Long bookingId, Long requesterId, RescheduleBookingRequest request);
 
-    BookingResponse completeBooking(Long bookingId);
+    BookingResponse completeBooking(Long bookingId, Long requesterId, boolean admin);
 
     BookingDetailResponse getBookingDetail(Long bookingId, Long requesterId);
 

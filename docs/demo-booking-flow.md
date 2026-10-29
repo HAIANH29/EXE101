@@ -3,7 +3,7 @@
 ## Safety boundary
 
 - Demo APIs only exist when `app.demo.enabled=true`.
-- The `dev`, `test` and `prod` profiles enable demo mode by default. Set `STYLELOCK_DEMO_ENABLED=false` to disable it in any environment.
+- The `dev` and `test` profiles enable demo mode for testing. The `prod` profile defaults to `STYLELOCK_DEMO_ENABLED=false` and has no default demo password; production demo APIs exist only when explicitly enabled with environment-managed credentials.
 - Real Geoapify salon names and addresses are used only as location data.
 - Every generated salon is marked `is_demo=true` and owned by the team account `StyleLock Demo Owner`.
 - A Geoapify `place_id` is unique, so selecting the same place again reuses the same salon.

@@ -21,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
+import java.time.LocalTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -45,10 +46,16 @@ public class SalonApprovalFlowTest {
     private be.exe.common.storage.StorageService storageService;
 
     @Mock
+    private be.exe.publicapi.GeoapifySalonService geoapifySalonService;
+
+    @Mock
     private AuthService authService;
 
     @Mock
     private PaymentService paymentService;
+
+    @Mock
+    private be.exe.catalog.service.ServiceCatalogService serviceCatalogService;
 
     @InjectMocks
     private SalonServiceImpl salonService;
@@ -57,7 +64,8 @@ public class SalonApprovalFlowTest {
 
     @BeforeEach
     void setUp() {
-        adminService = new AdminServiceImpl(authService, salonService, paymentService);
+        adminService = new AdminServiceImpl(authService, salonService, paymentService,
+                serviceCatalogService);
     }
 
     @Test
@@ -67,9 +75,16 @@ public class SalonApprovalFlowTest {
         request.setName("Barber Shop 1");
         request.setPhone("0987654321");
         request.setAddress("Hanoi");
+        request.setGeoapifyPlaceId("geo-create-1");
+        request.setLatitude(21.0285);
+        request.setLongitude(105.8542);
 
         when(salonRepository.existsByOwnerIdAndStatus(ownerId, SalonStatus.PENDING_APPROVAL))
                 .thenReturn(false);
+        when(geoapifySalonService.validateSalonPlace("geo-create-1", 21.0285, 105.8542))
+                .thenReturn(new be.exe.publicapi.GeoapifySalonService.ValidatedSalonPlace(
+                        "geo-create-canonical", "Barber Shop 1", "Hanoi",
+                        21.0285, 105.8542));
         when(salonRepository.saveAndFlush(any(Salon.class))).thenAnswer(invocation -> {
             Salon s = invocation.getArgument(0);
             ReflectionTestUtils.setField(s, "id", 1L);
@@ -110,8 +125,18 @@ public class SalonApprovalFlowTest {
         Salon salon = new Salon(ownerId, "Pending Salon");
         ReflectionTestUtils.setField(salon, "id", salonId);
         ReflectionTestUtils.setField(salon, "status", SalonStatus.PENDING_APPROVAL);
+        salon.linkGeoapifyLocation("geo-approved-10", 10.8505, 106.7585);
+        salon.markLocationVerified();
 
+        when(serviceCatalogService.hasActiveServices(salonId)).thenReturn(true);
         when(salonRepository.findByIdForUpdate(salonId)).thenReturn(Optional.of(salon));
+        when(stylistRepository.countBySalonIdAndStatus(
+                salonId, be.exe.salon.domain.StylistStatus.ACTIVE)).thenReturn(1L);
+        when(businessHourRepository.findBySalonIdOrderByDayOfWeek(salonId)).thenReturn(
+                java.util.stream.IntStream.rangeClosed(1, 7)
+                        .mapToObj(day -> new be.exe.salon.domain.SalonBusinessHour(
+                                salonId, (short) day, LocalTime.of(9, 0), LocalTime.of(18, 0), false))
+                        .toList());
         SalonResponse response = adminService.approveSalon(salonId);
 
         assertNotNull(response);
@@ -128,6 +153,7 @@ public class SalonApprovalFlowTest {
         ReflectionTestUtils.setField(salon, "id", salonId);
         ReflectionTestUtils.setField(salon, "status", SalonStatus.ACTIVE);
 
+        when(serviceCatalogService.hasActiveServices(salonId)).thenReturn(true);
         when(salonRepository.findByIdForUpdate(salonId)).thenReturn(Optional.of(salon));
 
         BusinessException ex = assertThrows(BusinessException.class, () ->
@@ -171,6 +197,10 @@ public class SalonApprovalFlowTest {
         request.setLongitude(106.7009);
 
         when(salonRepository.findById(salonId)).thenReturn(Optional.of(salon));
+        when(geoapifySalonService.validateSalonPlace("geo-place-20", 10.7769, 106.7009))
+                .thenReturn(new be.exe.publicapi.GeoapifySalonService.ValidatedSalonPlace(
+                        "geo-place-20", "Approved Salon", "Quận 1, TP.HCM",
+                        10.7769, 106.7009));
         when(salonRepository.existsByGeoapifyPlaceIdAndIdNot("geo-place-20", salonId))
                 .thenReturn(false);
 
@@ -178,5 +208,57 @@ public class SalonApprovalFlowTest {
 
         assertEquals("geo-place-20", response.geoapifyPlaceId());
         assertEquals("PENDING_APPROVAL", response.status());
+    }
+
+    @Test
+    void genericStatusEndpointCannotBypassApprovalToActivateSalon() {
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> salonService.updateSalonStatus(99L, SalonStatus.ACTIVE));
+
+        assertEquals(ErrorCode.VALIDATION_FAILED, ex.getErrorCode());
+        verify(salonRepository, never()).findById(99L);
+    }
+
+    @Test
+    void ownerCannotChangeAddressWithoutValidatedGeoapifyPayload() {
+        Long salonId = 30L;
+        Long ownerId = 100L;
+        Salon salon = new Salon(ownerId, "Existing Salon");
+        ReflectionTestUtils.setField(salon, "id", salonId);
+        salon.updateInfo("Existing Salon", null, "Old address", null, null);
+
+        UpdateSalonRequest request = new UpdateSalonRequest();
+        request.setName("Existing Salon");
+        request.setAddress("Arbitrary new address");
+        when(salonRepository.findById(salonId)).thenReturn(Optional.of(salon));
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> salonService.updateSalon(salonId, ownerId, request));
+
+        assertEquals(ErrorCode.VALIDATION_FAILED, ex.getErrorCode());
+        assertTrue(ex.getMessage().contains("Geoapify"));
+    }
+
+    @Test
+    void platformCuratedLocationCannotBeChangedThroughNormalUpdate() {
+        Long salonId = 31L;
+        Long ownerId = 200L;
+        Salon salon = new Salon(ownerId, "Curated Salon");
+        ReflectionTestUtils.setField(salon, "id", salonId);
+        ReflectionTestUtils.setField(salon, "platformManaged", true);
+        ReflectionTestUtils.setField(salon, "listingSource",
+                be.exe.salon.domain.SalonListingSource.PLATFORM_CURATED);
+        salon.updateInfo("Curated Salon", null, "Verified address", null, null);
+
+        UpdateSalonRequest request = new UpdateSalonRequest();
+        request.setName("Curated Salon");
+        request.setAddress("Different address");
+        when(salonRepository.findById(salonId)).thenReturn(Optional.of(salon));
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> salonService.updateSalon(salonId, ownerId, request));
+
+        assertEquals(ErrorCode.VALIDATION_FAILED, ex.getErrorCode());
+        assertTrue(ex.getMessage().contains("quy trình xác minh"));
     }
 }

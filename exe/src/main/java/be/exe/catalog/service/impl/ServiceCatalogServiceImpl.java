@@ -90,6 +90,12 @@ public class ServiceCatalogServiceImpl implements ServiceCatalogService {
                 .map(ServiceOfferingMapper::toResponse);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public boolean hasActiveServices(Long salonId) {
+        return serviceOfferingRepository.existsBySalonIdAndStatus(salonId, ServiceStatus.ACTIVE);
+    }
+
     private ServiceOffering findOrThrow(Long serviceId) {
         return serviceOfferingRepository.findById(serviceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Service", serviceId));

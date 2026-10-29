@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,6 +21,11 @@ public class GeoapifySalonService {
     private static final int DEFAULT_RADIUS_METERS = 10_000;
     private static final int MAX_RADIUS_METERS = 50_000;
     private static final int RESULT_LIMIT = 20;
+    private static final double VIETNAM_MIN_LATITUDE = 8.0;
+    private static final double VIETNAM_MAX_LATITUDE = 24.0;
+    private static final double VIETNAM_MIN_LONGITUDE = 102.0;
+    private static final double VIETNAM_MAX_LONGITUDE = 110.0;
+    private static final int PLACE_COORDINATE_TOLERANCE_METERS = 100;
 
     private final RestClient restClient;
     private final String apiKey;
@@ -75,6 +81,77 @@ public class GeoapifySalonService {
         return parseSalons(response, resolvedLatitude, resolvedLongitude);
     }
 
+    public ValidatedSalonPlace validateSalonPlace(String requestedPlaceId,
+                                                   Double submittedLatitude,
+                                                   Double submittedLongitude) {
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR,
+                    "Chưa cấu hình GEOAPIFY_API_KEY để xác minh địa điểm salon");
+        }
+        if (requestedPlaceId == null || requestedPlaceId.isBlank()
+                || submittedLatitude == null || submittedLongitude == null) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED,
+                    "Liên kết Geoapify phải có Place ID và tọa độ");
+        }
+
+        JsonNode response;
+        try {
+            response = restClient.get()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/v2/place-details")
+                            .queryParam("id", requestedPlaceId.trim())
+                            .queryParam("apiKey", apiKey)
+                            .build())
+                    .retrieve()
+                    .body(JsonNode.class);
+        } catch (RestClientResponseException exception) {
+            if (exception.getStatusCode().is4xxClientError()) {
+                throw invalidSalonPlace();
+            }
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR,
+                    "Không thể xác minh địa điểm salon với Geoapify");
+        } catch (RestClientException exception) {
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR,
+                    "Không thể xác minh địa điểm salon với Geoapify");
+        }
+
+        JsonNode features = response == null ? null : response.path("features");
+        if (features == null || !features.isArray() || features.isEmpty()) {
+            throw invalidSalonPlace();
+        }
+        JsonNode properties = features.get(0).path("properties");
+        String canonicalPlaceId = text(properties, "place_id").trim();
+        String name = text(properties, "name").trim();
+        String address = firstNonBlank(text(properties, "formatted"), joinAddress(properties));
+        String countryCode = text(properties, "country_code").trim();
+        double canonicalLatitude = number(properties, "lat", Double.NaN);
+        double canonicalLongitude = number(properties, "lon", Double.NaN);
+
+        boolean validCategory = false;
+        JsonNode categories = properties.path("categories");
+        if (categories.isArray()) {
+            for (JsonNode category : categories) {
+                if ("service.beauty.hairdresser".equals(category.asText())) {
+                    validCategory = true;
+                    break;
+                }
+            }
+        }
+
+        if (canonicalPlaceId.isBlank() || name.isBlank() || address.isBlank()
+                || !"vn".equalsIgnoreCase(countryCode)
+                || !validCategory
+                || !isWithinVietnamBounds(canonicalLatitude, canonicalLongitude)
+                || !Double.isFinite(submittedLatitude) || !Double.isFinite(submittedLongitude)
+                || distanceMeters(canonicalLatitude, canonicalLongitude,
+                        submittedLatitude, submittedLongitude) > PLACE_COORDINATE_TOLERANCE_METERS) {
+            throw invalidSalonPlace();
+        }
+
+        return new ValidatedSalonPlace(canonicalPlaceId, name, address,
+                canonicalLatitude, canonicalLongitude);
+    }
+
     private SearchCoordinates geocodeVietnameseLocation(String query) {
         JsonNode response;
         try {
@@ -119,17 +196,19 @@ public class GeoapifySalonService {
 
         for (JsonNode feature : features) {
             JsonNode properties = feature.path("properties");
+            String name = text(properties, "name").trim();
+            String placeId = text(properties, "place_id").trim();
+            String countryCode = text(properties, "country_code").trim();
+            if (name.isBlank() || placeId.isBlank()
+                    || !"vn".equalsIgnoreCase(countryCode)) {
+                continue;
+            }
             double latitude = number(properties, "lat", Double.NaN);
             double longitude = number(properties, "lon", Double.NaN);
-            if (!Double.isFinite(latitude) || !Double.isFinite(longitude)) {
+            if (!isWithinVietnamBounds(latitude, longitude)) {
                 continue;
             }
 
-            String name = firstNonBlank(
-                    text(properties, "name"),
-                    text(properties, "address_line1"),
-                    "Hair salon"
-            );
             String address = firstNonBlank(
                     text(properties, "formatted"),
                     joinAddress(properties),
@@ -138,11 +217,6 @@ public class GeoapifySalonService {
             int distanceMeters = properties.path("distance").canConvertToInt()
                     ? Math.max(0, properties.path("distance").asInt())
                     : distanceMeters(originLatitude, originLongitude, latitude, longitude);
-            String placeId = firstNonBlank(
-                    text(properties, "place_id"),
-                    latitude + "," + longitude
-            );
-
             salons.add(new ExternalSalonResponse(
                     placeId,
                     name,
@@ -164,11 +238,22 @@ public class GeoapifySalonService {
     }
 
     private void validateCoordinates(double latitude, double longitude) {
-        if (!Double.isFinite(latitude) || latitude < -90 || latitude > 90
-                || !Double.isFinite(longitude) || longitude < -180 || longitude > 180) {
+        if (!isWithinVietnamBounds(latitude, longitude)) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED,
-                    "Tọa độ tìm kiếm không hợp lệ");
+                    "Tọa độ tìm kiếm phải nằm trong Việt Nam");
         }
+    }
+
+    private boolean isWithinVietnamBounds(double latitude, double longitude) {
+        return Double.isFinite(latitude)
+                && latitude >= VIETNAM_MIN_LATITUDE && latitude <= VIETNAM_MAX_LATITUDE
+                && Double.isFinite(longitude)
+                && longitude >= VIETNAM_MIN_LONGITUDE && longitude <= VIETNAM_MAX_LONGITUDE;
+    }
+
+    private BusinessException invalidSalonPlace() {
+        return new BusinessException(ErrorCode.VALIDATION_FAILED,
+                "Place ID phải là salon tóc hợp lệ tại Việt Nam và có tọa độ khớp Geoapify");
     }
 
     private int distanceMeters(double lat1, double lon1, double lat2, double lon2) {
@@ -214,6 +299,15 @@ public class GeoapifySalonService {
     }
 
     private record SearchCoordinates(double latitude, double longitude) {
+    }
+
+    public record ValidatedSalonPlace(
+            String placeId,
+            String name,
+            String address,
+            double latitude,
+            double longitude
+    ) {
     }
 
 }
