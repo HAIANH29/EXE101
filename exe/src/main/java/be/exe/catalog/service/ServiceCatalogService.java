@@ -27,6 +27,8 @@ public interface ServiceCatalogService {
 
     Page<ServiceResponse> getServicesBySalon(Long salonId, Pageable pageable);
 
+    Page<ServiceResponse> getServicesBySalon(Long salonId, String status, Pageable pageable);
+
     /** Used by the admin approval workflow without leaking catalog repositories. */
     boolean hasActiveServices(Long salonId);
 }

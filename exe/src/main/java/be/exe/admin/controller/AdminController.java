@@ -102,6 +102,14 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success("Đã cập nhật thông tin salon", response));
     }
 
+    @PostMapping("/salons/{salonId}/owner")
+    public ResponseEntity<ApiResponse<SalonResponse>> assignSalonOwner(
+            @PathVariable Long salonId,
+            @Valid @RequestBody be.exe.admin.dto.request.AssignSalonOwnerRequest request) {
+        SalonResponse response = adminService.assignSalonOwner(salonId, request);
+        return ResponseEntity.ok(ApiResponse.success("Đã cấp/gán tài khoản chủ salon thành công", response));
+    }
+
     @DeleteMapping("/salons/{salonId}")
     public ResponseEntity<ApiResponse<Void>> deleteSalon(@PathVariable Long salonId) {
         adminService.deleteSalon(salonId);

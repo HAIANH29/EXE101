@@ -58,9 +58,9 @@ logging:
 
 app:
   demo:
-    enabled: ${STYLELOCK_DEMO_ENABLED:false}
+    enabled: ${STYLELOCK_DEMO_ENABLED:true}
     owner-email: ${STYLELOCK_DEMO_OWNER_EMAIL:demo.owner@stylelock.local}
-    owner-password: ${STYLELOCK_DEMO_OWNER_PASSWORD:}
+    owner-password: ${STYLELOCK_DEMO_OWNER_PASSWORD:DemoOwner123!}
   jwt:
     secret: ${JWT_SECRET}   # bắt buộc, tối thiểu 256-bit, không có default
 

@@ -35,6 +35,9 @@ public class ServiceOffering {
     @Column(name = "duration_minutes", nullable = false)
     private Integer durationMinutes;
 
+    @Column(name = "image_url", columnDefinition = "TEXT")
+    private String imageUrl;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
     private ServiceStatus status = ServiceStatus.ACTIVE;
@@ -62,10 +65,15 @@ public class ServiceOffering {
     }
 
     public void updateInfo(String name, String description, BigDecimal price, Integer durationMinutes) {
+        updateInfo(name, description, price, durationMinutes, this.imageUrl);
+    }
+
+    public void updateInfo(String name, String description, BigDecimal price, Integer durationMinutes, String imageUrl) {
         this.name = name;
         this.description = description;
         this.price = price;
         this.durationMinutes = durationMinutes;
+        this.imageUrl = imageUrl;
     }
 
     public void changeStatus(ServiceStatus status) {
@@ -98,6 +106,14 @@ public class ServiceOffering {
 
     public ServiceStatus getStatus() {
         return status;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public Instant getCreatedAt() {

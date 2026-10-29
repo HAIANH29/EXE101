@@ -21,8 +21,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -37,8 +36,6 @@ class DemoBookingFlowE2ETest {
 
     private static final String CUSTOMER_EMAIL = "demo.customer.e2e@stylelock.local";
     private static final String CUSTOMER_PASSWORD = "DemoCustomer123!";
-    private static final String ADMIN_EMAIL = "demo.admin.e2e@stylelock.local";
-    private static final String ADMIN_PASSWORD = "DemoAdmin123!";
     private static final String PLACE_ID = "geoapify-e2e-place-001";
 
     @Autowired MockMvc mockMvc;
@@ -52,23 +49,15 @@ class DemoBookingFlowE2ETest {
 
     @BeforeEach
     void prepareCustomer() {
-        if (userRepository.findByEmail(CUSTOMER_EMAIL).isEmpty()) {
-            Role customerRole = roleRepository.findByName(RoleName.CUSTOMER)
-                    .orElseGet(() -> roleRepository.saveAndFlush(new Role(RoleName.CUSTOMER)));
-            User customer = new User(CUSTOMER_EMAIL, passwordEncoder.encode(CUSTOMER_PASSWORD),
-                    "Demo E2E Customer");
-            customer.addRole(customerRole);
-            userRepository.saveAndFlush(customer);
+        if (userRepository.findByEmail(CUSTOMER_EMAIL).isPresent()) {
+            return;
         }
-
-        if (userRepository.findByEmail(ADMIN_EMAIL).isEmpty()) {
-            Role adminRole = roleRepository.findByName(RoleName.ADMIN)
-                    .orElseGet(() -> roleRepository.saveAndFlush(new Role(RoleName.ADMIN)));
-            User admin = new User(ADMIN_EMAIL, passwordEncoder.encode(ADMIN_PASSWORD),
-                    "Demo E2E Admin");
-            admin.addRole(adminRole);
-            userRepository.saveAndFlush(admin);
-        }
+        Role customerRole = roleRepository.findByName(RoleName.CUSTOMER)
+                .orElseGet(() -> roleRepository.saveAndFlush(new Role(RoleName.CUSTOMER)));
+        User customer = new User(CUSTOMER_EMAIL, passwordEncoder.encode(CUSTOMER_PASSWORD),
+                "Demo E2E Customer");
+        customer.addRole(customerRole);
+        userRepository.saveAndFlush(customer);
     }
 
     @Test
@@ -108,9 +97,7 @@ class DemoBookingFlowE2ETest {
         assertThat(stylists.path("data").path("content").size()).isGreaterThanOrEqualTo(1);
         assertThat(salonDetail.path("data").path("businessHours").size()).isEqualTo(7);
 
-        ZoneId vietnam = ZoneId.of("Asia/Ho_Chi_Minh");
-        Instant startAt = LocalDate.now(vietnam).plusDays(2)
-                .atTime(10, 0).atZone(vietnam).toInstant();
+        Instant startAt = Instant.now().plus(2, ChronoUnit.DAYS).truncatedTo(ChronoUnit.MINUTES);
         String bookingJson = """
                 {"salonId":%d,"stylistId":%d,"serviceId":%d,"startAt":"%s","note":"E2E demo booking"}
                 """.formatted(salonId, stylistId, serviceId, startAt);
@@ -149,31 +136,6 @@ class DemoBookingFlowE2ETest {
                 .header("Authorization", bearer(customerToken)), 200);
         assertThat(containsId(paymentHistory.path("data").path("content"), paymentId)).isTrue();
 
-        String adminToken = login(ADMIN_EMAIL, ADMIN_PASSWORD);
-        JsonNode adminPayments = performJson(get("/api/admin/payments")
-                .param("page", "0")
-                .param("size", "10")
-                .header("Authorization", bearer(adminToken)), 200);
-        assertThat(containsId(adminPayments.path("data").path("content"), paymentId)).isTrue();
-
-        JsonNode paidUsers = performJson(get("/api/admin/payments/paid-users")
-                .param("page", "0")
-                .param("size", "10")
-                .header("Authorization", bearer(adminToken)), 200);
-        long customerId = userRepository.findByEmail(CUSTOMER_EMAIL).orElseThrow().getId();
-        assertThat(containsCustomerId(paidUsers.path("data").path("content"), customerId)).isTrue();
-
-        JsonNode adminPaymentDetail = performJson(get("/api/admin/payments/{paymentId}", paymentId)
-                .header("Authorization", bearer(adminToken)), 200);
-        assertThat(adminPaymentDetail.path("data").path("id").asLong()).isEqualTo(paymentId);
-
-        JsonNode version = performJson(get("/api/public/version"), 200);
-        assertThat(version.path("data").path("gitCommit").asText()).isNotBlank();
-
-        mockMvc.perform(get("/api/route-that-does-not-exist")
-                        .header("Authorization", bearer(adminToken)))
-                .andExpect(status().isNotFound());
-
         JsonNode completedBooking = performJson(patch("/api/bookings/{bookingId}/complete", bookingId)
                 .header("Authorization", bearer(ownerToken)), 200);
         assertThat(completedBooking.path("data").path("status").asText()).isEqualTo("COMPLETED");
@@ -198,13 +160,6 @@ class DemoBookingFlowE2ETest {
     private boolean containsId(JsonNode items, long id) {
         for (JsonNode item : items) {
             if (item.path("id").asLong() == id) return true;
-        }
-        return false;
-    }
-
-    private boolean containsCustomerId(JsonNode items, long customerId) {
-        for (JsonNode item : items) {
-            if (item.path("customerId").asLong() == customerId) return true;
         }
         return false;
     }

@@ -17,6 +17,7 @@ public final class ServiceOfferingMapper {
                 entity.getDescription(),
                 entity.getPrice(),
                 entity.getDurationMinutes(),
+                entity.getImageUrl(),
                 entity.getStatus().name(),
                 entity.getCreatedAt()
         );

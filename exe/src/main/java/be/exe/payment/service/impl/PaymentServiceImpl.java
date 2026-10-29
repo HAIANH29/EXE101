@@ -227,7 +227,7 @@ public class PaymentServiceImpl implements PaymentService {
                 item.getPaidTransactionCount(),
                 item.getTotalPaidAmount(),
                 item.getTotalRefundedAmount(),
-                item.getLastPaidAt() == null ? null : item.getLastPaidAt().toInstant(),
+                item.getLastPaidAt(),
                 item.getLatestPaymentId()
         ));
     }

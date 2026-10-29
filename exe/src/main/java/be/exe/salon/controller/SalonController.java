@@ -42,7 +42,7 @@ public class SalonController {
     }
 
     @PostMapping(value = "/images", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasRole('SALON_OWNER')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<be.exe.salon.dto.response.SalonImageUploadResponse>> uploadSalonImage(
             @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
         return ResponseEntity.ok(ApiResponse.success(
