@@ -77,7 +77,7 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
   const [selectedImage, setSelectedImage] = useState<string>();
 
   // Modal Thêm / Sửa salon
-  const [salonModalMode, setSalonModalMode] = useState<'create' | 'edit' | null>(null);
+  const [salonModalMode, setSalonModalMode] = useState<'edit' | null>(null);
   const [editingSalonId, setEditingSalonId] = useState<number | null>(null);
   const [salonForm, setSalonForm] = useState<SalonFormInput>(EMPTY_FORM);
   const [formImages, setFormImages] = useState<string[]>([]);
@@ -223,15 +223,6 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
   };
 
   /* ────── Mở modal Thêm salon ────── */
-  const openCreateModal = () => {
-    setSalonModalMode('create');
-    setEditingSalonId(null);
-    setSalonForm(EMPTY_FORM);
-    setFormImages([]);
-    setLinkInput('');
-    setFormError(undefined);
-  };
-
   /* ────── Mở modal Sửa salon ────── */
   const openEditModal = (salon: Salon) => {
     const imgs = imagesOf(salon);
@@ -330,10 +321,7 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
     };
 
     try {
-      if (salonModalMode === 'create') {
-        const created = await adminApi.createSalon(payload);
-        setNotice(at('slCreateSuccess', { name: created.name }));
-      } else if (salonModalMode === 'edit' && editingSalonId) {
+      if (editingSalonId) {
         const updated = await adminApi.updateSalon(editingSalonId, payload);
         setNotice(at('slEditSuccess', { name: updated.name }));
         if (detailSalon?.id === editingSalonId) {
@@ -380,10 +368,6 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
           </p>
         </div>
         <div className="header-actions">
-          <button type="button" className="solid-button" onClick={openCreateModal}>
-            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
-            {at('slCreate')}
-          </button>
           <button type="button" className="ghost-button" onClick={() => void load()}>
             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>refresh</span>
             {loading ? at('loading') : at('refresh')}
@@ -739,7 +723,7 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
           >
             <div className="admin-modal-head">
               <div>
-                <h3>{salonModalMode === 'create' ? at('slCreateTitle') : at('slEditTitle', { id: editingSalonId || '' })}</h3>
+                <h3>{at('slEditTitle', { id: editingSalonId || '' })}</h3>
                 <p>Cập nhật trực tiếp lên hệ thống qua API backend</p>
               </div>
               <button

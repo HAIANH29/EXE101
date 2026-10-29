@@ -7,6 +7,14 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "StyleLock dùng vị trí của bạn để tìm salon gần nhất."
+        }
+      ]
+    ],
     "ios": {
       "supportsTablet": true
     },

@@ -41,6 +41,14 @@ export interface Salon {
   supportedHairstyles: string[]; // Hairstyle IDs
   services: ServiceItem[];
   stylists?: StylistItem[];
+  isExternal?: boolean;
+  mapUrl?: string;
+  website?: string;
+  latitude?: number;
+  longitude?: number;
+  bookingEligible?: boolean;
+  demo?: boolean;
+  externalPlaceId?: string;
 }
 
 export interface StylistItem {
@@ -106,6 +114,7 @@ export interface Payment {
   feeAmount: number;
   amount: number;
   status: PaymentStatus;
+  provider?: string;
   referenceCode: string;
   qrUrl?: string;
   bankCode?: string;

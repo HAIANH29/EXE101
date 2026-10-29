@@ -37,23 +37,25 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
      * có bị bypass do 2 request đồng thời, DB vẫn sẽ chặn đứng, AuthServiceImpl bắt
      * DataIntegrityViolationException để trả lỗi thân thiện tương tự.
      */
-    @Query(value = """
-            SELECT COUNT(*) > 0 FROM bookings
-            WHERE stylist_id = :stylistId
-              AND status <> 'CANCELLED'
-              AND tstzrange(start_at, end_at) && tstzrange(:startAt, :endAt)
-            """, nativeQuery = true)
+    @Query("""
+            SELECT CASE WHEN COUNT(b) > 0 THEN true ELSE false END FROM Booking b
+            WHERE b.stylistId = :stylistId
+              AND b.status <> be.exe.booking.domain.BookingStatus.CANCELLED
+              AND b.startAt < :endAt
+              AND b.endAt > :startAt
+            """)
     boolean existsOverlappingBooking(@Param("stylistId") Long stylistId,
                                       @Param("startAt") Instant startAt,
                                       @Param("endAt") Instant endAt);
 
-    @Query(value = """
-            SELECT COUNT(*) > 0 FROM bookings
-            WHERE id <> :bookingId
-              AND stylist_id = :stylistId
-              AND status <> 'CANCELLED'
-              AND tstzrange(start_at, end_at) && tstzrange(:startAt, :endAt)
-            """, nativeQuery = true)
+    @Query("""
+            SELECT CASE WHEN COUNT(b) > 0 THEN true ELSE false END FROM Booking b
+            WHERE b.id <> :bookingId
+              AND b.stylistId = :stylistId
+              AND b.status <> be.exe.booking.domain.BookingStatus.CANCELLED
+              AND b.startAt < :endAt
+              AND b.endAt > :startAt
+            """)
     boolean existsOverlappingBookingExcept(@Param("bookingId") Long bookingId,
                                             @Param("stylistId") Long stylistId,
                                             @Param("startAt") Instant startAt,

@@ -8,6 +8,7 @@ import be.exe.payment.service.PaymentService;
 import be.exe.salon.domain.Salon;
 import be.exe.salon.domain.SalonStatus;
 import be.exe.salon.dto.request.CreateSalonRequest;
+import be.exe.salon.dto.request.UpdateSalonRequest;
 import be.exe.salon.dto.response.SalonResponse;
 import be.exe.salon.repository.SalonBusinessHourRepository;
 import be.exe.salon.repository.SalonRepository;
@@ -153,5 +154,29 @@ public class SalonApprovalFlowTest {
         assertEquals("INACTIVE", response.status());
         assertEquals(SalonStatus.INACTIVE, salon.getStatus());
         verify(salonRepository, times(1)).findByIdForUpdate(salonId);
+    }
+
+    @Test
+    void ownerLinkingNewGeoapifyPlaceRequiresAdminApprovalAgain() {
+        Long salonId = 20L;
+        Long ownerId = 100L;
+        Salon salon = new Salon(ownerId, "Approved Salon");
+        ReflectionTestUtils.setField(salon, "id", salonId);
+        salon.changeStatus(SalonStatus.ACTIVE);
+
+        UpdateSalonRequest request = new UpdateSalonRequest();
+        request.setName("Approved Salon");
+        request.setGeoapifyPlaceId("geo-place-20");
+        request.setLatitude(10.7769);
+        request.setLongitude(106.7009);
+
+        when(salonRepository.findById(salonId)).thenReturn(Optional.of(salon));
+        when(salonRepository.existsByGeoapifyPlaceIdAndIdNot("geo-place-20", salonId))
+                .thenReturn(false);
+
+        SalonResponse response = salonService.updateSalon(salonId, ownerId, request);
+
+        assertEquals("geo-place-20", response.geoapifyPlaceId());
+        assertEquals("PENDING_APPROVAL", response.status());
     }
 }

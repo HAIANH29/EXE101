@@ -1,4 +1,4 @@
-import { PageResponse, PaymentInfo, Salon, UserAccount } from '../types/salon';
+import { PageResponse, PaidUserInfo, PaymentInfo, Salon, UserAccount } from '../types/salon';
 import {
   AdminBookingStats,
   AdminOverview,
@@ -35,13 +35,6 @@ export const adminApi = {
   rejectSalon(salonId: number) {
     return request<Salon>(`/api/admin/salons/${salonId}/reject`, {
       method: 'PATCH'
-    });
-  },
-
-  createSalon(input: SalonFormInput) {
-    return request<Salon>('/api/admin/salons', {
-      method: 'POST',
-      body: JSON.stringify(input)
     });
   },
 
@@ -101,6 +94,11 @@ export const adminApi = {
     const query = new URLSearchParams({ page: String(page), size: String(size) });
     if (status) query.set('status', status);
     return request<PageResponse<PaymentInfo>>(`/api/admin/payments?${query}`);
+  },
+
+  getPaidUsers(page: number, size = 10) {
+    const query = new URLSearchParams({ page: String(page), size: String(size) });
+    return request<PageResponse<PaidUserInfo>>(`/api/admin/payments/paid-users?${query}`);
   },
 
   getPaymentById(paymentId: number) {

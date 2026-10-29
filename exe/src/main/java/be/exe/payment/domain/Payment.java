@@ -99,6 +99,13 @@ public class Payment {
     public Payment(Long bookingId, Long customerId, Long salonId, PaymentType paymentType,
                    BigDecimal serviceAmount, BigDecimal feeAmount, BigDecimal amount,
                    String referenceCode, String paymentUrl) {
+        this(bookingId, customerId, salonId, paymentType, serviceAmount, feeAmount,
+                amount, referenceCode, paymentUrl, PaymentProvider.SEPAY);
+    }
+
+    public Payment(Long bookingId, Long customerId, Long salonId, PaymentType paymentType,
+                   BigDecimal serviceAmount, BigDecimal feeAmount, BigDecimal amount,
+                   String referenceCode, String paymentUrl, PaymentProvider provider) {
         this.bookingId = bookingId;
         this.customerId = customerId;
         this.salonId = salonId;
@@ -108,6 +115,7 @@ public class Payment {
         this.amount = amount;
         this.referenceCode = referenceCode;
         this.paymentUrl = paymentUrl;
+        this.provider = provider;
     }
 
     public void markPaid(String transactionId) {

@@ -80,6 +80,29 @@ type BackendSalon = {
   description?: string;
   imageUrl?: string;
   status?: string;
+  geoapifyPlaceId?: string;
+  latitude?: number;
+  longitude?: number;
+  demo?: boolean;
+};
+
+type ExternalSalon = {
+  placeId: string;
+  name: string;
+  address?: string;
+  phone?: string;
+  latitude: number;
+  longitude: number;
+  distanceMeters?: number;
+  mapUrl?: string;
+  openingHours?: string;
+  website?: string;
+};
+
+export type SalonSearchLocation = {
+  latitude: number;
+  longitude: number;
+  radius?: number;
 };
 
 export type BackendBusinessHour = {
@@ -303,7 +326,41 @@ function mapSalon(
     openingHours: formatBusinessHours(detail?.businessHours),
     supportedHairstyles: hairstyles.map((hair) => hair.id),
     services,
-    stylists
+    stylists,
+    latitude: item.latitude,
+    longitude: item.longitude,
+    bookingEligible: item.status === 'ACTIVE' && services.length > 0 && stylists.length > 0,
+    demo: item.demo
+  };
+}
+
+function mapExternalSalon(item: ExternalSalon): Salon {
+  const distanceKm = item.distanceMeters === undefined
+    ? undefined
+    : Number((item.distanceMeters / 1000).toFixed(1));
+
+  return {
+    id: `external-${item.placeId}`,
+    name: item.name,
+    address: item.address || 'Địa chỉ đang cập nhật',
+    distance: distanceKm === undefined ? 'Gần bạn' : `${distanceKm} km`,
+    distanceKm,
+    rating: 0,
+    reviewCount: 0,
+    priceRange: 'Liên hệ',
+    phone: item.phone || '',
+    imageUrl: FALLBACK_IMAGE,
+    openingHours: item.openingHours || 'Xem giờ mở cửa trên bản đồ',
+    supportedHairstyles: [],
+    services: [],
+    stylists: [],
+    isExternal: true,
+    mapUrl: item.mapUrl,
+    website: item.website,
+    latitude: item.latitude,
+    longitude: item.longitude,
+    bookingEligible: false,
+    externalPlaceId: item.placeId
   };
 }
 
@@ -356,6 +413,7 @@ function mapPayment(item: BackendPayment): Payment {
     feeAmount: moneyToNumber(item.feeAmount),
     amount: moneyToNumber(item.amount),
     status: item.status as PaymentStatus,
+    provider: item.provider || undefined,
     referenceCode: item.referenceCode || '',
     qrUrl: item.paymentUrl || undefined,
     bankCode: readQueryParam(item.paymentUrl, 'bank'),
@@ -638,10 +696,23 @@ export const backendApi = {
     return items.map((item) => mapHairstyle(item, categories));
   },
 
-  async getSalons() {
-    const items = await getPage<BackendSalon>('/api/salons?status=ACTIVE&size=100');
+  async getSalons(location?: SalonSearchLocation, query?: string) {
+    const locationParams = new URLSearchParams();
+    if (query?.trim()) {
+      locationParams.set('query', query.trim());
+    } else if (location) {
+      locationParams.set('latitude', String(location.latitude));
+      locationParams.set('longitude', String(location.longitude));
+      locationParams.set('radius', String(location.radius || 10000));
+    }
+    const locationQuery = locationParams.size ? `?${locationParams.toString()}` : '';
 
-    return Promise.all(
+    const [items, externalItems] = await Promise.all([
+      getPage<BackendSalon>('/api/salons?status=ACTIVE&size=100'),
+      apiRequest<ExternalSalon[]>(`/api/public/salons/nearby${locationQuery}`).catch(() => [])
+    ]);
+
+    const partnerSalons = await Promise.all(
       items.map(async (salon) => {
         const [services, hairstyles, stylists, detail, reviewSummary] = await Promise.all([
           this.getServicesBySalon(salon.id).catch(() => []),
@@ -654,10 +725,62 @@ export const backendApi = {
         return mapSalon(salon, services, hairstyles, stylists, detail, reviewSummary);
       })
     );
+
+    const partnersByPlaceId = new Map(
+      partnerSalons
+        .map((salon, index) => [items[index]?.geoapifyPlaceId, salon] as const)
+        .filter(([placeId]) => Boolean(placeId))
+    );
+    const matchedPartnerIds = new Set<number>();
+    const nearbySalons = externalItems.map((external) => {
+      const partner = partnersByPlaceId.get(external.placeId);
+      if (!partner) return mapExternalSalon(external);
+      if (partner.apiId) matchedPartnerIds.add(partner.apiId);
+      const distanceKm = external.distanceMeters === undefined
+        ? partner.distanceKm
+        : Number((external.distanceMeters / 1000).toFixed(1));
+      return {
+        ...partner,
+        distanceKm,
+        distance: distanceKm === undefined ? partner.distance : `${distanceKm} km`,
+        latitude: external.latitude,
+        longitude: external.longitude
+      };
+    });
+    const remainingPartners = query?.trim()
+      ? []
+      : partnerSalons.filter((partner) => !partner.apiId || !matchedPartnerIds.has(partner.apiId));
+
+    return [...nearbySalons, ...remainingPartners];
   },
 
   async getSalonDetail(salonId: number) {
     return apiRequest<BackendSalonDetail>(`/api/salons/${salonId}`);
+  },
+
+  async materializeDemoSalon(salon: Salon) {
+    if (!salon.externalPlaceId || salon.latitude === undefined || salon.longitude === undefined) {
+      throw new Error('Salon Geoapify thiếu placeId hoặc tọa độ.');
+    }
+    const item = await apiRequest<BackendSalon>('/api/demo/salons/materialize', {
+      method: 'POST',
+      body: JSON.stringify({
+        placeId: salon.externalPlaceId,
+        name: salon.name,
+        address: salon.address,
+        phone: salon.phone,
+        latitude: salon.latitude,
+        longitude: salon.longitude
+      })
+    });
+    const [services, hairstyles, stylists, detail, reviewSummary] = await Promise.all([
+      this.getServicesBySalon(item.id),
+      this.getHairstylesBySalon(item.id).catch(() => []),
+      this.getStylistsBySalon(item.id),
+      this.getSalonDetail(item.id),
+      this.getSalonReviewSummary(item.id).catch(() => undefined)
+    ]);
+    return mapSalon(item, services, hairstyles, stylists, detail, reviewSummary);
   },
 
   async getSalonReviewSummary(salonId: number) {
@@ -693,6 +816,12 @@ export const backendApi = {
 
   async getPayment(paymentId: number) {
     return mapPayment(await apiRequest<BackendPayment>(`/api/payments/${paymentId}`));
+  },
+
+  async confirmDemoPayment(paymentId: number) {
+    return mapPayment(await apiRequest<BackendPayment>(`/api/demo/payments/${paymentId}/confirm`, {
+      method: 'POST'
+    }));
   },
 
   async getPaymentHistory(page = 0, size = 20) {

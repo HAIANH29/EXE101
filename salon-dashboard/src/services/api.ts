@@ -157,6 +157,19 @@ export type SalonFormInput = {
   description?: string;
   imageUrl?: string;
   imageUrls?: string[];
+  geoapifyPlaceId?: string;
+  latitude?: number;
+  longitude?: number;
+};
+
+export type GeoapifySalonOption = {
+  placeId: string;
+  name: string;
+  address?: string;
+  phone?: string;
+  latitude: number;
+  longitude: number;
+  distanceMeters?: number;
 };
 
 export type ServiceFormInput = {
@@ -218,6 +231,13 @@ export const salonApi = {
 
   async getSalonDetail(salonId: number) {
     return request<Salon>(`/api/salons/${salonId}`);
+  },
+
+  async searchGeoapifySalons(query: string) {
+    return request<GeoapifySalonOption[]>(
+      `/api/public/salons/nearby?query=${encodeURIComponent(query)}&radius=10000`,
+      { auth: false }
+    );
   },
 
   async createSalon(input: SalonFormInput) {

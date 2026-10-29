@@ -1,7 +1,7 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../../i18n';
 import { BusinessHour, Salon } from '../../types/salon';
-import { SalonFormInput, salonApi } from '../../services/api';
+import { GeoapifySalonOption, SalonFormInput, salonApi } from '../../services/api';
 
 type SettingsViewProps = {
   salon?: Salon;
@@ -53,6 +53,9 @@ export function SettingsView({ salon, hasExistingSalons, onCancelCreate, onRefre
   const [hours, setHours] = useState<BusinessHour[]>(createDefaultHours);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string>();
+  const [geoQuery, setGeoQuery] = useState('');
+  const [geoResults, setGeoResults] = useState<GeoapifySalonOption[]>([]);
+  const [searchingGeoapify, setSearchingGeoapify] = useState(false);
 
   useEffect(() => {
     if (!salon) {
@@ -60,6 +63,8 @@ export function SettingsView({ salon, hasExistingSalons, onCancelCreate, onRefre
       setImages([]);
       setLinkInput('');
       setHours(createDefaultHours());
+      setGeoQuery('');
+      setGeoResults([]);
       return;
     }
 
@@ -70,12 +75,44 @@ export function SettingsView({ salon, hasExistingSalons, onCancelCreate, onRefre
       address: salon.address || '',
       description: salon.description || '',
       imageUrl: salon.imageUrl || '',
-      imageUrls: currentImages
+      imageUrls: currentImages,
+      geoapifyPlaceId: salon.geoapifyPlaceId,
+      latitude: salon.latitude,
+      longitude: salon.longitude
     });
     setImages(currentImages);
     setLinkInput('');
     setHours(salon.businessHours?.length ? salon.businessHours : createDefaultHours());
+    setGeoQuery(salon.address || '');
+    setGeoResults([]);
   }, [salon]);
+
+  const searchGeoapify = async () => {
+    if (!geoQuery.trim()) return;
+    setSearchingGeoapify(true);
+    setError(undefined);
+    try {
+      setGeoResults(await salonApi.searchGeoapifySalons(geoQuery.trim()));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Không thể tìm salon trên Geoapify');
+    } finally {
+      setSearchingGeoapify(false);
+    }
+  };
+
+  const selectGeoapifySalon = (option: GeoapifySalonOption) => {
+    setForm((current) => ({
+      ...current,
+      name: option.name || current.name,
+      phone: option.phone || current.phone,
+      address: option.address || current.address,
+      geoapifyPlaceId: option.placeId,
+      latitude: option.latitude,
+      longitude: option.longitude
+    }));
+    setGeoQuery(option.address || option.name);
+    setGeoResults([]);
+  };
 
   const slotsLeft = MAX_IMAGES - images.length;
   const title = useMemo(() => (salon ? t('updateBranch') : t('addNewBranch')), [salon, t]);
@@ -227,6 +264,50 @@ export function SettingsView({ salon, hasExistingSalons, onCancelCreate, onRefre
           </div>
 
           <form className="form-grid" onSubmit={submitSalon}>
+            <div className="span-2" style={{ padding: 14, border: '1px solid var(--line)', borderRadius: 12 }}>
+              <strong>Liên kết salon có sẵn trên Geoapify</strong>
+              <p style={{ margin: '4px 0 10px', fontSize: 12, color: 'var(--muted)' }}>
+                Tìm theo tên salon hoặc địa chỉ tại Việt Nam, sau đó chọn đúng địa điểm để liên kết.
+              </p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  style={{ flex: 1 }}
+                  value={geoQuery}
+                  placeholder="VD: Salon ABC, Thủ Đức"
+                  onChange={(event) => setGeoQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      void searchGeoapify();
+                    }
+                  }}
+                />
+                <button type="button" className="ghost-button" disabled={searchingGeoapify} onClick={() => void searchGeoapify()}>
+                  {searchingGeoapify ? 'Đang tìm...' : 'Tìm Geoapify'}
+                </button>
+              </div>
+              {form.geoapifyPlaceId && (
+                <small style={{ display: 'block', marginTop: 8, color: '#2f6b45' }}>
+                  Đã liên kết Geoapify: {form.geoapifyPlaceId}
+                </small>
+              )}
+              {geoResults.length > 0 && (
+                <div style={{ display: 'grid', gap: 6, marginTop: 10 }}>
+                  {geoResults.map((option) => (
+                    <button
+                      key={option.placeId}
+                      type="button"
+                      className="ghost-button"
+                      style={{ textAlign: 'left', height: 'auto', padding: 10 }}
+                      onClick={() => selectGeoapifySalon(option)}
+                    >
+                      <strong style={{ display: 'block' }}>{option.name}</strong>
+                      <span style={{ fontSize: 12, color: 'var(--muted)' }}>{option.address}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <label>
               {t('branchName')}
               <input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required />

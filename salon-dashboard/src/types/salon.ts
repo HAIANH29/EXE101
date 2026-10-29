@@ -45,6 +45,10 @@ export interface Salon {
   description?: string;
   imageUrl?: string;
   imageUrls?: string[];
+  geoapifyPlaceId?: string;
+  latitude?: number;
+  longitude?: number;
+  demo?: boolean;
   status?: string;
   businessHours?: BusinessHour[];
   createdAt?: string;
@@ -134,4 +138,16 @@ export interface PaymentInfo {
   refundReference?: string | null;
   refundRequestedAt?: string | null;
   refundedAt?: string | null;
+}
+
+export interface PaidUserInfo {
+  customerId: number;
+  fullName: string;
+  email: string;
+  phone?: string | null;
+  paidTransactionCount: number;
+  totalPaidAmount: number | string;
+  totalRefundedAmount: number | string;
+  lastPaidAt?: string | null;
+  latestPaymentId: number;
 }

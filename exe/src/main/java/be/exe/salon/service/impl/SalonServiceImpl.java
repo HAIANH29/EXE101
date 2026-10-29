@@ -102,6 +102,8 @@ public class SalonServiceImpl implements SalonService {
         Salon salon = new Salon(ownerId, request.getName());
         salon.updateInfo(request.getName(), request.getPhone(), request.getAddress(),
                 request.getDescription(), coverImage);
+        linkGeoapifyLocation(salon, request.getGeoapifyPlaceId(),
+                request.getLatitude(), request.getLongitude(), null);
         // Salon mới tạo luôn ở trạng thái chờ duyệt, admin phải approve mới ACTIVE được
         salon = salonRepository.saveAndFlush(salon);
 
@@ -125,6 +127,18 @@ public class SalonServiceImpl implements SalonService {
 
         salon.updateInfo(request.getName(), request.getPhone(), request.getAddress(),
                 request.getDescription(), coverImage);
+        if (hasGeoapifyLocation(request.getGeoapifyPlaceId(), request.getLatitude(), request.getLongitude())) {
+            String requestedPlaceId = request.getGeoapifyPlaceId() == null
+                    ? null : request.getGeoapifyPlaceId().trim();
+            boolean locationChanged = !java.util.Objects.equals(requestedPlaceId, salon.getGeoapifyPlaceId())
+                    || !java.util.Objects.equals(request.getLatitude(), salon.getLatitude())
+                    || !java.util.Objects.equals(request.getLongitude(), salon.getLongitude());
+            linkGeoapifyLocation(salon, request.getGeoapifyPlaceId(),
+                    request.getLatitude(), request.getLongitude(), salonId);
+            if (locationChanged) {
+                salon.changeStatus(SalonStatus.PENDING_APPROVAL);
+            }
+        }
 
         replaceGallery(salon.getId(), images);
 
@@ -259,24 +273,6 @@ public class SalonServiceImpl implements SalonService {
     }
 
     @Override
-    public SalonResponse createSalonByAdmin(Long ownerId, CreateSalonRequest request) {
-        List<String> images = resolveImages(request.getImageUrl(), request.getImageUrls());
-        String coverImage = images.isEmpty() ? null : images.get(0);
-
-        Salon salon = new Salon(ownerId, request.getName());
-        salon.updateInfo(request.getName(), request.getPhone(), request.getAddress(),
-                request.getDescription(), coverImage);
-        salon.changeStatus(SalonStatus.ACTIVE);
-        salon = salonRepository.saveAndFlush(salon);
-
-        if (!images.isEmpty()) {
-            replaceGallery(salon.getId(), images);
-        }
-
-        return SalonMapper.toResponse(salon, images);
-    }
-
-    @Override
     public SalonResponse updateSalonByAdmin(Long salonId, UpdateSalonRequest request) {
         Salon salon = findOrThrow(salonId);
 
@@ -285,6 +281,10 @@ public class SalonServiceImpl implements SalonService {
 
         salon.updateInfo(request.getName(), request.getPhone(), request.getAddress(),
                 request.getDescription(), coverImage);
+        if (hasGeoapifyLocation(request.getGeoapifyPlaceId(), request.getLatitude(), request.getLongitude())) {
+            linkGeoapifyLocation(salon, request.getGeoapifyPlaceId(),
+                    request.getLatitude(), request.getLongitude(), salonId);
+        }
 
         replaceGallery(salon.getId(), images);
 
@@ -354,6 +354,32 @@ public class SalonServiceImpl implements SalonService {
         for (int i = 0; i < images.size(); i++) {
             salonImageRepository.save(new SalonImage(salonId, images.get(i), i));
         }
+    }
+
+    private boolean hasGeoapifyLocation(String placeId, Double latitude, Double longitude) {
+        return (placeId != null && !placeId.isBlank()) || latitude != null || longitude != null;
+    }
+
+    private void linkGeoapifyLocation(Salon salon, String placeId, Double latitude,
+                                      Double longitude, Long currentSalonId) {
+        if (!hasGeoapifyLocation(placeId, latitude, longitude)) {
+            return;
+        }
+        if (placeId == null || placeId.isBlank() || latitude == null || longitude == null
+                || !Double.isFinite(latitude) || latitude < -90 || latitude > 90
+                || !Double.isFinite(longitude) || longitude < -180 || longitude > 180) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED,
+                    "Liên kết Geoapify phải có placeId và tọa độ hợp lệ");
+        }
+        String normalizedPlaceId = placeId.trim();
+        boolean alreadyLinked = currentSalonId == null
+                ? salonRepository.existsByGeoapifyPlaceId(normalizedPlaceId)
+                : salonRepository.existsByGeoapifyPlaceIdAndIdNot(normalizedPlaceId, currentSalonId);
+        if (alreadyLinked) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED,
+                    "Salon Geoapify này đã được liên kết với một tài khoản StyleLock khác");
+        }
+        salon.linkGeoapifyLocation(normalizedPlaceId, latitude, longitude);
     }
 
     private Salon findOrThrow(Long salonId) {

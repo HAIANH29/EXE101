@@ -58,8 +58,6 @@ public interface SalonService {
 
     long countActiveStylists(Long salonId);
 
-    SalonResponse createSalonByAdmin(Long ownerId, CreateSalonRequest request);
-
     SalonResponse updateSalonByAdmin(Long salonId, UpdateSalonRequest request);
 
     void deleteSalonByAdmin(Long salonId);

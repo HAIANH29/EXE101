@@ -8,6 +8,7 @@ import {
   ScrollView,
   Platform
 } from 'react-native';
+import * as Location from 'expo-location';
 import { LocalizedText as Text, LocalizedTextInput as TextInput, LocalizedAlert as Alert } from '../i18n/LocalizedComponents';
 import { DataState } from '../components/DataState';
 import { backendApi } from '../services/backendApi';
@@ -34,6 +35,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
   const userPhotoUri: string | undefined = route?.params?.userPhotoUri;
 
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [appliedLocationQuery, setAppliedLocationQuery] = useState<string>('');
   const [activeFilter, setActiveFilter] = useState<MainFilterType>('All');
   const [distanceSubFilter, setDistanceSubFilter] = useState<DistanceSubFilter>('nearest');
   const [priceSubFilter, setPriceSubFilter] = useState<PriceSubFilter>('lowToHigh');
@@ -44,8 +46,10 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
   const [loading, setLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string | undefined>();
   const [reloadKey, setReloadKey] = useState<number>(0);
+  const [usingFallbackLocation, setUsingFallbackLocation] = useState<boolean>(false);
 
   const enrichSalon = (s: Salon, idx: number): Salon => {
+    if (s.isExternal) return s;
     const distanceKm = s.distanceKm ?? Number(((((s.apiId || idx + 1) * 7 + 3) % 35 + 8) / 10).toFixed(1));
     const validPrices = (s.services || []).map((srv) => srv.price).filter((p) => p > 0);
     const minPrice = s.minPrice ?? (validPrices.length > 0 ? Math.min(...validPrices) : 120000);
@@ -69,7 +73,25 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
       setLoading(true);
       setLoadError(undefined);
       try {
-        const apiSalons = await backendApi.getSalons();
+        let location: { latitude: number; longitude: number } | undefined;
+        if (!appliedLocationQuery) {
+          try {
+          const permission = await Location.requestForegroundPermissionsAsync();
+          if (permission.status === Location.PermissionStatus.GRANTED) {
+            const current = await Location.getCurrentPositionAsync({
+              accuracy: Location.Accuracy.Balanced
+            });
+            location = {
+              latitude: current.coords.latitude,
+              longitude: current.coords.longitude
+            };
+          }
+        } catch {
+          // Backend mặc định dùng trung tâm TP.HCM khi thiết bị không cấp được vị trí.
+          }
+        }
+        if (isMounted) setUsingFallbackLocation(!location && !appliedLocationQuery);
+        const apiSalons = await backendApi.getSalons(location, appliedLocationQuery);
         if (isMounted) setSalons(apiSalons.map(enrichSalon));
       } catch (error) {
         if (isMounted) setLoadError(error instanceof Error ? error.message : 'Không tải được danh sách salon.');
@@ -88,7 +110,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
       isMounted = false;
       unsubscribe();
     };
-  }, [reloadKey]);
+  }, [reloadKey, appliedLocationQuery]);
 
   const toggleFavorite = (id: string) => {
     favoritesStore.toggleFavorite(id);
@@ -108,12 +130,6 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
 
   const salonsToDisplay = useMemo(() => {
     let list = salons.filter((salon) => {
-      const matchesSearch =
-        salon.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        salon.address.toLowerCase().includes(searchQuery.toLowerCase());
-
-      if (!matchesSearch) return false;
-
       // Filter by Distance
       if (activeFilter === 'Distance') {
         const d = salon.distanceKm ?? parseFloat(salon.distance) ?? 1.5;
@@ -166,9 +182,37 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
     }
 
     return list;
-  }, [salons, searchQuery, activeFilter, distanceSubFilter, priceSubFilter, ratingSubFilter]);
+  }, [salons, activeFilter, distanceSubFilter, priceSubFilter, ratingSubFilter]);
 
-  const handleSelectSalon = (salon: Salon) => {
+  const handleSelectSalon = async (salon: Salon) => {
+    if (salon.isExternal) {
+      if (!backendApi.isAuthenticated()) {
+        Alert.alert('Cần đăng nhập', 'Vui lòng đăng nhập để tạo booking demo.', [
+          { text: 'Đóng', style: 'cancel' },
+          { text: 'Đăng nhập', onPress: () => navigation.navigate('Login') }
+        ]);
+        return;
+      }
+      try {
+        setLoading(true);
+        const demoSalon = await backendApi.materializeDemoSalon(salon);
+        navigation.navigate('SalonDetail', { salon: demoSalon, selectedHairstyle, userPhotoUri });
+      } catch (error) {
+        Alert.alert('Không thể tạo salon demo', error instanceof Error ? error.message : 'Vui lòng thử lại.');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    if (!salon.bookingEligible) {
+      Alert.alert(
+        language === 'vi' ? 'Salon chưa nhận lịch' : 'Salon is not bookable yet',
+        language === 'vi'
+          ? 'Salon cần được duyệt và có ít nhất một dịch vụ, một stylist đang hoạt động.'
+          : 'The salon needs approval plus at least one active service and stylist.'
+      );
+      return;
+    }
     navigation.navigate('SalonDetail', {
       salon,
       selectedHairstyle,
@@ -220,8 +264,22 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
               placeholderTextColor="#9B8B7A"
               value={searchQuery}
               onChangeText={setSearchQuery}
+              returnKeyType="search"
+              onSubmitEditing={() => setAppliedLocationQuery(searchQuery.trim())}
             />
+            <TouchableOpacity onPress={() => setAppliedLocationQuery(searchQuery.trim())} activeOpacity={0.8}>
+              <Text style={{ color: '#B8895A', fontWeight: '700' }}>
+                {language === 'vi' ? 'Tìm' : 'Search'}
+              </Text>
+            </TouchableOpacity>
           </View>
+          <Text style={styles.locationStatus}>
+            {appliedLocationQuery
+              ? (language === 'vi' ? `Khu vực: ${appliedLocationQuery}` : `Area: ${appliedLocationQuery}`)
+              : usingFallbackLocation
+              ? (language === 'vi' ? 'Đang hiển thị khu vực trung tâm TP.HCM' : 'Showing central Ho Chi Minh City')
+              : (language === 'vi' ? 'Đang dùng vị trí hiện tại của bạn' : 'Using your current location')}
+          </Text>
 
           {/* Filter Chips Scroll */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
@@ -454,7 +512,9 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
                     <Text style={styles.salonName} numberOfLines={1}>{salon.name}</Text>
                     <View style={styles.ratingRow}>
                       <Text style={styles.starIcon}>★</Text>
-                      <Text style={styles.ratingScore}>{salon.rating.toFixed(1)}</Text>
+                      <Text style={styles.ratingScore}>
+                        {salon.isExternal ? 'Geoapify' : salon.rating.toFixed(1)}
+                      </Text>
                     </View>
                   </View>
 
@@ -526,11 +586,17 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
                   {/* Actions Row (Book Button + Info Button) */}
                   <View style={styles.actionsRow}>
                     <TouchableOpacity
-                      style={styles.bookBtn}
+                      style={[styles.bookBtn, !salon.isExternal && !salon.bookingEligible && { opacity: 0.55 }]}
                       activeOpacity={0.85}
-                      onPress={() => handleSelectSalon(salon)}
+                      onPress={() => void handleSelectSalon(salon)}
                     >
-                      <Text style={styles.bookBtnText}>Book</Text>
+                      <Text style={styles.bookBtnText}>
+                        {salon.isExternal
+                          ? (language === 'vi' ? 'Đặt lịch demo' : 'Demo booking')
+                          : !salon.bookingEligible
+                            ? (language === 'vi' ? 'Chưa nhận lịch' : 'Not bookable')
+                          : (language === 'vi' ? 'Đặt lịch' : 'Book')}
+                      </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -650,7 +716,7 @@ const styles = StyleSheet.create({
     height: 46,
     borderWidth: 1,
     borderColor: '#E5D9CA',
-    marginBottom: 12,
+    marginBottom: 4,
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 4 },
       android: { elevation: 1 },
@@ -664,6 +730,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: '#241F1A'
+  },
+  locationStatus: {
+    color: '#6F6255',
+    fontSize: 11,
+    marginBottom: 10,
+    paddingHorizontal: 4
   },
   chipScroll: {
     marginHorizontal: -20,

@@ -25,6 +25,10 @@ spring:
     locations: classpath:db/migration,classpath:db/dev-migration
 
 app:
+  demo:
+    enabled: ${STYLELOCK_DEMO_ENABLED:true}
+    owner-email: ${STYLELOCK_DEMO_OWNER_EMAIL:demo.owner@stylelock.local}
+    owner-password: ${STYLELOCK_DEMO_OWNER_PASSWORD:DemoOwner123!}
   jwt:
     secret: ${JWT_SECRET:dev-only-jwt-secret-change-this-to-a-random-64-character-value}
 

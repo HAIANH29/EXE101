@@ -4,7 +4,8 @@ public record SalonSummaryResponse(
         Long id,
         Long ownerId,
         String name,
-        String status
+        String status,
+        boolean demo
 ) {
     public boolean isActive() {
         return "ACTIVE".equals(status);

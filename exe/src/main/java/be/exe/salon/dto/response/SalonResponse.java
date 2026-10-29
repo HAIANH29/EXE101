@@ -12,6 +12,10 @@ public record SalonResponse(
         String description,
         String imageUrl,
         List<String> imageUrls,
+        String geoapifyPlaceId,
+        Double latitude,
+        Double longitude,
+        boolean demo,
         String status,
         Instant createdAt
 ) {
@@ -28,6 +32,6 @@ public record SalonResponse(
     ) {
         this(id, ownerId, name, phone, address, description, imageUrl,
                 imageUrl != null && !imageUrl.isBlank() ? List.of(imageUrl) : List.of(),
-                status, createdAt);
+                null, null, null, false, status, createdAt);
     }
 }

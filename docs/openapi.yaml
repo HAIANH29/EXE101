@@ -115,6 +115,43 @@ paths:
       tags: [Salon]
       parameters: [{ name: status, in: query, required: false, schema: { type: string } }, { $ref: '#/components/parameters/page' }, { $ref: '#/components/parameters/size' }]
       responses: { '200': { $ref: '#/components/responses/PageSuccess' } }
+  /api/public/salons/nearby:
+    get:
+      tags: [Salon]
+      security: []
+      summary: Tìm salon tóc gần một tọa độ bằng Geoapify Places
+      description: Mặc định tìm trong bán kính 10 km quanh trung tâm TP.HCM khi không truyền tọa độ. API key Geoapify chỉ được cấu hình ở backend.
+      parameters:
+        - { name: query, in: query, required: false, schema: { type: string }, description: Vietnamese street, ward, district or city; takes precedence over coordinates }
+        - { name: latitude, in: query, required: false, schema: { type: number, format: double, minimum: -90, maximum: 90 } }
+        - { name: longitude, in: query, required: false, schema: { type: number, format: double, minimum: -180, maximum: 180 } }
+        - { name: radius, in: query, required: false, schema: { type: integer, minimum: 100, maximum: 50000, default: 10000 } }
+      responses: { '200': { $ref: '#/components/responses/ExternalSalonListSuccess' }, '400': { $ref: '#/components/responses/Error' }, '500': { $ref: '#/components/responses/Error' } }
+  /api/demo/salons/materialize:
+    post:
+      tags: [Salon, Demo]
+      summary: Create or reuse a bookable demo salon from a Geoapify place
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [placeId, name, latitude, longitude]
+              properties:
+                placeId: { type: string }
+                name: { type: string }
+                address: { type: string }
+                phone: { type: string }
+                latitude: { type: number, format: double }
+                longitude: { type: number, format: double }
+      responses: { '201': { $ref: '#/components/responses/SalonResponse' }, '400': { $ref: '#/components/responses/ValidationError' }, '401': { $ref: '#/components/responses/Error' } }
+  /api/demo/payments/{paymentId}/confirm:
+    post:
+      tags: [Payment, Demo]
+      summary: Confirm a simulated payment owned by the current customer
+      parameters: [{ $ref: '#/components/parameters/paymentId' }]
+      responses: { '200': { $ref: '#/components/responses/PaymentSuccess' }, '400': { $ref: '#/components/responses/ValidationError' }, '401': { $ref: '#/components/responses/Error' }, '403': { $ref: '#/components/responses/Error' } }
   /api/salons/{salonId}:
     get:
       tags: [Salon]
@@ -275,13 +312,27 @@ paths:
   /api/bookings/{bookingId}/payment:
     get:
       tags: [Payment]
+      summary: Xem chi tiết thanh toán theo lịch hẹn của khách hiện tại
       parameters: [{ $ref: '#/components/parameters/bookingId' }]
-      responses: { '200': { $ref: '#/components/responses/Success' } }
+      responses: { '200': { $ref: '#/components/responses/PaymentSuccess' }, '403': { $ref: '#/components/responses/Error' }, '404': { $ref: '#/components/responses/Error' } }
   /api/payments/{paymentId}:
     get:
       tags: [Payment]
+      summary: Xem chi tiết giao dịch thuộc khách hàng hiện tại
       parameters: [{ $ref: '#/components/parameters/paymentId' }]
-      responses: { '200': { $ref: '#/components/responses/Success' } }
+      responses: { '200': { $ref: '#/components/responses/PaymentSuccess' }, '403': { $ref: '#/components/responses/Error' }, '404': { $ref: '#/components/responses/Error' } }
+  /api/payments/history:
+    get:
+      tags: [Payment]
+      summary: Lịch sử thanh toán của khách hàng hiện tại
+      parameters: [{ $ref: '#/components/parameters/page' }, { $ref: '#/components/parameters/size' }]
+      responses: { '200': { $ref: '#/components/responses/PaymentPageSuccess' } }
+  /api/salons/{salonId}/pro/subscribe:
+    post:
+      tags: [Payment]
+      summary: Tạo hoặc lấy giao dịch đăng ký Salon Pro đang hoạt động
+      parameters: [{ $ref: '#/components/parameters/salonId' }]
+      responses: { '200': { $ref: '#/components/responses/PaymentSuccess' }, '403': { $ref: '#/components/responses/Error' } }
   /api/payment/webhook/sepay:
     post:
       tags: [Payment]
@@ -315,6 +366,35 @@ paths:
       tags: [Admin]
       parameters: [{ $ref: '#/components/parameters/salonId' }]
       responses: { '200': { $ref: '#/components/responses/Success' } }
+  /api/admin/payments:
+    get:
+      tags: [Admin, Payment]
+      summary: Danh sách giao dịch cho quản trị viên
+      parameters:
+        - { name: status, in: query, required: false, schema: { $ref: '#/components/schemas/PaymentStatus' } }
+        - { $ref: '#/components/parameters/page' }
+        - { $ref: '#/components/parameters/size' }
+      responses: { '200': { $ref: '#/components/responses/PaymentPageSuccess' }, '403': { $ref: '#/components/responses/Error' } }
+  /api/admin/payments/paid-users:
+    get:
+      tags: [Admin, Payment]
+      summary: Danh sách người dùng đã thanh toán
+      description: Tổng hợp các giao dịch PAID, REFUND_PENDING và REFUNDED theo khách hàng, sắp xếp lần thanh toán gần nhất trước.
+      parameters: [{ $ref: '#/components/parameters/page' }, { $ref: '#/components/parameters/size' }]
+      responses: { '200': { $ref: '#/components/responses/PaidUserPageSuccess' }, '403': { $ref: '#/components/responses/Error' } }
+  /api/admin/payments/{paymentId}:
+    get:
+      tags: [Admin, Payment]
+      summary: Xem chi tiết một giao dịch cho quản trị viên
+      parameters: [{ $ref: '#/components/parameters/paymentId' }]
+      responses: { '200': { $ref: '#/components/responses/PaymentSuccess' }, '403': { $ref: '#/components/responses/Error' }, '404': { $ref: '#/components/responses/Error' } }
+  /api/admin/payments/{paymentId}/refund:
+    patch:
+      tags: [Admin, Payment]
+      summary: Ghi nhận giao dịch hoàn tiền
+      parameters: [{ $ref: '#/components/parameters/paymentId' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RefundPaymentRequest' } } } }
+      responses: { '200': { $ref: '#/components/responses/PaymentSuccess' }, '400': { $ref: '#/components/responses/ValidationError' }, '403': { $ref: '#/components/responses/Error' }, '404': { $ref: '#/components/responses/Error' } }
   /api/dashboard/overview:
     get:
       tags: [Reporting]
@@ -353,7 +433,21 @@ components:
     ChangePasswordRequest: { type: object, required: [oldPassword, newPassword], properties: { oldPassword: { type: string }, newPassword: { type: string, minLength: 6, maxLength: 100 } } }
     CreateBookingRequest: { type: object, required: [salonId, stylistId, serviceId, startAt], properties: { salonId: { type: integer, format: int64 }, stylistId: { type: integer, format: int64 }, serviceId: { type: integer, format: int64 }, hairstyleId: { type: integer, format: int64, nullable: true }, startAt: { type: string, format: date-time }, note: { type: string, nullable: true } } }
     CancelBookingRequest: { type: object, properties: { reason: { type: string, nullable: true } } }
-    SalonRequest: { type: object, required: [name], properties: { name: { type: string, maxLength: 200 }, phone: { type: string }, address: { type: string }, description: { type: string }, imageUrl: { type: string } } }
+    SalonRequest: { type: object, required: [name], properties: { name: { type: string, maxLength: 200 }, phone: { type: string }, address: { type: string }, description: { type: string }, imageUrl: { type: string }, imageUrls: { type: array, maxItems: 10, items: { type: string } }, geoapifyPlaceId: { type: string }, latitude: { type: number, format: double }, longitude: { type: number, format: double } } }
+    ExternalSalon:
+      type: object
+      required: [placeId, name, address, latitude, longitude, distanceMeters, mapUrl]
+      properties:
+        placeId: { type: string }
+        name: { type: string }
+        address: { type: string }
+        phone: { type: string, nullable: true }
+        latitude: { type: number, format: double }
+        longitude: { type: number, format: double }
+        distanceMeters: { type: integer, format: int32, minimum: 0 }
+        mapUrl: { type: string, format: uri }
+        openingHours: { type: string, nullable: true }
+        website: { type: string, format: uri, nullable: true }
     StatusRequest: { type: object, required: [status], properties: { status: { type: string } } }
     CreateStylistRequest: { type: object, required: [userId], properties: { userId: { type: integer, format: int64 }, bio: { type: string }, experienceYears: { type: integer, format: int32 } } }
     UpdateStylistRequest: { type: object, properties: { bio: { type: string }, experienceYears: { type: integer, format: int32 }, status: { type: string } } }
@@ -365,6 +459,66 @@ components:
     HairstyleUpdateRequest: { allOf: [{ $ref: '#/components/schemas/HairstyleRequest' }, { type: object, properties: { status: { type: string } } }] }
     CreateReviewRequest: { type: object, required: [bookingId, rating], properties: { bookingId: { type: integer, format: int64 }, rating: { type: integer, format: int32, minimum: 1, maximum: 5 }, comment: { type: string, maxLength: 2000 } } }
     UpdateReviewRequest: { type: object, required: [rating], properties: { rating: { type: integer, minimum: 1, maximum: 5 }, comment: { type: string, maxLength: 2000 } } }
+    PaymentStatus: { type: string, enum: [PENDING, PAID, FAILED, CANCELLED, REFUND_PENDING, REFUNDED] }
+    PaymentType: { type: string, enum: [BOOKING_CONNECTION, SALON_PRO_SUBSCRIPTION] }
+    RefundPaymentRequest: { type: object, required: [refundAmount, refundReference], properties: { refundAmount: { type: number, minimum: 0, exclusiveMinimum: true }, refundReference: { type: string, maxLength: 255 }, note: { type: string, maxLength: 1000, nullable: true } } }
+    Payment:
+      type: object
+      required: [id, paymentType, amount, status, referenceCode, provider, createdAt, customerId]
+      properties:
+        id: { type: integer, format: int64 }
+        bookingId: { type: integer, format: int64, nullable: true }
+        salonId: { type: integer, format: int64, nullable: true }
+        paymentType: { $ref: '#/components/schemas/PaymentType' }
+        serviceAmount: { type: number, nullable: true }
+        feeAmount: { type: number }
+        provider: { type: string, example: SEPAY }
+        transactionId: { type: string, nullable: true }
+        referenceCode: { type: string }
+        amount: { type: number }
+        status: { $ref: '#/components/schemas/PaymentStatus' }
+        paymentUrl: { type: string, format: uri, nullable: true }
+        paidAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+        refundAmount: { type: number, nullable: true }
+        refundReason: { type: string, nullable: true }
+        refundReference: { type: string, nullable: true }
+        refundRequestedAt: { type: string, format: date-time, nullable: true }
+        refundedAt: { type: string, format: date-time, nullable: true }
+        customerId: { type: integer, format: int64 }
+    PaymentPage:
+      type: object
+      required: [content, pageNumber, pageSize, totalElements, totalPages, last]
+      properties:
+        content: { type: array, items: { $ref: '#/components/schemas/Payment' } }
+        pageNumber: { type: integer, format: int32 }
+        pageSize: { type: integer, format: int32 }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer, format: int32 }
+        last: { type: boolean }
+    PaidUser:
+      type: object
+      required: [customerId, fullName, email, paidTransactionCount, totalPaidAmount, totalRefundedAmount, latestPaymentId]
+      properties:
+        customerId: { type: integer, format: int64 }
+        fullName: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string, nullable: true }
+        paidTransactionCount: { type: integer, format: int64 }
+        totalPaidAmount: { type: number }
+        totalRefundedAmount: { type: number }
+        lastPaidAt: { type: string, format: date-time, nullable: true }
+        latestPaymentId: { type: integer, format: int64 }
+    PaidUserPage:
+      type: object
+      required: [content, pageNumber, pageSize, totalElements, totalPages, last]
+      properties:
+        content: { type: array, items: { $ref: '#/components/schemas/PaidUser' } }
+        pageNumber: { type: integer, format: int32 }
+        pageSize: { type: integer, format: int32 }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer, format: int32 }
+        last: { type: boolean }
     SepayWebhookRequest: { type: object, properties: { id: { type: integer, format: int64 }, gateway: { type: string }, transactionDate: { type: string }, accountNumber: { type: string }, content: { type: string }, transferType: { type: string }, transferAmount: { type: number }, accumulated: { type: number } } }
     User: { type: object, properties: { id: { type: integer, format: int64 }, email: { type: string }, fullName: { type: string }, phone: { type: string, nullable: true }, avatarUrl: { type: string, nullable: true }, status: { type: string }, roles: { type: array, items: { type: string } }, createdAt: { type: string, format: date-time } } }
     Login: { type: object, properties: { accessToken: { type: string }, refreshToken: { type: string }, tokenType: { type: string, example: Bearer }, expiresIn: { type: integer, format: int64 }, user: { $ref: '#/components/schemas/User' } } }
@@ -379,8 +533,12 @@ components:
     BookingEnvelope: { description: Success, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
     BookingResponse: { description: Success, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
     SalonResponse: { description: Success, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+    ExternalSalonListSuccess: { description: Success, content: { application/json: { schema: { allOf: [{ $ref: '#/components/schemas/Envelope' }, { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/ExternalSalon' } } } }] } } } }
     StylistResponse: { description: Success, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
     ServiceResponse: { description: Success, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+    PaymentSuccess: { description: Success, content: { application/json: { schema: { allOf: [{ $ref: '#/components/schemas/Envelope' }, { type: object, properties: { data: { $ref: '#/components/schemas/Payment' } } }] } } } }
+    PaymentPageSuccess: { description: Success, content: { application/json: { schema: { allOf: [{ $ref: '#/components/schemas/Envelope' }, { type: object, properties: { data: { $ref: '#/components/schemas/PaymentPage' } } }] } } } }
+    PaidUserPageSuccess: { description: Success, content: { application/json: { schema: { allOf: [{ $ref: '#/components/schemas/Envelope' }, { type: object, properties: { data: { $ref: '#/components/schemas/PaidUserPage' } } }] } } } }
     PageSuccess: { description: Success, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
     Error: { description: Error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     ValidationError: { description: Validation error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }

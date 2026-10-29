@@ -7,13 +7,12 @@ import be.exe.auth.dto.response.UserResponse;
 import be.exe.common.response.ApiResponse;
 import be.exe.common.response.PageResponse;
 import be.exe.common.util.PaginationUtils;
-import be.exe.salon.dto.request.CreateSalonRequest;
 import be.exe.salon.dto.request.UpdateSalonRequest;
 import be.exe.salon.dto.response.SalonResponse;
 import be.exe.payment.dto.response.PaymentResponse;
+import be.exe.payment.dto.response.PaidUserResponse;
 import be.exe.admin.dto.request.RefundPaymentRequest;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -95,15 +94,6 @@ public class AdminController {
                 "Đã từ chối salon", adminService.rejectSalon(salonId)));
     }
 
-    @PostMapping("/salons")
-    public ResponseEntity<ApiResponse<SalonResponse>> createSalon(
-            @AuthenticationPrincipal CustomUserDetails principal,
-            @Valid @RequestBody CreateSalonRequest request) {
-        SalonResponse response = adminService.createSalon(principal.getUserId(), request);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Đã tạo chi nhánh salon thành công", response));
-    }
-
     @PutMapping("/salons/{salonId}")
     public ResponseEntity<ApiResponse<SalonResponse>> updateSalon(
             @PathVariable Long salonId,
@@ -127,6 +117,14 @@ public class AdminController {
             @RequestParam(required = false) Integer size) {
         var pageable = PaginationUtils.of(page, size, "createdAt", "DESC");
         var result = adminService.getPayments(status, pageable);
+        return ResponseEntity.ok(ApiResponse.success(PageResponse.from(result)));
+    }
+
+    @GetMapping("/payments/paid-users")
+    public ResponseEntity<ApiResponse<PageResponse<PaidUserResponse>>> getPaidUsers(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        var result = adminService.getPaidUsers(PaginationUtils.of(page, size));
         return ResponseEntity.ok(ApiResponse.success(PageResponse.from(result)));
     }
 

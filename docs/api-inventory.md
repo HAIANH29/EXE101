@@ -12,7 +12,12 @@
 - AI Try-on: `POST /api/tryon` và `PUT /api/tryon/{requestId}/finalize` đã được tích hợp gọi sang Python server nội bộ.
 
 
+Geoapify Places: `GET /api/public/salons/nearby` lấy salon gần tọa độ hiện tại. Cần cấu hình `GEOAPIFY_API_KEY` chỉ ở backend; các địa điểm ngoài hệ thống chỉ mở bản đồ, không thể đặt lịch trong StyleLock.
+
 ## Common response and errors
+
+`GET /api/public/salons/nearby` accepts `query` for a street, ward, district or city in Vietnam. The backend geocodes it with Geoapify before searching nearby salons, and `query` takes precedence over GPS coordinates. Salon Owner registrations may link a Geoapify `place_id`; only approved salons with active services and stylists can receive bookings.
+
 Success wrapper: `success:boolean`, optional `message:string`, optional `data`, `timestamp:date-time`.
 Error wrapper: `success:false`, `errorCode`, `message`, `timestamp`, `path`, optional `fieldErrors[{field,message}]`.
 Known codes: `COMMON_001` 500, `COMMON_002` 400, `COMMON_003` 404, `COMMON_004` 401, `COMMON_005` 403, `AUTH_001` 409, `AUTH_002` 401, `AUTH_003` 401, `AUTH_004` 403, `BOOKING_001` 409, `BOOKING_002` 400, `PAYMENT_001` 409, `PAYMENT_002` 400.
@@ -34,6 +39,9 @@ Known codes: `COMMON_001` 500, `COMMON_002` 400, `COMMON_003` 404, `COMMON_004` 
 | AUTH-11 | POST | `/api/auth/forgot-password` | AuthController | Public | ForgotPasswordRequest -> void |
 | AUTH-12 | POST | `/api/auth/reset-password` | AuthController | Public | ResetPasswordRequest -> void |
 | AUTH-13 | DELETE | `/api/auth/me` | AuthController | JWT | none -> void |
+| PUBLIC-SALON-01 | GET | `/api/public/salons/nearby` | GeoapifySalonController | Public | `query?` hoặc tọa độ -> salon thật từ Geoapify |
+| DEMO-01 | POST | `/api/demo/salons/materialize` | DemoController | JWT; `app.demo.enabled=true` | Geoapify place -> create/reuse demo salon with services, stylist and hours |
+| DEMO-02 | POST | `/api/demo/payments/{paymentId}/confirm` | DemoController | JWT; payment owner; `app.demo.enabled=true` | Persist simulated DEMO payment as PAID; no real transfer |
 | BOOK-01 | POST | `/api/bookings` | BookingController | JWT | CreateBookingRequest -> BookingResponse |
 | BOOK-02 | GET | `/api/bookings/{bookingId}` | BookingController | JWT; service checks owner access | path bookingId -> BookingDetailResponse |
 | BOOK-03 | GET | `/api/bookings/me` | BookingController | JWT | page?, size? -> PageResponse<BookingResponse> |
@@ -80,6 +88,8 @@ Known codes: `COMMON_001` 500, `COMMON_002` 400, `COMMON_003` 404, `COMMON_004` 
 | PAY-01 | GET | `/api/bookings/{bookingId}/payment` | PaymentController | JWT; booking scoped | path bookingId -> PaymentResponse |
 | PAY-02 | GET | `/api/payments/{paymentId}` | PaymentController | JWT by global rule | path paymentId -> PaymentResponse |
 | PAY-03 | POST | `/api/payment/webhook/sepay` | SepayWebhookController | Public route; SePay Authorization API key required | SepayWebhookRequest -> `{"success":true}` |
+| PAY-04 | GET | `/api/payments/history` | PaymentController | JWT; user scoped | page?, size? -> page<PaymentResponse> |
+| PAY-05 | POST | `/api/salons/{salonId}/pro/subscribe` | PaymentController | JWT + SALON_OWNER; owner scoped | path salonId -> PaymentResponse |
 | ADMIN-01 | GET | `/api/admin/users` | AdminController | JWT + ADMIN | status?, page?, size? -> page<UserResponse> |
 | ADMIN-02 | PATCH | `/api/admin/users/{userId}/status` | AdminController | JWT + ADMIN | `{status}` -> UserResponse |
 | ADMIN-03 | DELETE| `/api/admin/users/{userId}` | AdminController | JWT + ADMIN | none -> void |
@@ -87,6 +97,9 @@ Known codes: `COMMON_001` 500, `COMMON_002` 400, `COMMON_003` 404, `COMMON_004` 
 | ADMIN-05 | PATCH | `/api/admin/salons/{salonId}/approve` | AdminController | JWT + ADMIN | none -> SalonResponse |
 | ADMIN-06 | PATCH | `/api/admin/salons/{salonId}/reject` | AdminController | JWT + ADMIN | none -> SalonResponse |
 | ADMIN-07 | PATCH | `/api/admin/payments/{paymentId}/refund` | AdminController | JWT + ADMIN | RefundPaymentRequest -> PaymentResponse |
+| ADMIN-08 | GET | `/api/admin/payments` | AdminController | JWT + ADMIN | status?, page?, size? -> page<PaymentResponse> |
+| ADMIN-09 | GET | `/api/admin/payments/paid-users` | AdminController | JWT + ADMIN | page?, size? -> page<PaidUserResponse> |
+| ADMIN-10 | GET | `/api/admin/payments/{paymentId}` | AdminController | JWT + ADMIN | path paymentId -> PaymentResponse |
 | REPORT-01 | GET | `/api/dashboard/overview` | DashboardController | JWT + ADMIN | none -> DashboardOverviewResponse |
 | REPORT-02 | GET | `/api/dashboard/revenue` | DashboardController | JWT + ADMIN | required `from`, `to` ISO date-time -> RevenueReportResponse |
 | REPORT-03 | GET | `/api/dashboard/bookings/statistics` | DashboardController | JWT + ADMIN | none -> BookingStatisticsResponse |

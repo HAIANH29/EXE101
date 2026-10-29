@@ -19,4 +19,6 @@ public interface StylistRepository extends JpaRepository<Stylist, Long> {
     boolean existsByUserId(Long userId);
 
     long countBySalonIdAndStatus(Long salonId, StylistStatus status);
+
+    boolean existsBySalonId(Long salonId);
 }

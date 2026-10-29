@@ -1,9 +1,9 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { useI18n } from '../../i18n';
 import { useAdminT } from '../../adminI18n';
 import { usePayT } from '../../payI18n';
 import { adminApi } from '../../services/adminApi';
-import { PaymentInfo, PaymentStatus, UserAccount } from '../../types/salon';
+import { PaidUserInfo, PaymentInfo, PaymentStatus, UserAccount } from '../../types/salon';
 import { Pager } from './AdminParts';
 
 /* ────── Sub-tabs ────── */
@@ -51,6 +51,14 @@ export function AdminPayments() {
   const [totalElements, setTotalElements] = useState(0);
   const [listLoading, setListLoading] = useState(true);
   const [listError, setListError] = useState<string>();
+
+  /* ── Paid users state (server-side aggregate, independent from transaction page/filter) ── */
+  const [paidUsers, setPaidUsers] = useState<PaidUserInfo[]>([]);
+  const [paidUsersPageNo, setPaidUsersPageNo] = useState(0);
+  const [paidUsersTotalPages, setPaidUsersTotalPages] = useState(0);
+  const [paidUsersTotalElements, setPaidUsersTotalElements] = useState(0);
+  const [paidUsersLoading, setPaidUsersLoading] = useState(false);
+  const [paidUsersError, setPaidUsersError] = useState<string>();
 
   /* ── Users lookup cache ── */
   const [usersMap, setUsersMap] = useState<Record<number, UserAccount>>({});
@@ -110,8 +118,27 @@ export function AdminPayments() {
   };
 
   useEffect(() => {
-    if (subTab === 'list' || subTab === 'users') void loadPayments();
+    if (subTab === 'list') void loadPayments();
   }, [pageNo, statusFilter, subTab]);
+
+  const loadPaidUsers = async () => {
+    setPaidUsersLoading(true);
+    setPaidUsersError(undefined);
+    try {
+      const result = await adminApi.getPaidUsers(paidUsersPageNo, 10);
+      setPaidUsers(result.content || []);
+      setPaidUsersTotalPages(result.totalPages || 0);
+      setPaidUsersTotalElements(result.totalElements || 0);
+    } catch (err) {
+      setPaidUsersError(err instanceof Error ? err.message : at('genericError'));
+    } finally {
+      setPaidUsersLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (subTab === 'users') void loadPaidUsers();
+  }, [paidUsersPageNo, subTab]);
 
   /* ────── Lookup by ID ────── */
   const handleLookup = async (event: FormEvent) => {
@@ -183,39 +210,14 @@ export function AdminPayments() {
     });
   };
 
-  /* ────── Aggregated user payment statistics ────── */
-  const userStats = useMemo(() => {
-    type Stat = {
-      userId: number;
-      txCount: number;
-      paidAmount: number;
-      lastPaymentAt?: string;
-      payments: PaymentInfo[];
-    };
-    const map = new Map<number, Stat>();
-
-    for (const p of payments) {
-      const uid = p.customerId ?? 0;
-      if (!uid) continue;
-      const existing: Stat = map.get(uid) || {
-        userId: uid,
-        txCount: 0,
-        paidAmount: 0,
-        payments: []
-      };
-      existing.txCount += 1;
-      if (p.status === 'PAID') {
-        existing.paidAmount += Number(p.amount) || 0;
-      }
-      if (!existing.lastPaymentAt || (p.createdAt && p.createdAt > existing.lastPaymentAt)) {
-        existing.lastPaymentAt = p.paidAt || p.createdAt;
-      }
-      existing.payments.push(p);
-      map.set(uid, existing);
+  const openLatestPaidUserPayment = async (paymentId: number) => {
+    setPaidUsersError(undefined);
+    try {
+      setDetailPayment(await adminApi.getPaymentById(paymentId));
+    } catch (err) {
+      setPaidUsersError(err instanceof Error ? err.message : at('genericError'));
     }
-
-    return Array.from(map.values()).sort((a, b) => b.paidAmount - a.paidAmount);
-  }, [payments]);
+  };
 
   return (
     <div className="screen-stack">
@@ -227,9 +229,15 @@ export function AdminPayments() {
           <p>{pt('adPaymentsDesc')}</p>
         </div>
         <div className="header-actions">
-          <button type="button" className="ghost-button" onClick={() => void loadPayments()}>
+          <button
+            type="button"
+            className="ghost-button"
+            onClick={() => void (subTab === 'users' ? loadPaidUsers() : loadPayments())}
+          >
             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>refresh</span>
-            {listLoading ? at('loading') : at('refresh')}
+            {subTab === 'users'
+              ? (paidUsersLoading ? at('loading') : at('refresh'))
+              : (listLoading ? at('loading') : at('refresh'))}
           </button>
         </div>
       </div>
@@ -240,7 +248,7 @@ export function AdminPayments() {
           {pt('adSubTabList')}
         </button>
         <button className={subTab === 'users' ? 'active' : ''} onClick={() => setSubTab('users')}>
-          {pt('adSubTabUsers')} {userStats.length > 0 && `(${userStats.length})`}
+          {pt('adSubTabUsers')} {paidUsersTotalElements > 0 && `(${paidUsersTotalElements})`}
         </button>
         <button className={subTab === 'refund' ? 'active' : ''} onClick={() => setSubTab('refund')}>
           {pt('adSubTabRefund')}
@@ -395,11 +403,15 @@ export function AdminPayments() {
           <div className="panel-head">
             <div>
               <h3>{pt('adSubTabUsers')}</h3>
-              <p>{userStats.length} người dùng đã thực hiện giao dịch</p>
+              <p>{pt('adUserCountDesc', { count: paidUsersTotalElements })}</p>
             </div>
           </div>
 
-          {userStats.length === 0 ? (
+          {paidUsersError && <div className="error-banner">{paidUsersError}</div>}
+
+          {paidUsersLoading ? (
+            <div className="empty-row">{at('loading')}</div>
+          ) : paidUsers.length === 0 ? (
             <div className="empty-row">{pt('adUserEmpty')}</div>
           ) : (
             <div className="table-wrapper">
@@ -414,52 +426,47 @@ export function AdminPayments() {
                 <span style={{ textAlign: 'right' }}>{at('actions')}</span>
               </div>
 
-              {userStats.map((stat) => {
-                const u = usersMap[stat.userId];
-                return (
+              {paidUsers.map((paidUser) => (
                   <div
-                    key={stat.userId}
+                    key={paidUser.customerId}
                     className="table-row"
                     style={{ gridTemplateColumns: '1.5fr 1fr 1fr 1.2fr 0.8fr', alignItems: 'center' }}
                   >
                     <div>
-                      {u ? (
-                        <>
-                          <strong style={{ fontSize: 14 }}>{u.fullName}</strong>
-                          <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-                            {u.email} {u.phone && `· ${u.phone}`}
-                          </div>
-                        </>
-                      ) : (
-                        <strong>Người dùng #{stat.userId}</strong>
+                      <strong style={{ fontSize: 14 }}>{paidUser.fullName}</strong>
+                      <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                        {paidUser.email} {paidUser.phone && `· ${paidUser.phone}`}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="pill-badge">{paidUser.paidTransactionCount} {pt('adTransactions')}</span>
+                    </div>
+                    <div>
+                      <strong style={{ color: '#2f6b45', fontSize: 14 }}>{money(paidUser.totalPaidAmount)}</strong>
+                      {Number(paidUser.totalRefundedAmount) > 0 && (
+                        <small style={{ display: 'block', color: 'var(--muted)' }}>
+                          {pt('adUserRefunded')}: {money(paidUser.totalRefundedAmount)}
+                        </small>
                       )}
                     </div>
-                    <div>
-                      <span className="pill-badge">{stat.txCount} giao dịch</span>
-                    </div>
-                    <div>
-                      <strong style={{ color: '#2f6b45', fontSize: 14 }}>{money(stat.paidAmount)}</strong>
-                    </div>
                     <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-                      {stat.lastPaymentAt ? dateTime(stat.lastPaymentAt) : '—'}
+                      {paidUser.lastPaidAt ? dateTime(paidUser.lastPaidAt) : '—'}
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <button
                         type="button"
                         className="ghost-button mini"
-                        onClick={() => {
-                          if (stat.payments[0]) setDetailPayment(stat.payments[0]);
-                        }}
+                        onClick={() => void openLatestPaidUserPayment(paidUser.latestPaymentId)}
                       >
                         <span className="material-symbols-outlined" style={{ fontSize: 16 }}>visibility</span>
-                        Xem GD
+                        {pt('adViewLatest')}
                       </button>
                     </div>
                   </div>
-                );
-              })}
+              ))}
             </div>
           )}
+          <Pager page={paidUsersPageNo} totalPages={paidUsersTotalPages} onChange={setPaidUsersPageNo} />
         </section>
       )}
 

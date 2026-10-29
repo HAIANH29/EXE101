@@ -9,9 +9,11 @@ import be.exe.common.exception.ResourceNotFoundException;
 import be.exe.payment.domain.Payment;
 import be.exe.payment.domain.PaymentStatus;
 import be.exe.payment.domain.PaymentType;
+import be.exe.payment.domain.PaymentProvider;
 import be.exe.payment.config.BillingProperties;
 import be.exe.payment.domain.event.PaymentCompletedEvent;
 import be.exe.payment.dto.response.PaymentResponse;
+import be.exe.payment.dto.response.PaidUserResponse;
 import be.exe.payment.repository.PaymentRepository;
 import be.exe.payment.sepay.SePayQrGenerator;
 import be.exe.payment.sepay.SepayWebhookRequest;
@@ -66,13 +68,16 @@ public class PaymentServiceImpl implements PaymentService {
             return;
         }
 
-        BigDecimal fee = billingProperties.getBookingFee();
+        var salon = salonService.getSalonOrThrow(salonId);
+        boolean demoPayment = salon.demo();
+        BigDecimal fee = demoPayment ? BigDecimal.ZERO : billingProperties.getBookingFee();
         BigDecimal amount = serviceAmount.add(fee);
         String referenceCode = generateReferenceCode("DH" + bookingId);
-        String paymentUrl = qrGenerator.buildQrUrl(amount, referenceCode);
+        String paymentUrl = demoPayment ? null : qrGenerator.buildQrUrl(amount, referenceCode);
 
         Payment payment = new Payment(bookingId, customerId, salonId, PaymentType.BOOKING_CONNECTION,
-                serviceAmount, fee, amount, referenceCode, paymentUrl);
+                serviceAmount, fee, amount, referenceCode, paymentUrl,
+                demoPayment ? PaymentProvider.DEMO : PaymentProvider.SEPAY);
         paymentRepository.save(payment);
     }
 
@@ -213,9 +218,44 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional(readOnly = true)
+    public Page<PaidUserResponse> getPaidUsers(Pageable pageable) {
+        return paymentRepository.findPaidUsers(pageable).map(item -> new PaidUserResponse(
+                item.getCustomerId(),
+                item.getFullName(),
+                item.getEmail(),
+                item.getPhone(),
+                item.getPaidTransactionCount(),
+                item.getTotalPaidAmount(),
+                item.getTotalRefundedAmount(),
+                item.getLastPaidAt(),
+                item.getLatestPaymentId()
+        ));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public PaymentResponse getPaymentForAdmin(Long paymentId) {
         Payment payment = paymentRepository.findById(Objects.requireNonNull(paymentId))
                 .orElseThrow(() -> new ResourceNotFoundException("Payment", paymentId));
+        return toResponse(payment);
+    }
+
+    @Override
+    public PaymentResponse confirmDemoPayment(Long paymentId, Long requesterId) {
+        Payment payment = paymentRepository.findById(Objects.requireNonNull(paymentId))
+                .orElseThrow(() -> new ResourceNotFoundException("Payment", paymentId));
+        if (!payment.getCustomerId().equals(requesterId)) {
+            throw new ForbiddenException("Bạn không phải chủ của giao dịch này");
+        }
+        if (payment.getProvider() != PaymentProvider.DEMO) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED,
+                    "Chỉ payment DEMO mới có thể xác nhận giả lập");
+        }
+        if (payment.isPending()) {
+            payment.markPaid("DEMO-" + UUID.randomUUID());
+            eventPublisher.publishEvent(new PaymentCompletedEvent(
+                    payment.getId(), payment.getBookingId(), payment.getAmount()));
+        }
         return toResponse(payment);
     }
 
@@ -242,7 +282,7 @@ public class PaymentServiceImpl implements PaymentService {
                 payment.getReferenceCode(),
                 payment.getAmount(),
                 payment.getStatus().name(),
-                qrGenerator.buildQrUrl(payment.getAmount(), payment.getReferenceCode()),
+                payment.getPaymentUrl(),
                 payment.getPaidAt(),
                 payment.getCreatedAt(),
                 payment.getRefundAmount(),

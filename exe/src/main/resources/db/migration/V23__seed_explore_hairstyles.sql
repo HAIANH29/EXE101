@@ -1,4 +1,4 @@
--- V108: Thêm 30 kiểu tóc chuẩn cho màn hình Explore (15 Nam & 15 Nữ)
+-- V23: Thêm 30 kiểu tóc chuẩn cho màn hình Explore (15 Nam & 15 Nữ)
 
 -- Xóa dữ liệu cũ nếu có
 DELETE FROM salon_hairstyles;

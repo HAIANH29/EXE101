@@ -117,7 +117,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({ navigation, route 
 
   // Tự kiểm tra khi còn chờ thanh toán: webhook SePay sẽ đổi trạng thái sang PAID
   useEffect(() => {
-    if (!isAwaitingPayment(payment)) return;
+    if (!isAwaitingPayment(payment) || payment?.provider === 'DEMO') return;
 
     const timer = setInterval(async () => {
       try {
@@ -141,6 +141,20 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({ navigation, route 
       }
     } catch (err) {
       Alert.alert('Không kiểm tra được', err instanceof Error ? err.message : 'Vui lòng thử lại.');
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const handleConfirmDemoPayment = async () => {
+    if (!payment) return;
+    setChecking(true);
+    try {
+      const confirmed = await backendApi.confirmDemoPayment(payment.id);
+      setPayment(confirmed);
+      Alert.alert('Thanh toán demo thành công', 'Không có tiền thật được chuyển trong giao dịch này.');
+    } catch (err) {
+      Alert.alert('Không xác nhận được', err instanceof Error ? err.message : 'Vui lòng thử lại.');
     } finally {
       setChecking(false);
     }
@@ -204,7 +218,27 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({ navigation, route 
               </View>
             </View>
 
-            {pending && (
+            {pending && payment.provider === 'DEMO' && (
+              <View style={styles.card}>
+                <Text style={styles.cardTitle}>Thanh toán giả lập cho demo</Text>
+                <Text style={styles.cardSub}>
+                  Giao dịch này chỉ ghi nhận trong database test, không tạo QR và không chuyển tiền thật.
+                </Text>
+                <Text style={styles.amountBig}>{formatVnd(payment.amount)}</Text>
+                <TouchableOpacity
+                  style={[styles.primaryBtn, checking && styles.btnDisabled]}
+                  onPress={handleConfirmDemoPayment}
+                  disabled={checking}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.primaryBtnText}>
+                    {checking ? 'Đang xác nhận...' : 'Xác nhận thanh toán demo'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {pending && payment.provider !== 'DEMO' && (
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>Quét mã để thanh toán</Text>
                 <Text style={styles.cardSub}>Mở app ngân hàng và quét mã VietQR bên dưới</Text>
@@ -272,6 +306,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({ navigation, route 
                 </>
               )}
               <InfoRow label="Tổng thanh toán" value={formatVnd(payment.amount)} strong />
+              {payment.provider ? <InfoRow label="Cổng thanh toán" value={payment.provider} /> : null}
               <InfoRow label="Mã tham chiếu" value={payment.referenceCode} copyValue={payment.referenceCode} />
               <InfoRow label="Tạo lúc" value={formatDateTime(payment.createdAt) || '—'} />
               {payment.paidAt ? <InfoRow label="Thanh toán lúc" value={formatDateTime(payment.paidAt)} /> : null}

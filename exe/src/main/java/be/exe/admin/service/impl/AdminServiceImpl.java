@@ -96,12 +96,6 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public SalonResponse createSalon(Long ownerId, be.exe.salon.dto.request.CreateSalonRequest request) {
-        return salonService.createSalonByAdmin(ownerId, request);
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
     public SalonResponse updateSalon(Long salonId, be.exe.salon.dto.request.UpdateSalonRequest request) {
         return salonService.updateSalonByAdmin(salonId, request);
     }
@@ -123,6 +117,12 @@ public class AdminServiceImpl implements AdminService {
     @Transactional(readOnly = true)
     public Page<PaymentResponse> getPayments(String status, Pageable pageable) {
         return paymentService.getAllPayments(status, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<be.exe.payment.dto.response.PaidUserResponse> getPaidUsers(Pageable pageable) {
+        return paymentService.getPaidUsers(pageable);
     }
 
     @Override
