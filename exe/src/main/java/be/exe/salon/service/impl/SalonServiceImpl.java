@@ -393,4 +393,33 @@ public class SalonServiceImpl implements SalonService {
         return salonRepository.findById(salonId)
                 .orElseThrow(() -> new ResourceNotFoundException("Salon", salonId));
     }
+
+    private void validateSalonReadyForBooking(Salon salon) {
+        boolean hasGeoapifyLocation = salon.getGeoapifyPlaceId() != null
+                && !salon.getGeoapifyPlaceId().isBlank()
+                && salon.getLocationVerifiedAt() != null
+                && salon.getLatitude() != null && salon.getLongitude() != null;
+        boolean hasVerifiedCuratedLocation = salon.isPlatformManaged()
+                && salon.getSourcePlaceId() != null && !salon.getSourcePlaceId().isBlank()
+                && salon.getLocationVerifiedAt() != null
+                && salon.getLatitude() != null && salon.getLongitude() != null;
+        if (!hasGeoapifyLocation && !hasVerifiedCuratedLocation) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED,
+                    "Salon phải có địa điểm Geoapify hoặc nguồn khảo sát đã xác minh trước khi được phê duyệt");
+        }
+        if (stylistRepository.countBySalonIdAndStatus(
+                salon.getId(), be.exe.salon.domain.StylistStatus.ACTIVE) < 1) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED,
+                    "Salon phải có ít nhất một stylist đang hoạt động trước khi được phê duyệt");
+        }
+        List<SalonBusinessHour> hours = businessHourRepository
+                .findBySalonIdOrderByDayOfWeek(salon.getId());
+        boolean hasSevenDays = hours.size() == 7;
+        boolean hasOpenDay = hours.stream().anyMatch(hour -> !hour.isClosed()
+                && hour.getOpenTime() != null && hour.getCloseTime() != null);
+        if (!hasSevenDays || !hasOpenDay) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED,
+                    "Salon phải khai báo đủ 7 ngày và có ít nhất một ngày mở cửa trước khi được phê duyệt");
+        }
+    }
 }

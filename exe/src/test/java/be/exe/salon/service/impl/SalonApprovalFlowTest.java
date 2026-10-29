@@ -20,8 +20,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.Optional;
 import java.time.LocalTime;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -61,8 +61,7 @@ public class SalonApprovalFlowTest {
 
     @BeforeEach
     void setUp() {
-        adminService = new AdminServiceImpl(authService, salonService, paymentService,
-                serviceCatalogService);
+        adminService = new AdminServiceImpl(authService, salonService, paymentService, serviceCatalogService);
     }
 
     @Test
@@ -72,16 +71,9 @@ public class SalonApprovalFlowTest {
         request.setName("Barber Shop 1");
         request.setPhone("0987654321");
         request.setAddress("Hanoi");
-        request.setGeoapifyPlaceId("geo-create-1");
-        request.setLatitude(21.0285);
-        request.setLongitude(105.8542);
 
         when(salonRepository.existsByOwnerIdAndStatus(ownerId, SalonStatus.PENDING_APPROVAL))
                 .thenReturn(false);
-        when(geoapifySalonService.validateSalonPlace("geo-create-1", 21.0285, 105.8542))
-                .thenReturn(new be.exe.publicapi.GeoapifySalonService.ValidatedSalonPlace(
-                        "geo-create-canonical", "Barber Shop 1", "Hanoi",
-                        21.0285, 105.8542));
         when(salonRepository.saveAndFlush(any(Salon.class))).thenAnswer(invocation -> {
             Salon s = invocation.getArgument(0);
             ReflectionTestUtils.setField(s, "id", 1L);

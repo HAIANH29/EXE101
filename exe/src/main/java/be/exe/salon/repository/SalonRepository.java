@@ -29,6 +29,8 @@ public interface SalonRepository extends JpaRepository<Salon, Long> {
 
     Optional<Salon> findByGeoapifyPlaceId(String geoapifyPlaceId);
 
+    Optional<Salon> findFirstByPlatformManagedTrue();
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT s FROM Salon s WHERE s.id = :id")
     Optional<Salon> findByIdForUpdate(@Param("id") Long id);

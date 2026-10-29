@@ -13,4 +13,6 @@ public interface ServiceOfferingRepository extends JpaRepository<ServiceOffering
     Page<ServiceOffering> findBySalonIdAndStatus(Long salonId, ServiceStatus status, Pageable pageable);
 
     boolean existsBySalonId(Long salonId);
+
+    boolean existsBySalonIdAndStatus(Long salonId, ServiceStatus status);
 }

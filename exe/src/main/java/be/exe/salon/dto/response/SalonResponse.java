@@ -16,6 +16,14 @@ public record SalonResponse(
         Double latitude,
         Double longitude,
         boolean demo,
+        String listingSource,
+        String sourceProvider,
+        String sourceUrl,
+        String sourcePlaceId,
+        Instant locationVerifiedAt,
+        boolean bookingEnabled,
+        boolean platformManaged,
+        boolean businessHoursVerified,
         String status,
         Instant createdAt
 ) {
@@ -32,6 +40,7 @@ public record SalonResponse(
     ) {
         this(id, ownerId, name, phone, address, description, imageUrl,
                 imageUrl != null && !imageUrl.isBlank() ? List.of(imageUrl) : List.of(),
-                null, null, null, false, status, createdAt);
+                null, null, null, false, "OWNER_SUBMITTED", "OWNER", null, null,
+                null, false, false, false, status, createdAt);
     }
 }
