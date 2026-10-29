@@ -20,6 +20,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -83,7 +84,7 @@ class PaymentServiceImplTest {
     void getPaidUsersMapsDatabaseAggregateWithoutDependingOnTransactionPage() {
         var projection = mock(PaymentRepository.PaidUserProjection.class);
         var pageable = PageRequest.of(0, 10);
-        var lastPaidAt = Instant.parse("2026-10-29T03:15:00Z");
+        var lastPaidAt = OffsetDateTime.parse("2026-10-29T10:15:00+07:00");
         when(projection.getCustomerId()).thenReturn(7L);
         when(projection.getFullName()).thenReturn("Nguyễn An");
         when(projection.getEmail()).thenReturn("an@example.com");
@@ -102,7 +103,7 @@ class PaymentServiceImplTest {
         assertThat(response.paidTransactionCount()).isEqualTo(3L);
         assertThat(response.totalPaidAmount()).isEqualByComparingTo("360000.00");
         assertThat(response.totalRefundedAmount()).isEqualByComparingTo("120000.00");
-        assertThat(response.lastPaidAt()).isEqualTo(lastPaidAt);
+        assertThat(response.lastPaidAt()).isEqualTo(lastPaidAt.toInstant());
         assertThat(response.latestPaymentId()).isEqualTo(42L);
     }
 

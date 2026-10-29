@@ -41,7 +41,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
         java.math.BigDecimal getTotalRefundedAmount();
 
-        java.time.Instant getLastPaidAt();
+        /** Native TIMESTAMPTZ projection được JDBC trả về dưới dạng OffsetDateTime. */
+        java.time.OffsetDateTime getLastPaidAt();
 
         Long getLatestPaymentId();
     }
