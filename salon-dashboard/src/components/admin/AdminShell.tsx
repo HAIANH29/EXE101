@@ -50,7 +50,7 @@ export function AdminShell({ currentTab, user, onTabChange, onLogout, children }
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <div>
+        <div className="sidebar-content">
           <div className="brand-block">
             <img className="brand-logo" src={styleLockLogo} alt="StyleLock" />
             <div>
@@ -85,11 +85,11 @@ export function AdminShell({ currentTab, user, onTabChange, onLogout, children }
           <div className="avatar">
             {user?.avatarUrl ? <img src={user.avatarUrl} alt={user.fullName} /> : user?.fullName?.slice(0, 2).toUpperCase() || 'AD'}
           </div>
-          <div>
+          <div className="manager-info" title={`${user?.fullName || 'Admin'} (${user?.email || ''})`}>
             <strong>{user?.fullName || 'Admin'}</strong>
             <span>{user?.email}</span>
           </div>
-          <button className="icon-button light" onClick={onLogout} title={t('logout')}>
+          <button className="icon-button light logout-button" onClick={onLogout} title={t('logout')}>
             <span className="material-symbols-outlined">logout</span>
           </button>
         </div>

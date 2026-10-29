@@ -299,6 +299,14 @@ public class SalonServiceImpl implements SalonService {
     }
 
     @Override
+    public SalonResponse assignOwner(Long salonId, Long newOwnerId) {
+        Salon salon = findOrThrow(salonId);
+        salon.assignOwner(newOwnerId);
+        List<String> images = getImagesForSalon(salonId, salon.getImageUrl());
+        return SalonMapper.toResponse(salon, images);
+    }
+
+    @Override
     public void deleteSalonByAdmin(Long salonId) {
         Salon salon = findOrThrow(salonId);
         salon.changeStatus(SalonStatus.INACTIVE);

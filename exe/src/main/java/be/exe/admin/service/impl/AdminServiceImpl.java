@@ -111,6 +111,25 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public SalonResponse assignSalonOwner(Long salonId, be.exe.admin.dto.request.AssignSalonOwnerRequest request) {
+        Long targetOwnerId = request.getOwnerId();
+
+        if (request.getCreateOwner() != null) {
+            UserResponse newUser = createSalonOwner(request.getCreateOwner());
+            targetOwnerId = newUser.getId();
+        }
+
+        if (targetOwnerId == null) {
+            throw new be.exe.common.exception.BusinessException(
+                    be.exe.common.exception.ErrorCode.VALIDATION_FAILED,
+                    "Vui lòng cung cấp ID chủ salon hoặc thông tin tạo tài khoản mới");
+        }
+
+        return salonService.assignOwner(salonId, targetOwnerId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public void deleteSalon(Long salonId) {
         salonService.deleteSalonByAdmin(salonId);
     }

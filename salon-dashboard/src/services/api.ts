@@ -177,6 +177,8 @@ export type ServiceFormInput = {
   description?: string;
   price: number;
   durationMinutes: number;
+  imageUrl?: string;
+  status?: string;
 };
 
 export type StylistFormInput = {
@@ -271,8 +273,9 @@ export const salonApi = {
     });
   },
 
-  async getServices(salonId: number) {
-    return page<ServiceItem>(`/api/salons/${salonId}/services?size=100`);
+  async getServices(salonId: number, status = 'ALL') {
+    const query = status ? `&status=${encodeURIComponent(status)}` : '';
+    return page<ServiceItem>(`/api/salons/${salonId}/services?size=100${query}`);
   },
 
   async createService(salonId: number, input: ServiceFormInput) {

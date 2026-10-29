@@ -98,6 +98,7 @@ export interface ServiceItem {
   description?: string;
   durationMinutes: number;
   price: number | string;
+  imageUrl?: string;
   status?: string;
   createdAt?: string;
 }

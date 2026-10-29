@@ -31,6 +31,8 @@ public interface AdminService {
 
     SalonResponse updateSalon(Long salonId, be.exe.salon.dto.request.UpdateSalonRequest request);
 
+    SalonResponse assignSalonOwner(Long salonId, be.exe.admin.dto.request.AssignSalonOwnerRequest request);
+
     void deleteSalon(Long salonId);
 
     // ===== Quản lý thanh toán =====

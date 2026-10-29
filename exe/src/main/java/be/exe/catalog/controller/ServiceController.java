@@ -55,10 +55,11 @@ public class ServiceController {
     @GetMapping("/api/salons/{salonId}/services")
     public ResponseEntity<ApiResponse<PageResponse<ServiceResponse>>> getServicesBySalon(
             @PathVariable Long salonId,
+            @RequestParam(required = false) String status,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size) {
         var pageable = PaginationUtils.of(page, size);
-        var result = serviceCatalogService.getServicesBySalon(salonId, pageable);
+        var result = serviceCatalogService.getServicesBySalon(salonId, status, pageable);
         return ResponseEntity.ok(ApiResponse.success(PageResponse.from(result)));
     }
 }

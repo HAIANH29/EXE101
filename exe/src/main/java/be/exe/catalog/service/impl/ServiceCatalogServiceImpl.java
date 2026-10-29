@@ -52,7 +52,7 @@ public class ServiceCatalogServiceImpl implements ServiceCatalogService {
         ServiceOffering entity = new ServiceOffering(
                 salonId, request.getName(), request.getPrice(), request.getDurationMinutes());
         entity.updateInfo(request.getName(), request.getDescription(),
-                request.getPrice(), request.getDurationMinutes());
+                request.getPrice(), request.getDurationMinutes(), request.getImageUrl());
 
         serviceOfferingRepository.save(entity);
         return ServiceOfferingMapper.toResponse(entity);
@@ -68,10 +68,10 @@ public class ServiceCatalogServiceImpl implements ServiceCatalogService {
         }
 
         entity.updateInfo(request.getName(), request.getDescription(),
-                request.getPrice(), request.getDurationMinutes());
+                request.getPrice(), request.getDurationMinutes(), request.getImageUrl());
 
-        if (request.getStatus() != null) {
-            entity.changeStatus(ServiceStatus.valueOf(request.getStatus()));
+        if (request.getStatus() != null && !request.getStatus().isBlank()) {
+            entity.changeStatus(ServiceStatus.valueOf(request.getStatus().trim().toUpperCase()));
         }
 
         return ServiceOfferingMapper.toResponse(entity);
@@ -86,8 +86,28 @@ public class ServiceCatalogServiceImpl implements ServiceCatalogService {
     @Override
     @Transactional(readOnly = true)
     public Page<ServiceResponse> getServicesBySalon(Long salonId, Pageable pageable) {
-        return serviceOfferingRepository.findBySalonIdAndStatus(salonId, ServiceStatus.ACTIVE, pageable)
-                .map(ServiceOfferingMapper::toResponse);
+        return getServicesBySalon(salonId, "ACTIVE", pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ServiceResponse> getServicesBySalon(Long salonId, String status, Pageable pageable) {
+        if (status == null || status.isBlank() || "ACTIVE".equalsIgnoreCase(status)) {
+            return serviceOfferingRepository.findBySalonIdAndStatus(salonId, ServiceStatus.ACTIVE, pageable)
+                    .map(ServiceOfferingMapper::toResponse);
+        }
+        if ("ALL".equalsIgnoreCase(status)) {
+            return serviceOfferingRepository.findBySalonId(salonId, pageable)
+                    .map(ServiceOfferingMapper::toResponse);
+        }
+        try {
+            ServiceStatus serviceStatus = ServiceStatus.valueOf(status.trim().toUpperCase());
+            return serviceOfferingRepository.findBySalonIdAndStatus(salonId, serviceStatus, pageable)
+                    .map(ServiceOfferingMapper::toResponse);
+        } catch (IllegalArgumentException e) {
+            return serviceOfferingRepository.findBySalonId(salonId, pageable)
+                    .map(ServiceOfferingMapper::toResponse);
+        }
     }
 
     @Override

@@ -60,5 +60,7 @@ public interface SalonService {
 
     SalonResponse updateSalonByAdmin(Long salonId, UpdateSalonRequest request);
 
+    SalonResponse assignOwner(Long salonId, Long newOwnerId);
+
     void deleteSalonByAdmin(Long salonId);
 }

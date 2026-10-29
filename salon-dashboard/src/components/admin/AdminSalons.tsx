@@ -3,8 +3,8 @@ import { useI18n } from '../../i18n';
 import { useAdminT } from '../../adminI18n';
 import { adminApi } from '../../services/adminApi';
 import { GeoapifySalonOption, SalonFormInput, salonApi } from '../../services/api';
-import { AdminOverview, AdminSalonStatus } from '../../types/admin';
-import { BusinessHour, Salon } from '../../types/salon';
+import { AdminOverview, AdminSalonStatus, CreateSalonOwnerInput } from '../../types/admin';
+import { BusinessHour, Salon, UserAccount } from '../../types/salon';
 import { Pager, StatusPill } from './AdminParts';
 
 type AdminSalonsProps = {
@@ -129,6 +129,84 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [savingSalon, setSavingSalon] = useState(false);
   const [formError, setFormError] = useState<string>();
+
+  // Modal cấp / gán tài khoản chủ salon
+  const [assignOwnerSalon, setAssignOwnerSalon] = useState<Salon | null>(null);
+  const [assignMode, setAssignMode] = useState<'create' | 'select'>('create');
+  const [ownerUsers, setOwnerUsers] = useState<UserAccount[]>([]);
+  const [selectedOwnerId, setSelectedOwnerId] = useState<number>();
+  const [newOwnerForm, setNewOwnerForm] = useState<CreateSalonOwnerInput>({
+    fullName: '',
+    email: '',
+    password: '',
+    phone: ''
+  });
+  const [assigningOwner, setAssigningOwner] = useState(false);
+  const [assignError, setAssignError] = useState<string>();
+
+  const openAssignOwnerModal = async (salon: Salon) => {
+    setAssignOwnerSalon(salon);
+    setAssignError(undefined);
+    setAssignMode('create');
+    setSelectedOwnerId(salon.ownerId);
+    setNewOwnerForm({
+      fullName: '',
+      email: '',
+      password: '',
+      phone: salon.phone || ''
+    });
+    try {
+      const res = await adminApi.getUsers('', 0, 100);
+      const filtered = (res.content || []).filter((u) => u.roles?.includes('SALON_OWNER'));
+      setOwnerUsers(filtered);
+      if (filtered.length > 0 && !salon.ownerId) {
+        setSelectedOwnerId(filtered[0].id);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleAssignOwnerSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!assignOwnerSalon) return;
+    setAssigningOwner(true);
+    setAssignError(undefined);
+    try {
+      let updated: Salon;
+      if (assignMode === 'create') {
+        updated = await adminApi.assignSalonOwner(assignOwnerSalon.id, {
+          createOwner: {
+            fullName: newOwnerForm.fullName.trim(),
+            email: newOwnerForm.email.trim(),
+            password: newOwnerForm.password,
+            phone: newOwnerForm.phone?.trim() || undefined
+          }
+        });
+        setNotice(`Đã tạo tài khoản chủ salon (${newOwnerForm.email}) và gán cho salon "${assignOwnerSalon.name}"!`);
+      } else {
+        if (!selectedOwnerId) {
+          throw new Error('Vui lòng chọn một tài khoản chủ salon từ danh sách');
+        }
+        updated = await adminApi.assignSalonOwner(assignOwnerSalon.id, {
+          ownerId: selectedOwnerId
+        });
+        const matched = ownerUsers.find((u) => u.id === selectedOwnerId);
+        setNotice(`Đã gán tài khoản chủ salon ${matched ? `${matched.fullName} (${matched.email})` : `#${selectedOwnerId}`} cho salon "${assignOwnerSalon.name}"!`);
+      }
+      setSalons((current) =>
+        current.map((item) => (item.id === assignOwnerSalon.id ? { ...item, ...updated } : item))
+      );
+      if (detailSalon && detailSalon.id === assignOwnerSalon.id) {
+        setDetailSalon((prev) => (prev ? { ...prev, ...updated } : null));
+      }
+      setAssignOwnerSalon(null);
+    } catch (err) {
+      setAssignError(err instanceof Error ? err.message : at('genericError'));
+    } finally {
+      setAssigningOwner(false);
+    }
+  };
 
   const loadOverview = async () => {
     try {
@@ -809,6 +887,19 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
                       </button>
                     )}
 
+                    {/* Cấp / Gán tài khoản chủ salon */}
+                    <button
+                      type="button"
+                      className="ghost-button mini"
+                      style={{ color: '#2b5c8f', borderColor: 'rgba(43, 92, 143, 0.3)' }}
+                      disabled={isBusy}
+                      onClick={() => void openAssignOwnerModal(salon)}
+                      title="Cấp / Gán tài khoản chủ salon"
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>person_add</span>
+                      Tài khoản
+                    </button>
+
                     {/* Sửa salon */}
                     <button
                       type="button"
@@ -1395,6 +1486,18 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
                   type="button"
+                  className="ghost-button mini"
+                  style={{ color: '#2b5c8f', borderColor: 'rgba(43, 92, 143, 0.3)' }}
+                  onClick={() => {
+                    const current = detailSalon;
+                    openAssignOwnerModal(current);
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>person_add</span>
+                  Cấp / Đổi chủ salon
+                </button>
+                <button
+                  type="button"
                   className="solid-button mini"
                   onClick={() => {
                     const current = detailSalon;
@@ -1423,6 +1526,161 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
               >
                 {at('close')}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Cấp / Gán tài khoản chủ salon */}
+      {assignOwnerSalon && (
+        <div className="admin-modal-backdrop" onClick={() => !assigningOwner && setAssignOwnerSalon(null)}>
+          <div className="admin-modal" style={{ maxWidth: 540 }} onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal-head">
+              <div>
+                <h3>Cấp tài khoản chủ salon</h3>
+                <p>
+                  Salon: <strong>{assignOwnerSalon.name}</strong> (#{assignOwnerSalon.id})
+                  {assignOwnerSalon.ownerId ? ` · Mã chủ hiện tại: #${assignOwnerSalon.ownerId}` : ' · Chưa có chủ'}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="admin-modal-close"
+                disabled={assigningOwner}
+                onClick={() => setAssignOwnerSalon(null)}
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className="admin-modal-body">
+              {assignError && <div className="error-banner">{assignError}</div>}
+
+              <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+                <button
+                  type="button"
+                  className={assignMode === 'create' ? 'solid-button mini' : 'ghost-button mini'}
+                  onClick={() => setAssignMode('create')}
+                >
+                  + Tạo tài khoản mới
+                </button>
+                <button
+                  type="button"
+                  className={assignMode === 'select' ? 'solid-button mini' : 'ghost-button mini'}
+                  onClick={() => setAssignMode('select')}
+                >
+                  Chọn tài khoản có sẵn ({ownerUsers.length})
+                </button>
+              </div>
+
+              {assignMode === 'create' ? (
+                <form className="form-grid" onSubmit={handleAssignOwnerSubmit}>
+                  <label className="full">
+                    Họ và tên chủ salon
+                    <input
+                      value={newOwnerForm.fullName}
+                      onChange={(e) => setNewOwnerForm({ ...newOwnerForm, fullName: e.target.value })}
+                      required
+                      placeholder="Nguyễn Văn A"
+                      autoFocus
+                    />
+                  </label>
+                  <label className="full">
+                    Email đăng nhập
+                    <input
+                      type="email"
+                      value={newOwnerForm.email}
+                      onChange={(e) => setNewOwnerForm({ ...newOwnerForm, email: e.target.value })}
+                      required
+                      placeholder="owner@gmail.com"
+                    />
+                  </label>
+                  <label className="full">
+                    Mật khẩu khởi tạo
+                    <input
+                      type="password"
+                      value={newOwnerForm.password}
+                      onChange={(e) => setNewOwnerForm({ ...newOwnerForm, password: e.target.value })}
+                      required
+                      minLength={8}
+                      placeholder="Tối thiểu 8 ký tự (VD: Password@123)"
+                    />
+                  </label>
+                  <label className="full">
+                    Số điện thoại (tùy chọn)
+                    <input
+                      type="tel"
+                      value={newOwnerForm.phone || ''}
+                      onChange={(e) => setNewOwnerForm({ ...newOwnerForm, phone: e.target.value })}
+                      placeholder="0912345678"
+                    />
+                  </label>
+
+                  <div className="admin-modal-actions full" style={{ marginTop: 12 }}>
+                    <button
+                      type="button"
+                      className="ghost-button"
+                      disabled={assigningOwner}
+                      onClick={() => setAssignOwnerSalon(null)}
+                    >
+                      Hủy
+                    </button>
+                    <button type="submit" className="solid-button" disabled={assigningOwner}>
+                      {assigningOwner ? 'Đang tạo & gán...' : 'Tạo & Gán tài khoản chủ salon'}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <form className="form-grid" onSubmit={handleAssignOwnerSubmit}>
+                  <label className="full">
+                    Chọn chủ salon đã có
+                    <select
+                      value={selectedOwnerId || ''}
+                      onChange={(e) => setSelectedOwnerId(Number(e.target.value))}
+                      required
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: 10,
+                        border: '1px solid var(--line)',
+                        background: 'var(--surface)',
+                        color: 'var(--ink)'
+                      }}
+                    >
+                      <option value="">-- Chọn tài khoản chủ salon --</option>
+                      {ownerUsers.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          #{u.id} - {u.fullName} ({u.email})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  {ownerUsers.length === 0 && (
+                    <p style={{ fontSize: 13, color: 'var(--muted)', margin: '8px 0' }}>
+                      Chưa có tài khoản nào có role SALON_OWNER trong hệ thống. Vui lòng chuyển sang tab "+ Tạo tài khoản mới".
+                    </p>
+                  )}
+
+                  <div className="admin-modal-actions full" style={{ marginTop: 12 }}>
+                    <button
+                      type="button"
+                      className="ghost-button"
+                      disabled={assigningOwner}
+                      onClick={() => setAssignOwnerSalon(null)}
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      type="submit"
+                      className="solid-button"
+                      disabled={assigningOwner || !selectedOwnerId}
+                    >
+                      {assigningOwner ? 'Đang gán...' : 'Gán quyền chủ salon'}
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
           </div>
         </div>

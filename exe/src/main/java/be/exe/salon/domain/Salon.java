@@ -94,6 +94,10 @@ public class Salon {
         return this.ownerId.equals(userId);
     }
 
+    public void assignOwner(Long newOwnerId) {
+        this.ownerId = newOwnerId;
+    }
+
     public boolean isActive() {
         return this.status == SalonStatus.ACTIVE;
     }

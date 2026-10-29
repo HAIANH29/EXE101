@@ -43,7 +43,7 @@ export function Shell({
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <div>
+        <div className="sidebar-content">
           <div className="brand-block">
             <img className="brand-logo" src={styleLockLogo} alt="StyleLock" />
             <div>
@@ -81,11 +81,11 @@ export function Shell({
           <div className="avatar">
             {user?.avatarUrl ? <img src={user.avatarUrl} alt={user.fullName} /> : user?.fullName?.slice(0, 2).toUpperCase() || 'SL'}
           </div>
-          <div>
+          <div className="manager-info" title={`${user?.fullName || t('ownerAccount')} (${user?.email || ''})`}>
             <strong>{user?.fullName || t('ownerAccount')}</strong>
             <span>{user?.email || t('ownerAccount')}</span>
           </div>
-          <button className="icon-button light" onClick={onLogout} title={t('logout')}>
+          <button className="icon-button light logout-button" onClick={onLogout} title={t('logout')}>
             <span className="material-symbols-outlined">logout</span>
           </button>
         </div>

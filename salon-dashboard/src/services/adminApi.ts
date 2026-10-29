@@ -45,6 +45,13 @@ export const adminApi = {
     });
   },
 
+  assignSalonOwner(salonId: number, data: { ownerId?: number; createOwner?: CreateSalonOwnerInput }) {
+    return request<Salon>(`/api/admin/salons/${salonId}/owner`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
   deleteSalon(salonId: number) {
     return request<void>(`/api/admin/salons/${salonId}`, {
       method: 'DELETE'
