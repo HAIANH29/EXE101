@@ -17,6 +17,7 @@ import { authSessionStore } from './src/services/apiClient';
 import { trackVisit } from './src/services/trafficTracker';
 import { configurePushHandling, registerForPush } from './src/services/pushNotifications';
 import { WebShell } from './src/web/WebShell';
+import { installDragScrollOnWeb } from './src/web/installDragScroll';
 import { LanguageProvider } from './src/i18n/LanguageContext';
 import { palette } from './src/theme/palette';
 
@@ -85,6 +86,9 @@ export default function App() {
   useEffect(() => {
     trackVisit();
   }, []);
+
+  // Web: kéo chuột để cuộn ngang các danh sách (mẫu tóc, bộ lọc, camera AI...)
+  useEffect(() => installDragScrollOnWeb(), []);
 
   // Thông báo đẩy: đăng ký token khi đã đăng nhập (kể cả đăng nhập mới), bấm vào thông báo -> mở màn Thông báo
   useEffect(() => {
