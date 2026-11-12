@@ -9,6 +9,12 @@
     "userInterfaceStyle": "light",
     "plugins": [
       [
+        "expo-notifications",
+        {
+          "color": "#B8895A"
+        }
+      ],
+      [
         "expo-location",
         {
           "locationWhenInUsePermission": "StyleLock dùng vị trí của bạn để tìm salon gần nhất."

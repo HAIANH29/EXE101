@@ -7,26 +7,35 @@ import be.exe.notification.domain.NotificationType;
 import be.exe.notification.dto.response.NotificationResponse;
 import be.exe.notification.mapper.NotificationMapper;
 import be.exe.notification.repository.NotificationRepository;
+import be.exe.notification.push.PushNotificationService;
 import be.exe.notification.service.NotificationService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Map;
+
 @Service
 @Transactional
 public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final PushNotificationService pushService;
 
-    public NotificationServiceImpl(NotificationRepository notificationRepository) {
+    public NotificationServiceImpl(NotificationRepository notificationRepository,
+                                   PushNotificationService pushService) {
         this.notificationRepository = notificationRepository;
+        this.pushService = pushService;
     }
 
     @Override
     public void send(Long userId, NotificationType type, String title, String content) {
         Notification notification = new Notification(userId, type, title, content);
         notificationRepository.save(notification);
+        // Đẩy thêm ra màn hình điện thoại (bất đồng bộ, sau commit, lỗi không ảnh hưởng thông báo trong app)
+        pushService.sendToUser(userId, title, content,
+                Map.of("type", type.name(), "notificationId", String.valueOf(notification.getId())));
     }
 
     @Override

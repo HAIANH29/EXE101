@@ -128,6 +128,14 @@ app:
       max-pool-size: ${MAIL_ASYNC_MAX_POOL_SIZE:4}
       queue-capacity: ${MAIL_ASYNC_QUEUE_CAPACITY:200}
 
+  push:
+    # Thông báo đẩy qua Expo Push (FCM/APNs). Tắt: PUSH_ENABLED=false
+    enabled: ${PUSH_ENABLED:true}
+    expo-url: ${EXPO_PUSH_URL:https://exp.host/--/api/v2/push/send}
+    # Tùy chọn: access token của Expo nếu bật "Enhanced Security" cho push
+    expo-access-token: ${EXPO_ACCESS_TOKEN:}
+    timeout-ms: ${PUSH_TIMEOUT_MS:10000}
+
   otp:
     expiration-minutes: ${OTP_EXPIRATION_MINUTES:5}
     resend-cooldown-seconds: ${OTP_RESEND_COOLDOWN_SECONDS:60}

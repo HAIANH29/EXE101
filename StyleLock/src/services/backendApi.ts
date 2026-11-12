@@ -2,6 +2,7 @@ import { File as FileSystemFile } from 'expo-file-system';
 import { Platform } from 'react-native';
 import { Booking,BookingStatus, GenderCategory, Hairstyle, NotificationItem, Payment, PaymentStatus, PaymentType, Salon, ServiceItem, StylistItem } from '../types';
 import { ApiError, apiRequest, authSessionStore } from './apiClient';
+import { unregisterPush } from './pushNotifications';
 
 type PageResponse<T> = {
   content: T[];
@@ -716,6 +717,7 @@ export const backendApi = {
 
   async logout() {
     const refreshToken = authSessionStore.get()?.refreshToken;
+    await unregisterPush(); // cần còn phiên đăng nhập để gọi API
     authSessionStore.clear();
     if (!refreshToken) return;
 

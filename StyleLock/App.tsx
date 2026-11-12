@@ -15,6 +15,7 @@ import { AppNavigator } from './src/navigation/AppNavigator';
 import { backendApi } from './src/services/backendApi';
 import { authSessionStore } from './src/services/apiClient';
 import { trackVisit } from './src/services/trafficTracker';
+import { configurePushHandling, registerForPush } from './src/services/pushNotifications';
 import { WebShell } from './src/web/WebShell';
 import { LanguageProvider } from './src/i18n/LanguageContext';
 import { palette } from './src/theme/palette';
@@ -83,6 +84,23 @@ export default function App() {
 
   useEffect(() => {
     trackVisit();
+  }, []);
+
+  // Thông báo đẩy: đăng ký token khi đã đăng nhập (kể cả đăng nhập mới), bấm vào thông báo -> mở màn Thông báo
+  useEffect(() => {
+    const stopHandling = configurePushHandling(() => {
+      if (navigationRef.isReady() && backendApi.isAuthenticated()) {
+        navigationRef.navigate('Notifications');
+      }
+    });
+    if (backendApi.isAuthenticated()) void registerForPush();
+    const unsubscribe = authSessionStore.subscribe((event) => {
+      if (event.type === 'set') void registerForPush();
+    });
+    return () => {
+      stopHandling();
+      unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
