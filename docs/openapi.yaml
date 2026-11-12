@@ -129,6 +129,13 @@ paths:
         - { name: longitude, in: query, required: false, schema: { type: number, format: double, minimum: -180, maximum: 180 } }
         - { name: radius, in: query, required: false, schema: { type: integer, minimum: 100, maximum: 50000, default: 10000 } }
       responses: { '200': { $ref: '#/components/responses/ExternalSalonListSuccess' }, '400': { $ref: '#/components/responses/Error' }, '500': { $ref: '#/components/responses/Error' } }
+  /api/public/salons/directory:
+    get:
+      tags: [Salon]
+      security: []
+      summary: Danh sách salon ACTIVE kèm dịch vụ, stylist, kiểu tóc, giờ mở cửa và đánh giá trong một request
+      description: "Mỗi phần tử gồm salon, detail, services, stylists, hairstyles, reviewSummary (cùng hình dạng với các endpoint lẻ). Tối đa 100 salon; phần dữ liệu lỗi sẽ là null hoặc danh sách rỗng."
+      responses: { '200': { description: OK }, '500': { $ref: '#/components/responses/Error' } }
   /api/demo/salons/materialize:
     post:
       tags: [Salon, Demo]

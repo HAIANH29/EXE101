@@ -145,6 +145,15 @@ type BackendStylist = {
   status?: string;
 };
 
+type BackendSalonDirectoryEntry = {
+  salon: BackendSalon;
+  detail?: BackendSalonDetail | null;
+  services?: BackendService[];
+  stylists?: BackendStylist[];
+  hairstyles?: BackendHairstyle[];
+  reviewSummary?: BackendReviewSummary | null;
+};
+
 type BackendBooking = {
   id: number;
   customerId: number;
@@ -791,10 +800,15 @@ export const backendApi = {
     }
     const locationQuery = locationParams.size ? `?${locationParams.toString()}` : '';
 
-    const [items, externalItems] = await Promise.all([
-      getPage<BackendSalon>('/api/salons?status=ACTIVE&size=100'),
+    // Một request lấy salon + dịch vụ/stylist/kiểu tóc/đánh giá. Backend cũ chưa có endpoint này
+    // thì trả null để rơi về cách cũ (nhiều request lẻ cho từng salon).
+    const [directory, externalItems] = await Promise.all([
+      apiRequest<BackendSalonDirectoryEntry[]>('/api/public/salons/directory').catch(() => null),
       apiRequest<ExternalSalon[]>(`/api/public/salons/nearby${locationQuery}`).catch(() => [])
     ]);
+    const items: BackendSalon[] = directory
+      ? directory.map((entry) => entry.salon)
+      : await getPage<BackendSalon>('/api/salons?status=ACTIVE&size=100');
 
     const mergeSalons = (partnerSalons: Salon[]): Salon[] => {
       const partnersByPlaceId = new Map(
@@ -839,6 +853,19 @@ export const backendApi = {
     if (onBasic) {
       onBasic(mergeSalons(items.map((salon) =>
         mapSalon(salon, [], [], [], undefined, undefined, calculateDistanceKm(location, salon)))));
+    }
+
+    if (directory) {
+      const categories = await getCategoryMap().catch(() => new Map());
+      return mergeSalons(directory.map((entry) => mapSalon(
+        entry.salon,
+        (entry.services ?? []).map(mapService),
+        (entry.hairstyles ?? []).map((item) => mapHairstyle(item, categories)),
+        (entry.stylists ?? []).map(mapStylist),
+        entry.detail ?? undefined,
+        entry.reviewSummary ?? undefined,
+        calculateDistanceKm(location, entry.salon)
+      )));
     }
 
     const partnerSalons = await Promise.all(
