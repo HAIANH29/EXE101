@@ -633,6 +633,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
+                  style={styles.liveHairScroll}
                   contentContainerStyle={styles.liveHairScrollContent}
                 >
                   {filterHairstyles.map((item, idx) => {
@@ -1154,6 +1155,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: '#E8D2BA'
+  },
+  // Khung cha căn giữa (alignItems: center) nên không có width thì trên web ScrollView giãn đúng bằng
+  // nội dung và không cuộn được: ép nó bằng chiều rộng khung chứa.
+  liveHairScroll: {
+    width: '100%'
   },
   liveHairScrollContent: {
     gap: 8,
