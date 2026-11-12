@@ -15,7 +15,9 @@ import be.exe.tryon.validator.ImageFileValidator;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 @Service
 public class TryOnService {
@@ -118,5 +120,29 @@ public class TryOnService {
         requestRepository.save(request);
 
         return mapper.toDto(request, resultUrl);
+    }
+
+    // ===== Thống kê cho dashboard admin =====
+
+    /** Số người dùng khác nhau đã từng thử tóc AI. */
+    public long countDistinctUsers() {
+        return requestRepository.countDistinctUsers();
+    }
+
+    public long countDistinctUsersBetween(Instant from, Instant to) {
+        return requestRepository.countDistinctUsersBetween(toOffset(from), toOffset(to));
+    }
+
+    /** Tổng số lượt thử tóc AI. */
+    public long countRequests() {
+        return requestRepository.count();
+    }
+
+    public long countRequestsBetween(Instant from, Instant to) {
+        return requestRepository.countByCreatedAtBetween(toOffset(from), toOffset(to));
+    }
+
+    private static OffsetDateTime toOffset(Instant instant) {
+        return OffsetDateTime.ofInstant(instant, ZoneOffset.UTC);
     }
 }

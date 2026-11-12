@@ -399,7 +399,8 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional(readOnly = true)
     public long countSalonScheduledBookingsBetween(Long salonId, Instant from, Instant to) {
-        return bookingRepository.countBySalonIdAndStartAtBetween(salonId, from, to);
+        return bookingRepository.countBySalonIdAndStartAtBetweenAndStatusNot(
+                salonId, from, to, BookingStatus.CANCELLED);
     }
 
     @Override

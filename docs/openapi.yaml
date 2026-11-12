@@ -122,13 +122,20 @@ paths:
       tags: [Salon]
       security: []
       summary: Tìm salon tóc gần một tọa độ bằng Geoapify Places
-      description: Mặc định tìm trong bán kính 10 km quanh trung tâm TP.HCM khi không truyền tọa độ. Chỉ nhận tọa độ tại Việt Nam và chỉ trả địa điểm có tên, Place ID và country_code=vn. API key Geoapify chỉ được cấu hình ở backend.
+      description: Mặc định tìm trong bán kính 10 km quanh trung tâm TP.HCM khi không truyền tọa độ. API key Geoapify chỉ được cấu hình ở backend.
       parameters:
         - { name: query, in: query, required: false, schema: { type: string }, description: Vietnamese street, ward, district or city; takes precedence over coordinates }
-        - { name: latitude, in: query, required: false, schema: { type: number, format: double, minimum: 8, maximum: 24 } }
-        - { name: longitude, in: query, required: false, schema: { type: number, format: double, minimum: 102, maximum: 110 } }
+        - { name: latitude, in: query, required: false, schema: { type: number, format: double, minimum: -90, maximum: 90 } }
+        - { name: longitude, in: query, required: false, schema: { type: number, format: double, minimum: -180, maximum: 180 } }
         - { name: radius, in: query, required: false, schema: { type: integer, minimum: 100, maximum: 50000, default: 10000 } }
       responses: { '200': { $ref: '#/components/responses/ExternalSalonListSuccess' }, '400': { $ref: '#/components/responses/Error' }, '500': { $ref: '#/components/responses/Error' } }
+  /api/public/salons/directory:
+    get:
+      tags: [Salon]
+      security: []
+      summary: Danh sách salon ACTIVE kèm dịch vụ, stylist, kiểu tóc, giờ mở cửa và đánh giá trong một request
+      description: "Mỗi phần tử gồm salon, detail, services, stylists, hairstyles, reviewSummary (cùng hình dạng với các endpoint lẻ). Tối đa 100 salon; phần dữ liệu lỗi sẽ là null hoặc danh sách rỗng."
+      responses: { '200': { description: OK }, '500': { $ref: '#/components/responses/Error' } }
   /api/demo/salons/materialize:
     post:
       tags: [Salon, Demo]
@@ -398,9 +405,50 @@ paths:
       parameters: [{ $ref: '#/components/parameters/paymentId' }]
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RefundPaymentRequest' } } } }
       responses: { '200': { $ref: '#/components/responses/PaymentSuccess' }, '400': { $ref: '#/components/responses/ValidationError' }, '403': { $ref: '#/components/responses/Error' }, '404': { $ref: '#/components/responses/Error' } }
+  /api/salons/{salonId}/dashboard:
+    get:
+      tags: [Reporting]
+      summary: Số liệu dashboard của salon (chủ salon), tổng hợp từ DB
+      description: |
+        Trả về bookingsThisMonth, bookingsToday (không tính lịch huỷ), upcomingBookings, số booking theo trạng thái,
+        revenueThisMonth (booking COMPLETED theo ngày diễn ra dịch vụ, giờ VN), activeStylists, totalBookings,
+        totalRevenue và revenueByMonth (6 tháng gần nhất, cũ -> mới, mỗi phần tử {month: yyyy-MM, revenue}).
+      parameters: [{ $ref: '#/components/parameters/salonId' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
+  /api/public/analytics/visit:
+    post:
+      tags: [Reporting]
+      security: []
+      summary: Ghi nhận một lượt truy cập kèm UTM (app khách gọi 1 lần mỗi phiên)
+      description: Body gồm sessionId, utmSource, utmMedium, utmCampaign, utmTerm, utmContent, landingPath, referrer (đều tuỳ chọn). Không có utm_source thì lưu direct / none.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sessionId: { type: string, maxLength: 64 }
+                utmSource: { type: string, maxLength: 100 }
+                utmMedium: { type: string, maxLength: 100 }
+                utmCampaign: { type: string, maxLength: 150 }
+                utmTerm: { type: string, maxLength: 150 }
+                utmContent: { type: string, maxLength: 150 }
+                landingPath: { type: string, maxLength: 255 }
+                referrer: { type: string, maxLength: 500 }
+      responses: { '204': { description: Đã ghi nhận } }
+  /api/admin/analytics/traffic:
+    get:
+      tags: [Admin, Reporting]
+      summary: Thống kê nguồn truy cập theo UTM (admin)
+      description: Trả về totalVisits, uniqueSessions, bySource (gộp theo source+medium) và byCampaign trong N ngày gần nhất.
+      parameters:
+        - { name: days, in: query, required: false, schema: { type: integer, default: 30, minimum: 1, maximum: 365 } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
   /api/dashboard/overview:
     get:
       tags: [Reporting]
+      description: Gồm cả tryOnUsers, tryOnUsersThisMonth, tryOnRequests, tryOnRequestsThisMonth (số người / lượt thử tóc AI).
       responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
   /api/dashboard/revenue:
     get:
@@ -436,39 +484,7 @@ components:
     ChangePasswordRequest: { type: object, required: [oldPassword, newPassword], properties: { oldPassword: { type: string }, newPassword: { type: string, minLength: 6, maxLength: 100 } } }
     CreateBookingRequest: { type: object, required: [salonId, stylistId, serviceId, startAt], properties: { salonId: { type: integer, format: int64 }, stylistId: { type: integer, format: int64 }, serviceId: { type: integer, format: int64 }, hairstyleId: { type: integer, format: int64, nullable: true }, startAt: { type: string, format: date-time }, note: { type: string, nullable: true } } }
     CancelBookingRequest: { type: object, properties: { reason: { type: string, nullable: true } } }
-    SalonRequest: { type: object, required: [name], properties: { name: { type: string, maxLength: 200 }, phone: { type: string }, address: { type: string }, description: { type: string }, imageUrl: { type: string }, imageUrls: { type: array, maxItems: 10, items: { type: string } }, geoapifyPlaceId: { type: string, description: Place ID do Geoapify trả về }, latitude: { type: number, format: double, minimum: 8, maximum: 24 }, longitude: { type: number, format: double, minimum: 102, maximum: 110 } } }
-    CreateSalonRequest:
-      allOf:
-        - { $ref: '#/components/schemas/SalonRequest' }
-        - { type: object, required: [geoapifyPlaceId, latitude, longitude] }
-    UpdateSalonRequest: { $ref: '#/components/schemas/SalonRequest' }
-    Salon:
-      type: object
-      required: [id, ownerId, name, demo, listingSource, sourceProvider, bookingEnabled, platformManaged, businessHoursVerified, status, createdAt]
-      properties:
-        id: { type: integer, format: int64 }
-        ownerId: { type: integer, format: int64 }
-        name: { type: string }
-        phone: { type: string, nullable: true }
-        address: { type: string, nullable: true }
-        description: { type: string, nullable: true }
-        imageUrl: { type: string, nullable: true }
-        imageUrls: { type: array, items: { type: string } }
-        geoapifyPlaceId: { type: string, nullable: true }
-        latitude: { type: number, format: double, nullable: true }
-        longitude: { type: number, format: double, nullable: true }
-        demo: { type: boolean }
-        listingSource: { type: string, enum: [OWNER_SUBMITTED, GEOAPIFY_DEMO, PLATFORM_CURATED] }
-        sourceProvider: { type: string, enum: [OWNER, GEOAPIFY, GOOGLE_MAPS] }
-        sourceUrl: { type: string, format: uri, nullable: true }
-        sourcePlaceId: { type: string, nullable: true }
-        locationVerifiedAt: { type: string, format: date-time, nullable: true }
-        bookingEnabled: { type: boolean }
-        platformManaged: { type: boolean }
-        businessHoursVerified: { type: boolean }
-        status: { type: string, enum: [PENDING_APPROVAL, ACTIVE, INACTIVE] }
-        businessHours: { type: array, items: { $ref: '#/components/schemas/BusinessHourRequest' } }
-        createdAt: { type: string, format: date-time }
+    SalonRequest: { type: object, required: [name], properties: { name: { type: string, maxLength: 200 }, phone: { type: string }, address: { type: string }, description: { type: string }, imageUrl: { type: string }, imageUrls: { type: array, maxItems: 10, items: { type: string } }, geoapifyPlaceId: { type: string }, latitude: { type: number, format: double }, longitude: { type: number, format: double } } }
     ExternalSalon:
       type: object
       required: [placeId, name, address, latitude, longitude, distanceMeters, mapUrl]
@@ -567,7 +583,7 @@ components:
     UserEnvelope: { description: Success, content: { application/json: { schema: { allOf: [{ $ref: '#/components/schemas/Envelope' }, { type: object, properties: { data: { $ref: '#/components/schemas/User' } } }] } } } }
     BookingEnvelope: { description: Success, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
     BookingResponse: { description: Success, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
-    SalonResponse: { description: Success, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' }, example: { success: true, data: { id: 1, name: "Salon", bookingEnabled: true, listingSource: "PLATFORM_CURATED", sourceProvider: "GOOGLE_MAPS" } } } } }
+    SalonResponse: { description: Success, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
     ExternalSalonListSuccess: { description: Success, content: { application/json: { schema: { allOf: [{ $ref: '#/components/schemas/Envelope' }, { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/ExternalSalon' } } } }] } } } }
     StylistResponse: { description: Success, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
     ServiceResponse: { description: Success, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
