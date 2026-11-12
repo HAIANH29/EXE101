@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import {
   StatusBar } from 'expo-status-bar';
-import { createNavigationContainerRef,
+import { getPathFromState as defaultGetPathFromState,
+  createNavigationContainerRef,
   NavigationContainer } from '@react-navigation/native';
 import { ActivityIndicator,
   Platform,
@@ -18,8 +19,16 @@ import { WebShell } from './src/web/WebShell';
 import { LanguageProvider } from './src/i18n/LanguageContext';
 import { palette } from './src/theme/palette';
 
+const MAX_URL_LENGTH = 2000;
+
 const linking = {
   prefixes: ['http://localhost:8082', 'http://localhost:8081', 'stylelock://'],
+  // Tham số route lớn (vd: ảnh chụp dạng data URL) sẽ bị đưa vào URL trình duyệt và làm đứng trang.
+  // Nếu URL sinh ra quá dài thì bỏ phần query, chỉ giữ đường dẫn màn hình.
+  getPathFromState: (state: any, options: any) => {
+    const path = defaultGetPathFromState(state, options);
+    return path.length > MAX_URL_LENGTH ? path.split('?')[0] : path;
+  },
   config: {
     screens: {
       Login: '',

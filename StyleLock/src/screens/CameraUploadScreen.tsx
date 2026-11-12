@@ -22,6 +22,7 @@ import { NotificationBellButton } from '../components/NotificationBellButton';
 import { resolveHairOverlaySource } from '../services/hairAssetMap';
 import { backendApi } from '../services/backendApi';
 import { applyTransformToImage } from '../utils/imageTransform';
+import { toLightweightImageUri } from "../utils/lightweightImageUri";
 import { describeTryOnError } from '../utils/tryOnError';
 import { FALLBACK_30_HAIRSTYLES } from '../components/explore/ExploreTypes';
 
@@ -182,9 +183,11 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
     LOADING_HAIRSTYLE;
   const activeColor = HAIR_COLOR_PALETTE[selectedColorIdx];
 
-  const handleOpenTryOn = (photoUri?: string, hair?: Hairstyle) => {
-    const rawPhoto = photoUri || selectedPhoto;
-    if (!rawPhoto) return;
+  const handleOpenTryOn = async (photoUri?: string, hair?: Hairstyle) => {
+    const originalPhoto = photoUri || selectedPhoto;
+    if (!originalPhoto) return;
+    // Tránh nhét data URL hàng MB vào URL của trình duyệt (gây đứng trang trên web)
+    const rawPhoto = await toLightweightImageUri(originalPhoto);
     const targetHair = hair || activeHairstyle;
 
     navigation.navigate('TryOnEditor', {
@@ -210,7 +213,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
       });
 
       if (!result.canceled && result.assets[0]?.uri) {
-        handleOpenTryOn(result.assets[0].uri);
+        await handleOpenTryOn(result.assets[0].uri);
       }
     } catch (e) {
       console.log('Pick image error', e);
@@ -243,7 +246,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
       });
 
       if (photo?.uri) {
-        handleOpenTryOn(photo.uri);
+        await handleOpenTryOn(photo.uri);
       }
     } catch (e) {
       console.log('Camera capture error', e);
