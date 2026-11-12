@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useI18n } from '../../i18n';
 import { useAdminT } from '../../adminI18n';
 import { adminApi } from '../../services/adminApi';
+import { AdminTraffic } from './AdminTraffic';
 import { AdminBookingStats, AdminOverview as Overview, AdminTab } from '../../types/admin';
 
 type AdminOverviewProps = {
@@ -156,6 +157,15 @@ export function AdminOverview({ onNavigate }: AdminOverviewProps) {
               icon="calendar_month"
             />
             <Metric
+              title={at('ovTryOnUsers')}
+              value={overview.tryOnUsers.toLocaleString()}
+              note={at('ovTryOnNote', {
+                requests: overview.tryOnRequests.toLocaleString(),
+                month: overview.tryOnUsersThisMonth
+              })}
+              icon="face_retouching_natural"
+            />
+            <Metric
               title={at('ovRevenue')}
               value={money(overview.revenueThisMonth)}
               note={`${at('bkCompleted')}: ${overview.completedBookings}`}
@@ -187,6 +197,8 @@ export function AdminOverview({ onNavigate }: AdminOverviewProps) {
           </div>
         </section>
       )}
+
+      <AdminTraffic />
     </div>
   );
 }

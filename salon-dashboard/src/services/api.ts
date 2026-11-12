@@ -5,6 +5,7 @@ import {
   BusinessHour,
   PageResponse,
   Salon,
+  SalonDashboardStats,
   ServiceItem,
   Stylist,
   UserAccount
@@ -313,6 +314,15 @@ export const salonApi = {
 
   getPaymentHistory() {
     return page<PaymentInfo>('/api/payments/history?size=50');
+  },
+
+  /** Số liệu thật tổng hợp ở backend (doanh thu tháng, 6 tháng gần nhất, số lịch theo trạng thái...). */
+  getDashboardStats(salonId: number) {
+    return request<SalonDashboardStats>(`/api/salons/${salonId}/dashboard`);
+  },
+
+  async getUpcomingBookings(salonId: number, size = 5) {
+    return page<Appointment>(`/api/salons/${salonId}/dashboard/upcoming-bookings?size=${size}`);
   },
 
   async getSalonBookings(salonId: number) {

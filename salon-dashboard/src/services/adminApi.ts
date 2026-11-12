@@ -3,6 +3,7 @@ import {
   AdminBookingStats,
   AdminOverview,
   AdminSalonStatus,
+  AdminTrafficReport,
   AdminUserStatus,
   CreateSalonOwnerInput,
   Hairstyle,
@@ -18,6 +19,10 @@ export const adminApi = {
 
   getBookingStats() {
     return request<AdminBookingStats>('/api/dashboard/bookings/statistics');
+  },
+
+  getTrafficReport(days = 30) {
+    return request<AdminTrafficReport>(`/api/admin/analytics/traffic?days=${days}`);
   },
 
   getSalons(status: AdminSalonStatus | '', page: number, size = 10) {

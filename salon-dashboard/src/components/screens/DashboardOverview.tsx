@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useI18n } from '../../i18n';
-import { Appointment, DashboardSnapshot, Salon, ServiceItem, Stylist } from '../../types/salon';
+import { Appointment, Salon, SalonDashboardStats, ServiceItem } from '../../types/salon';
 import { salonApi } from '../../services/api';
 
 type DashboardOverviewProps = {
@@ -8,37 +8,9 @@ type DashboardOverviewProps = {
   onNavigate: (tab: 'Appointments' | 'Services' | 'Staff' | 'Settings') => void;
 };
 
-function sameDay(value: string, reference = new Date()) {
-  const date = new Date(value);
-  return date.toDateString() === reference.toDateString();
-}
-
-function sameMonth(value: string, reference = new Date()) {
-  const date = new Date(value);
-  return date.getMonth() === reference.getMonth() && date.getFullYear() === reference.getFullYear();
-}
-
-function monthKey(value: string) {
-  const date = new Date(value);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-}
-
 function toPercent(value: number, max: number) {
   if (max <= 0) return 0;
   return Math.max(8, Math.round((value / max) * 100));
-}
-
-function buildSnapshot(bookings: Appointment[], services: ServiceItem[], stylists: Stylist[]): DashboardSnapshot {
-  return {
-    todayAppointments: bookings.filter((booking) => sameDay(booking.startAt)).length,
-    pendingAppointments: bookings.filter((booking) => booking.status === 'PENDING').length,
-    completedAppointments: bookings.filter((booking) => booking.status === 'COMPLETED').length,
-    monthRevenue: bookings
-      .filter((booking) => booking.status === 'COMPLETED' && sameMonth(booking.startAt))
-      .reduce((sum, booking) => sum + Number(booking.totalAmount || 0), 0),
-    activeServices: services.filter((service) => service.status !== 'INACTIVE').length,
-    activeStylists: stylists.filter((stylist) => stylist.status !== 'INACTIVE').length
-  };
 }
 
 function MetricCard({
@@ -68,52 +40,53 @@ function MetricCard({
 
 export function DashboardOverview({ salon, onNavigate }: DashboardOverviewProps) {
   const { dateTime, money, statusLabel, t } = useI18n();
-  const [bookings, setBookings] = useState<Appointment[]>([]);
+  const [stats, setStats] = useState<SalonDashboardStats>();
+  const [upcoming, setUpcoming] = useState<Appointment[]>([]);
   const [services, setServices] = useState<ServiceItem[]>([]);
-  const [stylists, setStylists] = useState<Stylist[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>();
 
   useEffect(() => {
     if (!salon) return;
     let active = true;
     setLoading(true);
+    setError(undefined);
+    // Số liệu lấy thẳng từ DB qua backend (không tự cộng dồn từ một trang booking ở client)
     Promise.all([
-      salonApi.getSalonBookings(salon.id).catch(() => []),
-      salonApi.getServices(salon.id).catch(() => []),
-      salonApi.getStylists(salon.id).catch(() => [])
+      salonApi.getDashboardStats(salon.id),
+      salonApi.getUpcomingBookings(salon.id, 10),
+      salonApi.getServices(salon.id).catch(() => [])
     ])
-      .then(([nextBookings, nextServices, nextStylists]) => {
+      .then(([nextStats, nextUpcoming, nextServices]) => {
         if (!active) return;
-        setBookings(nextBookings);
+        setStats(nextStats);
+        setUpcoming(
+          nextUpcoming.filter((booking) => booking.status === 'PENDING' || booking.status === 'CONFIRMED').slice(0, 5)
+        );
         setServices(nextServices);
-        setStylists(nextStylists);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setStats(undefined);
+        setError(err instanceof Error ? err.message : t('analyticsLoadError'));
       })
       .finally(() => active && setLoading(false));
 
     return () => {
       active = false;
     };
-  }, [salon]);
+  }, [salon?.id]);
 
-  const snapshot = useMemo(() => buildSnapshot(bookings, services, stylists), [bookings, services, stylists]);
-  const revenueByMonth = useMemo(() => {
-    const map = new Map<string, number>();
-    bookings
-      .filter((booking) => booking.status === 'COMPLETED')
-      .forEach((booking) => {
-        const key = monthKey(booking.startAt);
-        map.set(key, (map.get(key) || 0) + Number(booking.totalAmount || 0));
-      });
-
-    return Array.from(map.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .slice(-6)
-      .map(([label, value]) => ({ label, value }));
-  }, [bookings]);
+  const activeServices = useMemo(
+    () => services.filter((service) => service.status !== 'INACTIVE').length,
+    [services]
+  );
+  const revenueByMonth = useMemo(
+    () => (stats?.revenueByMonth || []).map((item) => ({ label: item.month, value: Number(item.revenue || 0) })),
+    [stats]
+  );
   const maxMonthRevenue = Math.max(...revenueByMonth.map((item) => item.value), 0);
-  const upcoming = bookings
-    .filter((booking) => booking.status === 'PENDING' || booking.status === 'CONFIRMED')
-    .slice(0, 5);
+  const hasRevenue = maxMonthRevenue > 0;
 
   if (!salon) {
     return (
@@ -140,13 +113,15 @@ export function DashboardOverview({ salon, onNavigate }: DashboardOverviewProps)
         </div>
       </div>
 
+      {error && <div className="error-banner">{error}</div>}
+
       <div className="metrics-grid">
-        <MetricCard title={t('todayAppointments')} value={String(snapshot.todayAppointments)} trend={loading ? t('loading') : t('updatedFromBookings')} icon="calendar_today" />
-        <MetricCard title={t('pending')} value={String(snapshot.pendingAppointments)} trend={t('requiresAction')} icon="pending_actions" tone="warning" />
-        <MetricCard title={t('completed')} value={String(snapshot.completedAppointments)} trend={t('allTimeLoadedPage')} icon="task_alt" tone="success" />
-        <MetricCard title={t('monthRevenue')} value={money(snapshot.monthRevenue)} trend={t('completedOnly')} icon="payments" tone="success" />
-        <MetricCard title={t('services')} value={String(snapshot.activeServices)} trend={t('activeCatalogItems')} icon="content_cut" />
-        <MetricCard title={t('stylists')} value={String(snapshot.activeStylists)} trend={t('teamMembers')} icon="badge" />
+        <MetricCard title={t('todayAppointments')} value={String(stats?.bookingsToday ?? 0)} trend={loading ? t('loading') : t('updatedFromBookings')} icon="calendar_today" />
+        <MetricCard title={t('pending')} value={String(stats?.pendingBookings ?? 0)} trend={t('requiresAction')} icon="pending_actions" tone="warning" />
+        <MetricCard title={t('completed')} value={String(stats?.completedBookings ?? 0)} trend={t('allTimeLoadedPage')} icon="task_alt" tone="success" />
+        <MetricCard title={t('monthRevenue')} value={money(Number(stats?.revenueThisMonth ?? 0))} trend={t('completedOnly')} icon="payments" tone="success" />
+        <MetricCard title={t('services')} value={String(activeServices)} trend={t('activeCatalogItems')} icon="content_cut" />
+        <MetricCard title={t('stylists')} value={String(stats?.activeStylists ?? 0)} trend={t('teamMembers')} icon="badge" />
       </div>
 
       <div className="dashboard-grid">
@@ -157,7 +132,7 @@ export function DashboardOverview({ salon, onNavigate }: DashboardOverviewProps)
               <p>{t('branchCompletedRevenue')}</p>
             </div>
           </div>
-          {revenueByMonth.length === 0 ? (
+          {!hasRevenue ? (
             <div className="empty-row">{t('noCompletedRevenueChart')}</div>
           ) : (
             <div className="bar-chart analytics-bars">

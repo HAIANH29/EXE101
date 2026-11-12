@@ -73,6 +73,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     long countBySalonIdAndStartAtBetween(Long salonId, Instant from, Instant to);
 
+    /** Lịch hẹn theo ngày diễn ra dịch vụ, bỏ qua booking có trạng thái chỉ định (vd: CANCELLED). */
+    long countBySalonIdAndStartAtBetweenAndStatusNot(Long salonId, Instant from, Instant to,
+                                                     BookingStatus status);
+
     @Query("""
             SELECT COUNT(b) FROM Booking b
             WHERE b.salonId = :salonId
@@ -86,7 +90,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             SELECT COALESCE(SUM(b.totalAmount), 0) FROM Booking b
             WHERE b.salonId = :salonId
               AND b.status = be.exe.booking.domain.BookingStatus.COMPLETED
-              AND b.createdAt BETWEEN :from AND :to
+              AND b.startAt >= :from AND b.startAt < :to
             """)
     BigDecimal sumRevenueBySalonIdBetween(@Param("salonId") Long salonId,
                                            @Param("from") Instant from,

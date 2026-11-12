@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 
 /**
  * Số liệu tổng quan hiển thị ở trang dashboard.
- * Dữ liệu được tổng hợp từ nhiều module (auth, salon, booking) thông qua Service interface,
+ * Dữ liệu được tổng hợp từ nhiều module (auth, salon, booking, tryon) thông qua Service interface,
  * KHÔNG dùng JOIN SQL xuyên module - đây là đánh đổi có chủ đích: chậm hơn 1 chút
  * (nhiều query nhỏ thay vì 1 query lớn) nhưng giữ được ranh giới module rõ ràng.
  */
@@ -25,6 +25,12 @@ public record DashboardOverviewResponse(
         long cancelledBookings,
 
         // Doanh thu
-        BigDecimal revenueThisMonth
+        BigDecimal revenueThisMonth,
+
+        // Thử tóc AI
+        long tryOnUsers,
+        long tryOnUsersThisMonth,
+        long tryOnRequests,
+        long tryOnRequestsThisMonth
 ) {
 }

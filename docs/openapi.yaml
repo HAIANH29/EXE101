@@ -398,9 +398,50 @@ paths:
       parameters: [{ $ref: '#/components/parameters/paymentId' }]
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RefundPaymentRequest' } } } }
       responses: { '200': { $ref: '#/components/responses/PaymentSuccess' }, '400': { $ref: '#/components/responses/ValidationError' }, '403': { $ref: '#/components/responses/Error' }, '404': { $ref: '#/components/responses/Error' } }
+  /api/salons/{salonId}/dashboard:
+    get:
+      tags: [Reporting]
+      summary: Số liệu dashboard của salon (chủ salon), tổng hợp từ DB
+      description: |
+        Trả về bookingsThisMonth, bookingsToday (không tính lịch huỷ), upcomingBookings, số booking theo trạng thái,
+        revenueThisMonth (booking COMPLETED theo ngày diễn ra dịch vụ, giờ VN), activeStylists, totalBookings,
+        totalRevenue và revenueByMonth (6 tháng gần nhất, cũ -> mới, mỗi phần tử {month: yyyy-MM, revenue}).
+      parameters: [{ $ref: '#/components/parameters/salonId' }]
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
+  /api/public/analytics/visit:
+    post:
+      tags: [Reporting]
+      security: []
+      summary: Ghi nhận một lượt truy cập kèm UTM (app khách gọi 1 lần mỗi phiên)
+      description: Body gồm sessionId, utmSource, utmMedium, utmCampaign, utmTerm, utmContent, landingPath, referrer (đều tuỳ chọn). Không có utm_source thì lưu direct / none.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sessionId: { type: string, maxLength: 64 }
+                utmSource: { type: string, maxLength: 100 }
+                utmMedium: { type: string, maxLength: 100 }
+                utmCampaign: { type: string, maxLength: 150 }
+                utmTerm: { type: string, maxLength: 150 }
+                utmContent: { type: string, maxLength: 150 }
+                landingPath: { type: string, maxLength: 255 }
+                referrer: { type: string, maxLength: 500 }
+      responses: { '204': { description: Đã ghi nhận } }
+  /api/admin/analytics/traffic:
+    get:
+      tags: [Admin, Reporting]
+      summary: Thống kê nguồn truy cập theo UTM (admin)
+      description: Trả về totalVisits, uniqueSessions, bySource (gộp theo source+medium) và byCampaign trong N ngày gần nhất.
+      parameters:
+        - { name: days, in: query, required: false, schema: { type: integer, default: 30, minimum: 1, maximum: 365 } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
   /api/dashboard/overview:
     get:
       tags: [Reporting]
+      description: Gồm cả tryOnUsers, tryOnUsersThisMonth, tryOnRequests, tryOnRequestsThisMonth (số người / lượt thử tóc AI).
       responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Error' } }
   /api/dashboard/revenue:
     get:

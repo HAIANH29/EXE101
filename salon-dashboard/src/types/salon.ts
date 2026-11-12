@@ -112,13 +112,21 @@ export interface PageResponse<T> {
   last: boolean;
 }
 
-export interface DashboardSnapshot {
-  todayAppointments: number;
-  pendingAppointments: number;
-  monthRevenue: number;
-  completedAppointments: number;
-  activeServices: number;
+/** Số liệu tổng hợp từ DB: GET /api/salons/{id}/dashboard */
+export interface SalonDashboardStats {
+  salonId: number;
+  bookingsThisMonth: number;
+  bookingsToday: number;
+  upcomingBookings: number;
+  pendingBookings: number;
+  confirmedBookings: number;
+  completedBookings: number;
+  cancelledBookings: number;
+  revenueThisMonth: number | string;
   activeStylists: number;
+  totalBookings: number;
+  totalRevenue: number | string;
+  revenueByMonth: { month: string; revenue: number | string }[];
 }
 
 export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED' | 'REFUND_PENDING' | 'REFUNDED';

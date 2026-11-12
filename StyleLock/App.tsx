@@ -13,6 +13,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { backendApi } from './src/services/backendApi';
 import { authSessionStore } from './src/services/apiClient';
+import { trackVisit } from './src/services/trafficTracker';
 import { LanguageProvider } from './src/i18n/LanguageContext';
 import { palette } from './src/theme/palette';
 
@@ -68,6 +69,10 @@ export default function App() {
   );
   const [isNavigationReady, setIsNavigationReady] = useState(false);
   const [expiredSessionVersion, setExpiredSessionVersion] = useState(0);
+
+  useEffect(() => {
+    trackVisit();
+  }, []);
 
   useEffect(() => {
     let active = true;

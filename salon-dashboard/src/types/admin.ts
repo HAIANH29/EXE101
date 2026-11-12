@@ -11,6 +11,10 @@ export interface AdminOverview {
   completedBookings: number;
   cancelledBookings: number;
   revenueThisMonth: number | string;
+  tryOnUsers: number;
+  tryOnUsersThisMonth: number;
+  tryOnRequests: number;
+  tryOnRequestsThisMonth: number;
 }
 
 export interface AdminBookingStats {
@@ -59,3 +63,19 @@ export interface CreateSalonOwnerInput {
   phone?: string;
 }
 
+
+export interface TrafficSourceRow {
+  source: string;
+  medium: string;
+  campaign: string;
+  visits: number;
+  sessions: number;
+}
+
+export interface AdminTrafficReport {
+  days: number;
+  totalVisits: number;
+  uniqueSessions: number;
+  bySource: TrafficSourceRow[];
+  byCampaign: TrafficSourceRow[];
+}

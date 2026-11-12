@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useI18n } from '../../i18n';
-import { Appointment, BackendBookingStatus, Salon, ServiceItem, Stylist } from '../../types/salon';
+import { Appointment, BackendBookingStatus, Salon, SalonDashboardStats, ServiceItem, Stylist } from '../../types/salon';
 import { salonApi } from '../../services/api';
 
 type AnalyticsViewProps = {
@@ -13,12 +13,7 @@ type ServiceStat = {
   revenue: number;
 };
 
-const statuses: BackendBookingStatus[] = ['PENDING', 'CONFIRMED', 'IN_SERVICE', 'COMPLETED', 'CANCELLED'];
-
-function monthKey(value: string) {
-  const date = new Date(value);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-}
+const statuses: BackendBookingStatus[] = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'];
 
 function toPercent(value: number, max: number) {
   if (max <= 0) return 0;
@@ -27,6 +22,7 @@ function toPercent(value: number, max: number) {
 
 export function AnalyticsView({ salon }: AnalyticsViewProps) {
   const { money, statusLabel, t } = useI18n();
+  const [stats, setStats] = useState<SalonDashboardStats>();
   const [bookings, setBookings] = useState<Appointment[]>([]);
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [stylists, setStylists] = useState<Stylist[]>([]);
@@ -38,11 +34,13 @@ export function AnalyticsView({ salon }: AnalyticsViewProps) {
     setLoading(true);
     setError(undefined);
     try {
-      const [nextBookings, nextServices, nextStylists] = await Promise.all([
+      const [nextStats, nextBookings, nextServices, nextStylists] = await Promise.all([
+        salonApi.getDashboardStats(salon.id),
         salonApi.getSalonBookings(salon.id),
         salonApi.getServices(salon.id),
         salonApi.getStylists(salon.id)
       ]);
+      setStats(nextStats);
       setBookings(nextBookings);
       setServices(nextServices);
       setStylists(nextStylists);
@@ -57,28 +55,21 @@ export function AnalyticsView({ salon }: AnalyticsViewProps) {
     void loadAnalytics();
   }, [salon?.id]);
 
-  const statusCounts = useMemo(
-    () =>
-      statuses.map((status) => ({
-        status,
-        count: bookings.filter((booking) => booking.status === status).length
-      })),
-    [bookings]
-  );
+  // Số lượng theo trạng thái + doanh thu: tổng hợp trực tiếp từ DB ở backend
+  const statusCounts = useMemo(() => {
+    const byStatus: Record<string, number> = {
+      PENDING: stats?.pendingBookings ?? 0,
+      CONFIRMED: stats?.confirmedBookings ?? 0,
+      COMPLETED: stats?.completedBookings ?? 0,
+      CANCELLED: stats?.cancelledBookings ?? 0
+    };
+    return statuses.map((status) => ({ status, count: byStatus[status] ?? 0 }));
+  }, [stats]);
 
-  const revenueByMonth = useMemo(() => {
-    const map = new Map<string, number>();
-    bookings
-      .filter((booking) => booking.status === 'COMPLETED')
-      .forEach((booking) => {
-        const key = monthKey(booking.startAt);
-        map.set(key, (map.get(key) || 0) + Number(booking.totalAmount || 0));
-      });
-    return Array.from(map.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .slice(-6)
-      .map(([label, value]) => ({ label, value }));
-  }, [bookings]);
+  const revenueByMonth = useMemo(
+    () => (stats?.revenueByMonth || []).map((item) => ({ label: item.month, value: Number(item.revenue || 0) })),
+    [stats]
+  );
 
   const serviceStats = useMemo(() => {
     const map = new Map<string, ServiceStat>();
@@ -92,7 +83,7 @@ export function AnalyticsView({ salon }: AnalyticsViewProps) {
     return Array.from(map.values()).sort((a, b) => b.count - a.count).slice(0, 5);
   }, [bookings, t]);
 
-  const totalRevenue = revenueByMonth.reduce((sum, item) => sum + item.value, 0);
+  const totalRevenue = Number(stats?.totalRevenue ?? 0);
   const maxMonthRevenue = Math.max(...revenueByMonth.map((item) => item.value), 0);
   const maxServiceCount = Math.max(...serviceStats.map((item) => item.count), 0);
 
@@ -127,7 +118,7 @@ export function AnalyticsView({ salon }: AnalyticsViewProps) {
         <div className="metric-card">
           <div>
             <span>{t('totalBookings')}</span>
-            <strong>{bookings.length}</strong>
+            <strong>{stats?.totalBookings ?? 0}</strong>
             <small>{t('currentPage')}</small>
           </div>
           <span className="material-symbols-outlined">event_available</span>
@@ -158,7 +149,7 @@ export function AnalyticsView({ salon }: AnalyticsViewProps) {
               <p>{t('completedOnly')}</p>
             </div>
           </div>
-          {revenueByMonth.length === 0 ? (
+          {maxMonthRevenue <= 0 ? (
             <div className="empty-row">{t('noCompletedRevenueChart')}</div>
           ) : (
             <div className="bar-chart analytics-bars">
