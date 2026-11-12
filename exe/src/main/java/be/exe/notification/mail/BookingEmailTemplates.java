@@ -44,20 +44,31 @@ public final class BookingEmailTemplates {
                         + note("Chúng tôi sẽ nhắc bạn trước giờ hẹn khoảng 5 tiếng và 1 tiếng."));
     }
 
-    public static String reminder5h(BookingInfo b, String countdownUrl) {
+    public static String reminder5h(BookingInfo b, String countdownUrl, boolean confirmed) {
         return layout("StyleLock Reminder", "Hôm nay bạn có lịch cắt tóc",
                 greeting(b) + paragraph("Hôm nay bạn có lịch hẹn lúc <b>" + TIME.format(b.startAt())
                         + "</b>. Hãy sắp xếp thời gian để đến đúng giờ nhé.")
                         + details(b)
+                        + unpaidWarning(confirmed)
                         + countdown(countdownUrl, "Còn lại đến giờ hẹn"));
     }
 
-    public static String reminder1h(BookingInfo b, String countdownUrl) {
+    public static String reminder1h(BookingInfo b, String countdownUrl, boolean confirmed) {
         return layout("StyleLock Reminder", "Lịch cắt tóc diễn ra trong 1 tiếng nữa",
                 greeting(b) + paragraph("Lịch hẹn của bạn bắt đầu lúc <b>" + TIME.format(b.startAt())
                         + "</b>, chỉ còn khoảng 1 tiếng nữa. Bạn nên xuất phát sớm để kịp giờ.")
                         + details(b)
+                        + unpaidWarning(confirmed)
                         + countdown(countdownUrl, "Còn lại đến giờ hẹn"));
+    }
+
+    private static String unpaidWarning(boolean confirmed) {
+        if (confirmed) {
+            return "";
+        }
+        return "<p style=\"margin:16px 0 0;padding:12px 14px;border-radius:12px;background:#fbe7e1;color:#8a3b2c;"
+                + "font-size:14px;line-height:21px;font-weight:600;\">Lịch hẹn này chưa được thanh toán. "
+                + "Hãy hoàn tất thanh toán trong app StyleLock để giữ lịch.</p>";
     }
 
     /** Bản text thuần cho email client không hiển thị HTML. */

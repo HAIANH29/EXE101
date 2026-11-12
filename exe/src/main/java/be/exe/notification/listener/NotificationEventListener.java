@@ -109,23 +109,24 @@ public class NotificationEventListener {
         String clock = time.substring(0, 5);
         String salon = salonNameOf(event.bookingId());
         String where = salon == null ? "" : " tại " + salon;
+        String unpaid = event.confirmed() ? "" : " Lịch chưa được thanh toán, hãy hoàn tất thanh toán để giữ lịch.";
 
         if (event.hoursBefore() <= 1) {
             notificationService.send(
                     event.customerId(),
                     NotificationType.BOOKING_REMINDER,
                     "Lịch cắt tóc diễn ra trong 1 tiếng nữa",
-                    "Lịch cắt tóc của bạn bắt đầu lúc " + clock + where + ". Hãy xuất phát sớm để kịp giờ nhé!"
+                    "Lịch cắt tóc của bạn bắt đầu lúc " + clock + where + ". Hãy xuất phát sớm để kịp giờ nhé!" + unpaid
             );
         } else {
             notificationService.send(
                     event.customerId(),
                     NotificationType.BOOKING_REMINDER,
                     "Hôm nay bạn có lịch cắt tóc",
-                    "Bạn có lịch cắt tóc lúc " + clock + where + ". Vui lòng đến đúng giờ nhé!"
+                    "Bạn có lịch cắt tóc lúc " + clock + where + ". Vui lòng đến đúng giờ nhé!" + unpaid
             );
         }
-        bookingEmailService.sendReminder(event.bookingId(), event.hoursBefore());
+        bookingEmailService.sendReminder(event.bookingId(), event.hoursBefore(), event.confirmed());
     }
 
     private String salonNameOf(Long bookingId) {

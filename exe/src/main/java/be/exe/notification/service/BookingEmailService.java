@@ -52,14 +52,14 @@ public class BookingEmailService {
                         BookingEmailTemplates.plainText("Salon đã xác nhận lịch hẹn của bạn.", info)));
     }
 
-    public void sendReminder(Long bookingId, int hoursBefore) {
+    public void sendReminder(Long bookingId, int hoursBefore, boolean confirmed) {
         if (hoursBefore <= 1) {
             send(bookingId, "Lịch cắt tóc của bạn diễn ra trong 1 tiếng nữa", (info, url) ->
-                    new Mail(BookingEmailTemplates.reminder1h(info, url),
+                    new Mail(BookingEmailTemplates.reminder1h(info, url, confirmed),
                             BookingEmailTemplates.plainText("Lịch cắt tóc của bạn diễn ra trong 1 tiếng nữa.", info)));
         } else {
             send(bookingId, null, (info, url) ->
-                    new Mail(BookingEmailTemplates.reminder5h(info, url),
+                    new Mail(BookingEmailTemplates.reminder5h(info, url, confirmed),
                             BookingEmailTemplates.plainText("Hôm nay bạn có lịch cắt tóc.", info)),
                     info -> "Hôm nay bạn có lịch cắt tóc lúc " + BookingEmailTemplates.hhmm(info.startAt()));
         }

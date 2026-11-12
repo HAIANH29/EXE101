@@ -53,7 +53,7 @@ class CountdownAndEmailTemplateTest {
         Instant start = Instant.parse("2026-11-12T08:30:00Z"); // 15:30 giờ VN
         BookingInfo info = new BookingInfo("<b>An</b>", "Salon A", "1 Lê Lợi", "Cắt tóc", "Minh", start);
 
-        String html = BookingEmailTemplates.reminder1h(info, "https://api.example.com/c.gif?to=1");
+        String html = BookingEmailTemplates.reminder1h(info, "https://api.example.com/c.gif?to=1", false);
 
         assertTrue(html.contains("15:30"));
         assertTrue(html.contains("https://api.example.com/c.gif?to=1"));
