@@ -136,6 +136,15 @@ paths:
       summary: Danh sách salon ACTIVE kèm dịch vụ, stylist, kiểu tóc, giờ mở cửa và đánh giá trong một request
       description: "Mỗi phần tử gồm salon, detail, services, stylists, hairstyles, reviewSummary (cùng hình dạng với các endpoint lẻ). Tối đa 100 salon; phần dữ liệu lỗi sẽ là null hoặc danh sách rỗng."
       responses: { '200': { description: OK }, '500': { $ref: '#/components/responses/Error' } }
+  /api/public/email/countdown.gif:
+    get:
+      tags: [Notification]
+      security: []
+      summary: Ảnh GIF đồng hồ đếm ngược nhúng trong email nhắc lịch
+      description: "Vẽ 60 khung (1 giây/khung) đếm ngược tới mốc `to`. Chỉ nhận mốc trong khoảng từ 24 giờ trước đến 60 ngày sau, ngoài khoảng trả 400."
+      parameters:
+        - { name: to, in: query, required: true, schema: { type: integer, format: int64 }, description: Mốc giờ hẹn (epoch seconds) }
+      responses: { '200': { description: image/gif }, '400': { $ref: '#/components/responses/Error' } }
   /api/demo/salons/materialize:
     post:
       tags: [Salon, Demo]
