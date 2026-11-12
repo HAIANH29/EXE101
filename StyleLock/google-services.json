@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "688164786730",
+    "project_id": "stylelock-a12b9",
+    "storage_bucket": "stylelock-a12b9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:688164786730:android:d6e6f4d0f5da9bb7e86953",
+        "android_client_info": {
+          "package_name": "com.stylelock.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyARi1FIswJfCgEj9-36FeUnIaiEpBH7QKk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
