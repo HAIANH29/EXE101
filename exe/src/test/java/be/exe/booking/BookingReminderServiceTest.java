@@ -85,17 +85,35 @@ class BookingReminderServiceTest {
     }
 
     @Test
-    void ignoresPendingFarAwayAndAlreadyStartedBookings() {
+    void remindsUnpaidPendingBookingsAndFlagsThemAsNotConfirmed() {
         Instant now = Instant.now();
-        Booking pending = new Booking(9104L, 1L, 1L, 1L, null, now.plus(Duration.ofHours(4)),
-                now.plus(Duration.ofHours(5)), new BigDecimal("100000"), null);
-        bookingRepository.save(pending);                                      // chưa xác nhận
+        Booking pending = new Booking(9104L, 1L, 1L, 1L, null, now.plus(Duration.ofMinutes(11)),
+                now.plus(Duration.ofHours(1)), new BigDecimal("100000"), null);
+        bookingRepository.save(pending);
+        confirmedBooking(9107L, now.plus(Duration.ofMinutes(11)));
+
+        reminderService.remindAt(now);
+
+        List<BookingReminderEvent> unpaid = remindersFor(9104L);
+        assertEquals(1, unpaid.size());
+        assertEquals(1, unpaid.get(0).hoursBefore());
+        assertTrue(!unpaid.get(0).confirmed());
+        assertTrue(remindersFor(9107L).get(0).confirmed());
+    }
+
+    @Test
+    void ignoresCancelledFarAwayAndAlreadyStartedBookings() {
+        Instant now = Instant.now();
+        Booking cancelled = new Booking(9108L, 1L, 1L, 1L, null, now.plus(Duration.ofMinutes(30)),
+                now.plus(Duration.ofHours(1)), new BigDecimal("100000"), null);
+        cancelled.cancel();
+        bookingRepository.save(cancelled);
         confirmedBooking(9105L, now.plus(Duration.ofHours(9)));               // còn quá xa
         confirmedBooking(9106L, now.minus(Duration.ofMinutes(10)));           // đã bắt đầu
 
         reminderService.remindAt(now);
 
-        assertTrue(remindersFor(9104L).isEmpty());
+        assertTrue(remindersFor(9108L).isEmpty());
         assertTrue(remindersFor(9105L).isEmpty());
         assertTrue(remindersFor(9106L).isEmpty());
     }

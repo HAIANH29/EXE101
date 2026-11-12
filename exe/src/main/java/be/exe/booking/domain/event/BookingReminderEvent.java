@@ -4,10 +4,12 @@ import java.time.Instant;
 
 /**
  * @param hoursBefore mốc nhắc: 5 (cùng ngày, ~5 tiếng trước) hoặc 1 (còn ~1 tiếng nữa)
+ * @param confirmed   false = lịch chưa thanh toán/chưa được xác nhận
  */
 public record BookingReminderEvent(
         Long bookingId,
         Long customerId,
         Instant startAt,
-        int hoursBefore
+        int hoursBefore,
+        boolean confirmed
 ) {}

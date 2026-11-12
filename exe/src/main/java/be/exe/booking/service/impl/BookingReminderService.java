@@ -16,7 +16,7 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Nhắc lịch hẹn đã được xác nhận ở hai mốc: ~5 tiếng trước (báo "hôm nay bạn có lịch") và
+ * Nhắc lịch hẹn (đã xác nhận hoặc chưa thanh toán) ở hai mốc: ~5 tiếng trước (báo "hôm nay bạn có lịch") và
  * ~1 tiếng trước. Job chạy mỗi 5 phút. Mỗi mốc là một khoảng thời gian chứ không phải một điểm,
  * và có cờ đã-nhắc riêng, nên job bị lỡ nhịp (vd. server free tier ngủ) vẫn nhắc bù ngay khi dậy
  * mà không gửi trùng:
@@ -32,6 +32,9 @@ public class BookingReminderService {
     private static final Duration FIVE_HOURS = Duration.ofHours(5);
     private static final Duration TWO_HOURS = Duration.ofHours(2);
     private static final Duration ONE_HOUR = Duration.ofHours(1);
+
+    /** Lịch chưa thanh toán (PENDING) vẫn được nhắc để khách kịp thanh toán hoặc đến salon. */
+    private static final List<BookingStatus> REMINDABLE = List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED);
 
     private final BookingRepository bookingRepository;
     private final ApplicationEventPublisher eventPublisher;
@@ -54,13 +57,13 @@ public class BookingReminderService {
 
         // Mốc 1h xử lý trước: booking vừa lọt vào cửa sổ 1h sẽ không bị nhắc thêm mốc 5h.
         for (Booking booking : bookingRepository.findDueFor1hReminder(
-                BookingStatus.CONFIRMED, now, now.plus(ONE_HOUR).plus(SLACK))) {
+                REMINDABLE, now, now.plus(ONE_HOUR).plus(SLACK))) {
             booking.markReminded1h();
             count += publish(booking, 1);
         }
 
         for (Booking booking : bookingRepository.findDueFor5hReminder(
-                BookingStatus.CONFIRMED, now.plus(TWO_HOURS), now.plus(FIVE_HOURS).plus(SLACK))) {
+                REMINDABLE, now.plus(TWO_HOURS), now.plus(FIVE_HOURS).plus(SLACK))) {
             booking.markReminded5h();
             count += publish(booking, 5);
         }
@@ -73,7 +76,8 @@ public class BookingReminderService {
         try {
             bookingRepository.save(booking);
             eventPublisher.publishEvent(new BookingReminderEvent(
-                    booking.getId(), booking.getCustomerId(), booking.getStartAt(), hoursBefore));
+                    booking.getId(), booking.getCustomerId(), booking.getStartAt(), hoursBefore,
+                    booking.getStatus() == BookingStatus.CONFIRMED));
             return 1;
         } catch (Exception e) {
             log.error("Lỗi khi gửi thông báo nhắc lịch ({}h) cho booking {}", hoursBefore, booking.getId(), e);
