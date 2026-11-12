@@ -34,6 +34,9 @@ public interface BookingService {
      */
     BookingSummaryResponse getBookingOrThrow(Long bookingId);
 
+    /** Dùng bởi module notification để dựng nội dung thông báo/email (tên salon, dịch vụ, stylist, giờ hẹn). */
+    BookingResponse getBookingForNotification(Long bookingId);
+
     Page<BookingResponse> getMyBookings(Long customerId, Pageable pageable);
 
     /**

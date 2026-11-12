@@ -29,6 +29,14 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByStatusInAndRemindedFalseAndStartAtBetween(
             List<BookingStatus> statuses, Instant start, Instant end);
 
+    /** Booking chưa nhắc mốc 5 tiếng, giờ hẹn nằm trong khoảng (start, end]. */
+    @Query("SELECT b FROM Booking b WHERE b.status = :status AND b.reminded5h = false AND b.startAt > :start AND b.startAt <= :end")
+    List<Booking> findDueFor5hReminder(@Param("status") BookingStatus status, @Param("start") Instant start, @Param("end") Instant end);
+
+    /** Booking chưa nhắc mốc 1 tiếng, giờ hẹn nằm trong khoảng (start, end]. */
+    @Query("SELECT b FROM Booking b WHERE b.status = :status AND b.reminded1h = false AND b.startAt > :start AND b.startAt <= :end")
+    List<Booking> findDueFor1hReminder(@Param("status") BookingStatus status, @Param("start") Instant start, @Param("end") Instant end);
+
     /**
      * Kiểm tra trước (application-level) xem stylist đã có booking (chưa hủy) trùng khung giờ chưa.
      * Đây là lớp bảo vệ ĐẦU TIÊN, giúp trả lỗi thân thiện ngay khi tạo booking.

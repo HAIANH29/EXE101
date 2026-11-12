@@ -294,6 +294,12 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional(readOnly = true)
+    public BookingResponse getBookingForNotification(Long bookingId) {
+        return toEnrichedResponse(findOrThrow(bookingId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public BookingSummaryResponse getBookingOrThrow(Long bookingId) {
         Booking booking = findOrThrow(bookingId);
         return new BookingSummaryResponse(

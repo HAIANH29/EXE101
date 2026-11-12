@@ -7,6 +7,7 @@ import be.exe.booking.domain.event.BookingCreatedEvent;
 import be.exe.booking.domain.event.BookingReminderEvent;
 import be.exe.booking.service.BookingService;
 import be.exe.notification.domain.NotificationType;
+import be.exe.notification.service.BookingEmailService;
 import be.exe.notification.service.NotificationService;
 import be.exe.payment.domain.event.PaymentCompletedEvent;
 import be.exe.payment.domain.event.PaymentRefundRequestedEvent;
@@ -41,11 +42,14 @@ public class NotificationEventListener {
 
     private final NotificationService notificationService;
     private final BookingService bookingService;
+    private final BookingEmailService bookingEmailService;
 
     public NotificationEventListener(NotificationService notificationService,
-                                      BookingService bookingService) {
+                                      BookingService bookingService,
+                                      BookingEmailService bookingEmailService) {
         this.notificationService = notificationService;
         this.bookingService = bookingService;
+        this.bookingEmailService = bookingEmailService;
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -57,6 +61,7 @@ public class NotificationEventListener {
                 "Đặt lịch thành công",
                 "Lịch hẹn của bạn đã được tạo, vui lòng hoàn tất thanh toán để salon xác nhận."
         );
+        bookingEmailService.sendBookingCreated(event.bookingId());
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -68,6 +73,7 @@ public class NotificationEventListener {
                 "Lịch hẹn đã được xác nhận",
                 "Salon đã xác nhận lịch hẹn của bạn. Hẹn gặp bạn đúng giờ nhé!"
         );
+        bookingEmailService.sendBookingConfirmed(event.bookingId());
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -99,13 +105,35 @@ public class NotificationEventListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onBookingReminder(BookingReminderEvent event) {
-        notificationService.send(
-                event.customerId(),
-                NotificationType.BOOKING_REMINDER,
-                "Nhắc lịch hẹn",
-                "Bạn có lịch hẹn lúc " + REMINDER_TIME_FORMAT.format(event.startAt())
-                        + ". Vui lòng đến đúng giờ nhé!"
-        );
+        String time = REMINDER_TIME_FORMAT.format(event.startAt());
+        String clock = time.substring(0, 5);
+        String salon = salonNameOf(event.bookingId());
+        String where = salon == null ? "" : " tại " + salon;
+
+        if (event.hoursBefore() <= 1) {
+            notificationService.send(
+                    event.customerId(),
+                    NotificationType.BOOKING_REMINDER,
+                    "Lịch cắt tóc diễn ra trong 1 tiếng nữa",
+                    "Lịch cắt tóc của bạn bắt đầu lúc " + clock + where + ". Hãy xuất phát sớm để kịp giờ nhé!"
+            );
+        } else {
+            notificationService.send(
+                    event.customerId(),
+                    NotificationType.BOOKING_REMINDER,
+                    "Hôm nay bạn có lịch cắt tóc",
+                    "Bạn có lịch cắt tóc lúc " + clock + where + ". Vui lòng đến đúng giờ nhé!"
+            );
+        }
+        bookingEmailService.sendReminder(event.bookingId(), event.hoursBefore());
+    }
+
+    private String salonNameOf(Long bookingId) {
+        try {
+            return bookingService.getBookingForNotification(bookingId).salonName();
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 
     /**

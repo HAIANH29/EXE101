@@ -66,6 +66,12 @@ public class Booking {
     @Column(name = "reminded", nullable = false)
     private boolean reminded = false;
 
+    @Column(name = "reminded_5h", nullable = false)
+    private boolean reminded5h = false;
+
+    @Column(name = "reminded_1h", nullable = false)
+    private boolean reminded1h = false;
+
     protected Booking() {
     }
 
@@ -171,5 +177,23 @@ public class Booking {
 
     public void markReminded() {
         this.reminded = true;
+    }
+
+    public boolean isReminded5h() {
+        return reminded5h;
+    }
+
+    public boolean isReminded1h() {
+        return reminded1h;
+    }
+
+    public void markReminded5h() {
+        this.reminded5h = true;
+    }
+
+    /** Đã nhắc mốc 1 tiếng thì mốc 5 tiếng không còn ý nghĩa nữa. */
+    public void markReminded1h() {
+        this.reminded1h = true;
+        this.reminded5h = true;
     }
 }
