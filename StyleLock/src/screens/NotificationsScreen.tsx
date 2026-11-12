@@ -51,6 +51,12 @@ const TYPE_META: Record<NotificationType, NotificationMeta> = {
     backgroundColor: '#F7EFE4',
     label: 'Hoàn tất'
   },
+  BOOKING_REMINDER: {
+    icon: 'clock',
+    color: '#B8895A',
+    backgroundColor: '#F7EBD3',
+    label: 'Nhắc lịch'
+  },
   PAYMENT_COMPLETED: {
     icon: 'money',
     color: '#B8895A',
