@@ -4,6 +4,7 @@ import { LocalizedText as Text } from '../../i18n/LocalizedComponents';
 import { AppIcon } from '../AppIcon';
 import { NotificationBellButton } from '../NotificationBellButton';
 import { EXPLORE_THEME } from './ExploreTypes';
+import { useWebLayout } from "../../web/useWebLayout";
 
 interface ExploreHeaderProps {
   navigation: any;
@@ -11,9 +12,11 @@ interface ExploreHeaderProps {
 }
 
 export const ExploreHeader: React.FC<ExploreHeaderProps> = ({ navigation, totalCount }) => {
+  const { isWide } = useWebLayout();
   return (
     <View style={styles.headerContainer}>
       {/* Top App Bar */}
+      {!isWide && (
       <View style={styles.topBar}>
         <Text style={styles.brandTitle}>StyleLock</Text>
 
@@ -29,6 +32,7 @@ export const ExploreHeader: React.FC<ExploreHeaderProps> = ({ navigation, totalC
           </TouchableOpacity>
         </View>
       </View>
+      )}
 
       {/* Screen Title & Subtitle */}
       <View style={styles.titleSection}>

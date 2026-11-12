@@ -14,6 +14,7 @@ import { AppNavigator } from './src/navigation/AppNavigator';
 import { backendApi } from './src/services/backendApi';
 import { authSessionStore } from './src/services/apiClient';
 import { trackVisit } from './src/services/trafficTracker';
+import { WebShell } from './src/web/WebShell';
 import { LanguageProvider } from './src/i18n/LanguageContext';
 import { palette } from './src/theme/palette';
 
@@ -68,6 +69,7 @@ export default function App() {
     backendApi.isAuthenticated()
   );
   const [isNavigationReady, setIsNavigationReady] = useState(false);
+  const [routeName, setRouteName] = useState<string | undefined>();
   const [expiredSessionVersion, setExpiredSessionVersion] = useState(0);
 
   useEffect(() => {
@@ -118,13 +120,18 @@ export default function App() {
           linking={linking}
           onReady={() => {
             setIsNavigationReady(true);
+            setRouteName(navigationRef.getCurrentRoute()?.name);
             if (expiredSessionVersion > 0) {
               resetToLogin();
             }
           }}
+          onStateChange={() => setRouteName(navigationRef.getCurrentRoute()?.name)}
         >
           <StatusBar style="dark" />
-          {isBootstrappingSession ? <AuthLoadingScreen /> : <AppNavigator />}
+          {/* WebShell chỉ có tác dụng trên web rộng; mobile / web hẹp render y như cũ */}
+          <WebShell routeName={routeName} onNavigate={(route) => navigationRef.navigate(route)}>
+            {isBootstrappingSession ? <AuthLoadingScreen /> : <AppNavigator />}
+          </WebShell>
         </NavigationContainer>
       </SafeAreaProvider>
     </LanguageProvider>

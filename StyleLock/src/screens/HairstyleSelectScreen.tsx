@@ -31,6 +31,7 @@ import {
   TRENDING_HAIRSTYLE_NAMES
 } from '../components/explore/ExploreTypes';
 import { ExploreHeader } from '../components/explore/ExploreHeader';
+import { useWebLayout } from "../web/useWebLayout";
 import { ExploreSearchBar } from '../components/explore/ExploreSearchBar';
 import { GenderTabs } from '../components/explore/GenderTabs';
 import { FilterChips } from '../components/explore/FilterChips';
@@ -48,7 +49,7 @@ export const HairstyleSelectScreen: React.FC<HairstyleSelectScreenProps> = ({
   route
 }) => {
   const userPhotoUri = route?.params?.userPhotoUri;
-  const { width } = useWindowDimensions();
+  const { contentWidth: width } = useWebLayout();
 
   // Search & Filters State
   const [searchQuery, setSearchQuery] = useState<string>('');

@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { LocalizedText as Text } from '../i18n/LocalizedComponents';
 import { AppIcon, AppIconName } from './AppIcon';
+import { useWebLayout } from '../web/useWebLayout';
 
 type NavKey = 'Home' | 'Explore' | 'AICamera' | 'Salons' | 'Bookings' | 'History' | 'Profile';
 
@@ -30,7 +31,14 @@ type BottomNavBarProps = {
   labels?: Partial<Record<NavKey, string>>;
 };
 
-export const BottomNavBar = ({ active, navigation, labels }: BottomNavBarProps) => (
+export const BottomNavBar = ({ active, navigation, labels }: BottomNavBarProps) => {
+  // Web rộng dùng thanh điều hướng trên cùng (WebShell) thay cho thanh dưới đáy
+  const { isWide } = useWebLayout();
+  if (isWide) return null;
+  return <BottomNavBarContent active={active} navigation={navigation} labels={labels} />;
+};
+
+const BottomNavBarContent = ({ active, navigation, labels }: BottomNavBarProps) => (
   <View style={styles.bottomBar}>
     {NAV_ITEMS.map((item) => {
       const isActive = active === item.key;

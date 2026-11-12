@@ -17,6 +17,7 @@ import { CameraView, useCameraPermissions, CameraType } from 'expo-camera';
 import { Hairstyle } from '../types';
 import { AppIcon } from '../components/AppIcon';
 import { BottomNavBar } from '../components/BottomNavBar';
+import { useWebLayout } from '../web/useWebLayout';
 import { NotificationBellButton } from '../components/NotificationBellButton';
 import { resolveHairOverlaySource } from '../services/hairAssetMap';
 import { backendApi } from '../services/backendApi';
@@ -64,6 +65,7 @@ const toHighResReference = (url?: string) =>
 const CAPTURE_QUALITY = 0.7;
 
 export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigation, route }) => {
+  const { isWide } = useWebLayout();
   const preselectedHair: Hairstyle | undefined = route?.params?.preselectedHair;
   const cameraRef = useRef<CameraView | null>(null);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
@@ -539,6 +541,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
   return (
     <SafeAreaView style={styles.container}>
       {/* Top App Bar */}
+      {!isWide && (
       <View style={styles.topAppBar}>
         <Text style={styles.brandTitle}>StyleLock AI</Text>
 
@@ -553,6 +556,7 @@ export const CameraUploadScreen: React.FC<CameraUploadScreenProps> = ({ navigati
           </TouchableOpacity>
         </View>
       </View>
+      )}
 
       {/* Full-Screen Camera Canvas */}
       <View style={styles.cameraCanvas}>

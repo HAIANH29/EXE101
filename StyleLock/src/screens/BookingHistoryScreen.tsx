@@ -14,6 +14,7 @@ import { backendApi } from '../services/backendApi';
 import { AppIcon, IconBadge } from '../components/AppIcon';
 import { bookingService } from '../services/bookingService';
 import { BottomNavBar } from '../components/BottomNavBar';
+import { useWebLayout } from '../web/useWebLayout';
 import { Booking, BookingStatus, Payment } from '../types';
 import { formatDateTime, formatVnd, getPaymentStatusMeta, getPaymentTypeLabel } from '../utils/payment';
 import { NotificationBellButton } from '../components/NotificationBellButton';
@@ -37,6 +38,7 @@ const PAYMENT_FILTERS = [
 ] as const;
 
 export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navigation, route }) => {
+  const { isWide } = useWebLayout();
     const [activeTab, setActiveTab] = useState<string>(route?.params?.initialTab || 'UPCOMING');
     const [allBookings, setAllBookings] = useState<Booking[]>(bookingService.getAllBookings());
     const [paymentsByBooking, setPaymentsByBooking] = useState<Record<string, Payment>>({});
@@ -333,6 +335,7 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
     return (
         <SafeAreaView style={styles.container}>
             {/* Top App Bar */}
+      {!isWide && (
             <View style={styles.topAppBar}>
                 <Text style={styles.brandTitle}>StyleLock</Text>
 
@@ -347,6 +350,7 @@ export const BookingHistoryScreen: React.FC<BookingHistoryScreenProps> = ({ navi
                     </TouchableOpacity>
                 </View>
             </View>
+      )}
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 {/* Page Title */}

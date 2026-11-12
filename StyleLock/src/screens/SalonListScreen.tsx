@@ -16,6 +16,7 @@ import { backendApi } from '../services/backendApi';
 import { Hairstyle, Salon } from '../types';
 import { AppIcon } from '../components/AppIcon';
 import { BottomNavBar } from '../components/BottomNavBar';
+import { useWebLayout } from '../web/useWebLayout';
 import { NotificationBellButton } from '../components/NotificationBellButton';
 import { useLanguage } from '../i18n/LanguageContext';
 import { favoritesStore } from '../services/favoritesStore';
@@ -31,6 +32,7 @@ type PriceSubFilter = 'lowToHigh' | 'highToLow' | 'under200' | '200to400' | 'ove
 type RatingSubFilter = 'highest' | '4.8' | '4.5' | '4.0';
 
 export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, route }) => {
+  const { isWide, isXWide } = useWebLayout();
   const { language } = useLanguage();
   const selectedHairstyle: Hairstyle | undefined = route?.params?.selectedHairstyle;
   const userPhotoUri: string | undefined = route?.params?.userPhotoUri;
@@ -199,6 +201,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
   return (
     <SafeAreaView style={styles.container}>
       {/* Top App Bar */}
+      {!isWide && (
       <View style={styles.topAppBar}>
         <Text style={styles.brandTitle}>StyleLock</Text>
 
@@ -213,6 +216,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
           </TouchableOpacity>
         </View>
       </View>
+      )}
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Screen Header Title */}
@@ -425,7 +429,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
         </View>
 
         {/* Salon Cards List */}
-        <View style={styles.salonList}>
+        <View style={[styles.salonList, isWide && styles.salonListWide]}>
           <DataState
             loading={loading}
             error={loadError}
@@ -443,7 +447,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
             const areaName = addressParts.slice(-3, -1).join(', ') || salon.address;
 
             return (
-              <View key={salon.id} style={styles.salonCard}>
+              <View key={salon.id} style={[styles.salonCard, isWide && (isXWide ? styles.salonCardWide3 : styles.salonCardWide2)]}>
                 {/* Salon Image + Favorite Heart Button + Highlight Badge */}
                 <View style={styles.imageContainer}>
                   {salon.imageUrl ? (
@@ -778,6 +782,22 @@ const styles = StyleSheet.create({
   },
   salonList: {
     gap: 16
+  },
+  // ----- Web rộng: lưới nhiều cột -----
+  salonListWide: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    rowGap: 20
+  },
+  salonCardWide2: {
+    width: '48.8%',
+    marginBottom: 0
+  },
+  salonCardWide3: {
+    width: '32%',
+    marginBottom: 0
   },
   salonCard: {
     backgroundColor: '#FFFFFF',

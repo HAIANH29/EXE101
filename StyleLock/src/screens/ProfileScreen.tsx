@@ -17,6 +17,7 @@ import { backendApi } from '../services/backendApi';
 import { AppIcon } from '../components/AppIcon';
 import { bookingService } from '../services/bookingService';
 import { BottomNavBar } from '../components/BottomNavBar';
+import { useWebLayout } from '../web/useWebLayout';
 import { NotificationBellButton } from '../components/NotificationBellButton';
 import { AppLanguage, useLanguage } from '../i18n/LanguageContext';
 
@@ -194,6 +195,7 @@ const profileCopy = {
 } as const;
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
+  const { isWide } = useWebLayout();
   const { language, setLanguage } = useLanguage();
   const [currentUser, setCurrentUser] = useState(backendApi.getCurrentUser()?.user);
   const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(false);
@@ -479,6 +481,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       {/* Top App Bar */}
+      {!isWide && (
       <View style={styles.topAppBar}>
         <Text style={styles.brandTitle}>StyleLock</Text>
 
@@ -489,6 +492,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           </View>
         </View>
       </View>
+      )}
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Profile Header Section */}

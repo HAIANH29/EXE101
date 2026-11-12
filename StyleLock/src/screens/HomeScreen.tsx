@@ -15,6 +15,7 @@ import { backendApi } from '../services/backendApi';
 import { AppIcon } from '../components/AppIcon';
 import { Booking, Hairstyle } from '../types';
 import { BottomNavBar } from '../components/BottomNavBar';
+import { useWebLayout } from "../web/useWebLayout";
 import { NotificationBellButton } from '../components/NotificationBellButton';
 import { useLanguage } from '../i18n/LanguageContext';
 import { favoritesStore } from '../services/favoritesStore';
@@ -43,6 +44,7 @@ function getStoredDisplayName() {
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const { language } = useLanguage();
+  const { isWide, isXWide } = useWebLayout();
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [hairstyles, setHairstyles] = useState<Hairstyle[]>([]);
   const [loadingCatalog, setLoadingCatalog] = useState<boolean>(true);
@@ -106,28 +108,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       ? 'Xin chào'
       : 'Hello';
 
-  return (
-    <SafeAreaView style={styles.container}>
-      {/* Top App Bar */}
-      <View style={styles.topAppBar}>
-        <Text style={styles.brandTitle}>StyleLock</Text>
-
-        <View style={styles.headerRightActions}>
-          <NotificationBellButton navigation={navigation} style={styles.headerIconBtn} />
-          <TouchableOpacity
-            style={styles.headerIconBtn}
-            onPress={() => navigation.navigate('Profile')}
-            activeOpacity={0.8}
-          >
-            <AppIcon name="user" size={20} color="#B8895A" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+  const greetingEl = (
+    <>
         {/* Greeting & Search Section */}
         <View style={styles.greetingSection}>
           <Text style={styles.greetingTitle}>{greetingTitle}</Text>
@@ -145,11 +127,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             />
           </View>
         </View>
-
+    </>
+  );
+  const bannerEl = (
+    <>
         {/* Promotional Banner Card */}
         <TouchableOpacity
           activeOpacity={0.9}
-          style={styles.promoBannerCard}
+          style={[styles.promoBannerCard, isWide && styles.promoBannerCardWide]}
           onPress={() => navigation.navigate('HairstyleSelect')}
         >
           <ImageBackground
@@ -171,7 +156,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             </View>
           </ImageBackground>
         </TouchableOpacity>
-
+    </>
+  );
+  const quickEl = (
+    <>
         {/* Quick Actions (2 Cards) */}
         <View style={styles.quickActionsRow}>
           {/* Card 1: Try Hairstyle */}
@@ -196,6 +184,49 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             <Text style={styles.quickActionText}>Book Salon</Text>
           </TouchableOpacity>
         </View>
+    </>
+  );
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* Top App Bar */}
+      {!isWide && (
+      <View style={styles.topAppBar}>
+        <Text style={styles.brandTitle}>StyleLock</Text>
+
+        <View style={styles.headerRightActions}>
+          <NotificationBellButton navigation={navigation} style={styles.headerIconBtn} />
+          <TouchableOpacity
+            style={styles.headerIconBtn}
+            onPress={() => navigation.navigate('Profile')}
+            activeOpacity={0.8}
+          >
+            <AppIcon name="user" size={20} color="#B8895A" />
+          </TouchableOpacity>
+        </View>
+      </View>
+      )}
+
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, isWide && styles.scrollContentWide]}
+        showsVerticalScrollIndicator={false}
+      >
+        {isWide ? (
+          <View style={styles.heroRow}>
+            <View style={styles.heroLeft}>
+              {greetingEl}
+              {quickEl}
+            </View>
+            <View style={styles.heroRight}>{bannerEl}</View>
+          </View>
+        ) : (
+          <>
+            {greetingEl}
+            {bannerEl}
+            {quickEl}
+          </>
+        )}
+
 
         {/* Upcoming Appointment Section */}
         <View style={styles.sectionHeader}>
@@ -250,13 +281,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           emptyText="Chưa có kiểu tóc nào trong catalog."
           onRetry={() => setReloadKey((k) => k + 1)}
         />
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+        <ScrollView
+          horizontal={!isWide}
+          scrollEnabled={!isWide}
+          showsHorizontalScrollIndicator={false}
+          style={styles.horizontalScroll}
+          contentContainerStyle={isWide ? styles.recommendGrid : undefined}
+        >
           {hairstyles.slice(0, 6).map((hair, index) => {
             const matchPercent = 98 - index * 3;
             return (
               <TouchableOpacity
                 key={hair.id}
-                style={styles.recommendCard}
+                style={[styles.recommendCard, isWide && (isXWide ? styles.recommendCardWide6 : styles.recommendCardWide3)]}
                 onPress={() => navigation.navigate('HairstyleDetail', { hairstyle: hair })}
               >
                 <View style={styles.recommendImgWrapper}>
@@ -520,6 +557,45 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center'
+  },
+  // ----- Web rộng -----
+  scrollContentWide: {
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    paddingBottom: 24
+  },
+  heroRow: {
+    flexDirection: 'row',
+    gap: 40,
+    alignItems: 'stretch',
+    marginBottom: 12
+  },
+  heroLeft: {
+    flex: 1,
+    justifyContent: 'center'
+  },
+  heroRight: {
+    flex: 1.2
+  },
+  promoBannerCardWide: {
+    height: '100%',
+    minHeight: 320,
+    marginBottom: 0
+  },
+  recommendGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 20,
+    width: '100%'
+  },
+  recommendCardWide6: {
+    width: '15.5%',
+    marginRight: 0
+  },
+  recommendCardWide3: {
+    width: '31.5%',
+    marginRight: 0
   },
   horizontalScroll: {
     marginBottom: 20,
