@@ -31,6 +31,22 @@ type DistanceSubFilter = 'nearest' | '2km' | '5km' | '10km';
 type PriceSubFilter = 'lowToHigh' | 'highToLow' | 'under200' | '200to400' | 'over400';
 type RatingSubFilter = 'highest' | '4.8' | '4.5' | '4.0';
 
+/** Lấy vị trí thiết bị nhưng không chờ quá 6 giây; không được phép / lỗi / quá hạn thì trả về undefined. */
+async function getDeviceLocation(): Promise<{ latitude: number; longitude: number } | undefined> {
+  const lookup = async () => {
+    const permission = await Location.requestForegroundPermissionsAsync();
+    if (permission.status !== Location.PermissionStatus.GRANTED) return undefined;
+    const current = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    return { latitude: current.coords.latitude, longitude: current.coords.longitude };
+  };
+  const timeout = new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), 6000));
+  try {
+    return await Promise.race([lookup(), timeout]);
+  } catch {
+    return undefined;
+  }
+}
+
 export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, route }) => {
   const { isWide, isXWide } = useWebLayout();
   const { language } = useLanguage();
@@ -50,6 +66,8 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
   const [loadError, setLoadError] = useState<string | undefined>();
   const [reloadKey, setReloadKey] = useState<number>(0);
   const [usingFallbackLocation, setUsingFallbackLocation] = useState<boolean>(false);
+  // true khi đã có danh sách cơ bản nhưng đang bổ sung giá / dịch vụ / đánh giá
+  const [enriching, setEnriching] = useState<boolean>(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -58,26 +76,32 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
       setLoading(true);
       setLoadError(undefined);
       try {
-        let location: { latitude: number; longitude: number } | undefined;
-        if (!appliedLocationQuery) {
-          try {
-          const permission = await Location.requestForegroundPermissionsAsync();
-          if (permission.status === Location.PermissionStatus.GRANTED) {
-            const current = await Location.getCurrentPositionAsync({
-              accuracy: Location.Accuracy.Balanced
-            });
-            location = {
-              latitude: current.coords.latitude,
-              longitude: current.coords.longitude
-            };
-          }
-        } catch {
-          // Backend mặc định dùng trung tâm TP.HCM khi thiết bị không cấp được vị trí.
+        // Không chờ định vị (xin quyền / GPS có thể mất rất lâu hoặc không bao giờ trả lời):
+        // tải danh sách ngay với vị trí mặc định (backend dùng trung tâm TP.HCM),
+        // song song xin vị trí; nếu lấy được thì làm mới lại danh sách ở chế độ nền.
+        if (isMounted) setUsingFallbackLocation(!appliedLocationQuery);
+        const locationPromise = appliedLocationQuery ? Promise.resolve(undefined) : getDeviceLocation();
+
+        const apiSalons = await backendApi.getSalons(undefined, appliedLocationQuery, (basicSalons) => {
+          // Hiện ngay danh sách cơ bản; giá/dịch vụ/đánh giá được bổ sung sau
+          if (!isMounted) return;
+          setSalons(basicSalons);
+          setLoading(false);
+          setEnriching(true);
+        });
+        if (isMounted) {
+          setSalons(apiSalons);
+          setEnriching(false);
+        }
+
+        const location = await locationPromise;
+        if (location && isMounted) {
+          const nearby = await backendApi.getSalons(location, appliedLocationQuery);
+          if (isMounted) {
+            setSalons(nearby);
+            setUsingFallbackLocation(false);
           }
         }
-        if (isMounted) setUsingFallbackLocation(!location && !appliedLocationQuery);
-        const apiSalons = await backendApi.getSalons(location, appliedLocationQuery);
-        if (isMounted) setSalons(apiSalons);
       } catch (error) {
         if (isMounted) setLoadError(error instanceof Error ? error.message : 'Không tải được danh sách salon.');
       } finally {
@@ -180,6 +204,15 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
       } else {
         navigation.navigate('SalonDetail', { salon, selectedHairstyle, userPhotoUri });
       }
+      return;
+    }
+    if (enriching) {
+      Alert.alert(
+        language === 'vi' ? 'Đang cập nhật' : 'Still loading',
+        language === 'vi'
+          ? 'Đang tải giá, dịch vụ và đánh giá của salon. Vui lòng thử lại sau vài giây.'
+          : 'Loading prices, services and reviews. Please try again in a few seconds.'
+      );
       return;
     }
     if (!salon.bookingEligible) {
@@ -430,6 +463,11 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
 
         {/* Salon Cards List */}
         <View style={[styles.salonList, isWide && styles.salonListWide]}>
+          {enriching && (
+            <Text style={styles.enrichingText}>
+              {language === 'vi' ? 'Đang cập nhật giá, dịch vụ và đánh giá...' : 'Updating prices, services and reviews...'}
+            </Text>
+          )}
           <DataState
             loading={loading}
             error={loadError}
@@ -784,6 +822,12 @@ const styles = StyleSheet.create({
     gap: 16
   },
   // ----- Web rộng: lưới nhiều cột -----
+  enrichingText: {
+    width: '100%',
+    fontSize: 12,
+    color: '#6F6255',
+    fontWeight: '600'
+  },
   salonListWide: {
     flexDirection: 'row',
     flexWrap: 'wrap',

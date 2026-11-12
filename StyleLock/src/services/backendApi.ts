@@ -775,7 +775,12 @@ export const backendApi = {
     return items.map((item) => mapHairstyle(item, categories));
   },
 
-  async getSalons(location?: SalonSearchLocation, query?: string) {
+  async getSalons(
+    location?: SalonSearchLocation,
+    query?: string,
+    // Gọi ngay khi có danh sách cơ bản (chưa kèm dịch vụ/stylist/đánh giá) để màn hình hiện nhanh
+    onBasic?: (salons: Salon[]) => void
+  ) {
     const locationParams = new URLSearchParams();
     if (query?.trim()) {
       locationParams.set('query', query.trim());
@@ -790,6 +795,51 @@ export const backendApi = {
       getPage<BackendSalon>('/api/salons?status=ACTIVE&size=100'),
       apiRequest<ExternalSalon[]>(`/api/public/salons/nearby${locationQuery}`).catch(() => [])
     ]);
+
+    const mergeSalons = (partnerSalons: Salon[]): Salon[] => {
+      const partnersByPlaceId = new Map(
+        partnerSalons
+          .map((salon, index) => [items[index]?.geoapifyPlaceId, salon] as const)
+          .filter(([placeId]) => Boolean(placeId))
+      );
+      const matchedPartnerIds = new Set<number>();
+      const nearbySalons = externalItems.map((external) => {
+        const partner = partnersByPlaceId.get(external.placeId)
+          || partnerSalons.find((candidate) =>
+            (!candidate.apiId || !matchedPartnerIds.has(candidate.apiId))
+            && isSameCuratedPlace(candidate, external));
+        if (!partner) return mapExternalSalon(external);
+        if (partner.apiId) matchedPartnerIds.add(partner.apiId);
+        const distanceKm = external.distanceMeters === undefined
+          ? partner.distanceKm
+          : Number((external.distanceMeters / 1000).toFixed(1));
+        return {
+          ...partner,
+          distanceKm,
+          distance: distanceKm === undefined ? partner.distance : `${distanceKm} km`,
+          mapUrl: partner.listingSource === 'PLATFORM_CURATED' && partner.sourceUrl
+            ? partner.sourceUrl
+            : external.mapUrl || partner.mapUrl,
+          website: external.website || partner.website,
+          latitude: external.latitude,
+          longitude: external.longitude,
+          externalPlaceId: partner.externalPlaceId || external.placeId
+        };
+      });
+      const normalizedQuery = query?.trim() ? normalizeSalonName(query) : undefined;
+      const remainingPartners = partnerSalons.filter((partner) => {
+        if (partner.apiId && matchedPartnerIds.has(partner.apiId)) return false;
+        if (!normalizedQuery) return true;
+        return normalizeSalonName(`${partner.name} ${partner.address}`).includes(normalizedQuery);
+      });
+  
+      return [...nearbySalons, ...remainingPartners];
+    };
+
+    if (onBasic) {
+      onBasic(mergeSalons(items.map((salon) =>
+        mapSalon(salon, [], [], [], undefined, undefined, calculateDistanceKm(location, salon)))));
+    }
 
     const partnerSalons = await Promise.all(
       items.map(async (salon) => {
@@ -813,43 +863,7 @@ export const backendApi = {
       })
     );
 
-    const partnersByPlaceId = new Map(
-      partnerSalons
-        .map((salon, index) => [items[index]?.geoapifyPlaceId, salon] as const)
-        .filter(([placeId]) => Boolean(placeId))
-    );
-    const matchedPartnerIds = new Set<number>();
-    const nearbySalons = externalItems.map((external) => {
-      const partner = partnersByPlaceId.get(external.placeId)
-        || partnerSalons.find((candidate) =>
-          (!candidate.apiId || !matchedPartnerIds.has(candidate.apiId))
-          && isSameCuratedPlace(candidate, external));
-      if (!partner) return mapExternalSalon(external);
-      if (partner.apiId) matchedPartnerIds.add(partner.apiId);
-      const distanceKm = external.distanceMeters === undefined
-        ? partner.distanceKm
-        : Number((external.distanceMeters / 1000).toFixed(1));
-      return {
-        ...partner,
-        distanceKm,
-        distance: distanceKm === undefined ? partner.distance : `${distanceKm} km`,
-        mapUrl: partner.listingSource === 'PLATFORM_CURATED' && partner.sourceUrl
-          ? partner.sourceUrl
-          : external.mapUrl || partner.mapUrl,
-        website: external.website || partner.website,
-        latitude: external.latitude,
-        longitude: external.longitude,
-        externalPlaceId: partner.externalPlaceId || external.placeId
-      };
-    });
-    const normalizedQuery = query?.trim() ? normalizeSalonName(query) : undefined;
-    const remainingPartners = partnerSalons.filter((partner) => {
-      if (partner.apiId && matchedPartnerIds.has(partner.apiId)) return false;
-      if (!normalizedQuery) return true;
-      return normalizeSalonName(`${partner.name} ${partner.address}`).includes(normalizedQuery);
-    });
-
-    return [...nearbySalons, ...remainingPartners];
+    return mergeSalons(partnerSalons);
   },
 
   async searchGeoapifySalons(query: string) {
