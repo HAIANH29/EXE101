@@ -20,7 +20,8 @@ const navItems: { tab: AdminTab; icon: string; labelKey: string; hintKey: string
   { tab: 'Salons', icon: 'storefront', labelKey: 'tabSalons', hintKey: 'hintSalons' },
   { tab: 'Users', icon: 'group', labelKey: 'tabUsers', hintKey: 'hintUsers' },
   { tab: 'Catalog', icon: 'content_cut', labelKey: 'tabCatalog', hintKey: 'hintCatalog' },
-  { tab: 'Payments', icon: 'payments', labelKey: 'adTabPayments', hintKey: 'adHintPayments', pay: true }
+  { tab: 'Payments', icon: 'payments', labelKey: 'adTabPayments', hintKey: 'adHintPayments', pay: true },
+  { tab: 'Outcome3', icon: 'monitoring', labelKey: 'o3Tab', hintKey: 'o3Hint' }
 ];
 
 export function AdminShell({ currentTab, user, onTabChange, onLogout, children }: AdminShellProps) {

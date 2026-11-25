@@ -4,6 +4,8 @@ import {
   AdminOverview,
   AdminSalonStatus,
   AdminTrafficReport,
+  Outcome3Report,
+  Outcome3Transaction,
   AdminUserStatus,
   CreateSalonOwnerInput,
   Hairstyle,
@@ -23,6 +25,14 @@ export const adminApi = {
 
   getTrafficReport(days = 30) {
     return request<AdminTrafficReport>(`/api/admin/analytics/traffic?days=${days}`);
+  },
+
+  getOutcome3Report() {
+    return request<Outcome3Report>('/api/admin/analytics/outcome3');
+  },
+
+  getOutcome3Transactions(page = 0, size = 100) {
+    return request<Outcome3Transaction[]>(`/api/admin/analytics/outcome3/transactions?page=${page}&size=${size}`);
   },
 
   getSalons(status: AdminSalonStatus | '', page: number, size = 10) {

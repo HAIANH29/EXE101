@@ -1938,3 +1938,108 @@ button {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+.admin-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.o3-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.o3-kpis > div {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--surface-soft);
+}
+
+.o3-kpis span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.o3-kpis strong {
+  display: block;
+  font-size: 26px;
+  margin: 4px 0;
+}
+
+.o3-kpis small,
+.o3-check small {
+  display: block;
+  color: var(--muted);
+}
+
+.o3-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.o3-bar {
+  flex: 1 1 240px;
+  height: 12px;
+  border-radius: 8px;
+  background: var(--surface-soft);
+  overflow: hidden;
+}
+
+.o3-bar i {
+  display: block;
+  height: 100%;
+  background: var(--brand);
+}
+
+.o3-checks {
+  display: grid;
+  gap: 8px;
+}
+
+.o3-check {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface-soft);
+}
+
+.o3-check.ok .material-symbols-outlined {
+  color: #1f9d55;
+}
+
+.o3-check.bad .material-symbols-outlined {
+  color: #d64545;
+}
+
+.o3-table-wrap {
+  overflow-x: auto;
+}
+
+.o3-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.o3-table th,
+.o3-table td {
+  padding: 8px 10px;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--surface-soft);
+}
+
+.o3-table th {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}

@@ -20,6 +20,7 @@ import { AdminSalons } from './components/admin/AdminSalons';
 import { AdminUsers } from './components/admin/AdminUsers';
 import { AdminCatalog } from './components/admin/AdminCatalog';
 import { AdminPayments } from './components/admin/AdminPayments';
+import { AdminOutcome3 } from './components/admin/AdminOutcome3';
 import { AdminTab } from './types/admin';
 
 function isAdminUser(user?: UserAccount) {
@@ -187,6 +188,7 @@ export function App() {
         {adminTab === 'Users' && <AdminUsers currentUserId={user.id} />}
         {adminTab === 'Catalog' && <AdminCatalog />}
         {adminTab === 'Payments' && <AdminPayments />}
+        {adminTab === 'Outcome3' && <AdminOutcome3 />}
       </AdminShell>
     );
   }

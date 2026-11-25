@@ -2,6 +2,7 @@ import { File as FileSystemFile } from 'expo-file-system';
 import { Platform } from 'react-native';
 import { Booking,BookingStatus, GenderCategory, Hairstyle, NotificationItem, Payment, PaymentStatus, PaymentType, Salon, ServiceItem, StylistItem } from '../types';
 import { ApiError, apiRequest, authSessionStore } from './apiClient';
+import { getTrackingSessionId } from './trafficTracker';
 import { unregisterPush } from './pushNotifications';
 
 type PageResponse<T> = {
@@ -686,7 +687,7 @@ export const backendApi = {
     const session = await apiRequest<BackendLoginResponse>('/api/auth/register', {
       method: 'POST',
       auth: false,
-      body: JSON.stringify(input)
+      body: JSON.stringify({ ...input, signupSessionId: getTrackingSessionId() })
     });
     authSessionStore.set(session);
     return session;
