@@ -155,6 +155,8 @@ export function AdminOverview({ onNavigate }: AdminOverviewProps) {
               value={overview.totalBookingsThisMonth}
               note={`${at('ovPendingBookings')}: ${overview.pendingBookings}`}
               icon="calendar_month"
+              tone={overview.pendingBookings > 0 ? 'warning' : ''}
+              onClick={() => onNavigate('Bookings')}
             />
             <Metric
               title={at('ovTryOnUsers')}

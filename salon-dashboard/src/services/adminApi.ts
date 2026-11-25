@@ -1,4 +1,4 @@
-import { PageResponse, PaidUserInfo, PaymentInfo, Salon, UserAccount } from '../types/salon';
+import { Appointment, BackendBookingStatus, PageResponse, PaidUserInfo, PaymentInfo, Salon, UserAccount } from '../types/salon';
 import {
   AdminBookingStats,
   AdminOverview,
@@ -21,6 +21,24 @@ export const adminApi = {
 
   getBookingStats() {
     return request<AdminBookingStats>('/api/dashboard/bookings/statistics');
+  },
+
+  getBookings(status: BackendBookingStatus | '', page: number, size = 15) {
+    const query = new URLSearchParams({ page: String(page), size: String(size) });
+    if (status) query.set('status', status);
+    return request<PageResponse<Appointment>>(`/api/admin/bookings?${query}`);
+  },
+
+  confirmBooking(bookingId: number) {
+    return salonApi.confirmBooking(bookingId);
+  },
+
+  completeBooking(bookingId: number) {
+    return salonApi.completeBooking(bookingId);
+  },
+
+  cancelBooking(bookingId: number, reason = 'Admin hủy lịch hẹn từ cổng quản trị') {
+    return salonApi.cancelBooking(bookingId, reason);
   },
 
   getTrafficReport(days = 30) {

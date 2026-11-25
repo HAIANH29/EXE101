@@ -3,8 +3,13 @@ import { useAdminT } from '../../adminI18n';
 const TONE: Record<string, string> = {
   ACTIVE: 'ok',
   PENDING_APPROVAL: 'warn',
+  PENDING: 'warn',
+  CONFIRMED: 'ok',
+  IN_SERVICE: 'ok',
+  COMPLETED: 'ok',
   INACTIVE: 'muted',
   BANNED: 'bad',
+  CANCELLED: 'bad',
   DELETED: 'muted'
 };
 

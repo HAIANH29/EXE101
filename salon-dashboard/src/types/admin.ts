@@ -1,4 +1,4 @@
-export type AdminTab = 'Overview' | 'Salons' | 'Users' | 'Catalog' | 'Payments' | 'Outcome3';
+export type AdminTab = 'Overview' | 'Bookings' | 'Salons' | 'Users' | 'Catalog' | 'Payments' | 'Outcome3';
 
 export interface AdminOverview {
   totalUsers: number;

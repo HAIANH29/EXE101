@@ -17,6 +17,7 @@ type AdminShellProps = {
 
 const navItems: { tab: AdminTab; icon: string; labelKey: string; hintKey: string; pay?: boolean }[] = [
   { tab: 'Overview', icon: 'dashboard', labelKey: 'tabOverview', hintKey: 'hintOverview' },
+  { tab: 'Bookings', icon: 'calendar_month', labelKey: 'tabBookings', hintKey: 'hintBookings' },
   { tab: 'Salons', icon: 'storefront', labelKey: 'tabSalons', hintKey: 'hintSalons' },
   { tab: 'Users', icon: 'group', labelKey: 'tabUsers', hintKey: 'hintUsers' },
   { tab: 'Catalog', icon: 'content_cut', labelKey: 'tabCatalog', hintKey: 'hintCatalog' },
@@ -29,13 +30,17 @@ export function AdminShell({ currentTab, user, onTabChange, onLogout, children }
   const at = useAdminT();
   const pt = usePayT();
   const [pendingSalonsCount, setPendingSalonsCount] = useState<number>(0);
+  const [pendingBookingsCount, setPendingBookingsCount] = useState<number>(0);
 
   useEffect(() => {
     let mounted = true;
     const fetchPending = async () => {
       try {
         const ov = await adminApi.getOverview();
-        if (mounted) setPendingSalonsCount(ov.pendingApprovalSalons || 0);
+        if (mounted) {
+          setPendingSalonsCount(ov.pendingApprovalSalons || 0);
+          setPendingBookingsCount(ov.pendingBookings || 0);
+        }
       } catch {
         // ignore
       }
@@ -73,6 +78,9 @@ export function AdminShell({ currentTab, user, onTabChange, onLogout, children }
                     <strong>{item.pay ? pt(item.labelKey) : at(item.labelKey)}</strong>
                     {item.tab === 'Salons' && pendingSalonsCount > 0 && (
                       <span className="admin-nav-badge">{pendingSalonsCount}</span>
+                    )}
+                    {item.tab === 'Bookings' && pendingBookingsCount > 0 && (
+                      <span className="admin-nav-badge">{pendingBookingsCount}</span>
                     )}
                   </span>
                   <small>{item.pay ? pt(item.hintKey) : at(item.hintKey)}</small>
