@@ -173,6 +173,7 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public Page<be.exe.booking.dto.response.BookingResponse> getBookings(String statusFilter, Pageable pageable) {
         if (bookingService == null) {
             return Page.empty(pageable);

@@ -431,6 +431,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional(readOnly = true)
+    @SuppressWarnings("null")
     public Page<BookingResponse> getAllBookings(String status, Pageable pageable) {
         if (status != null && !status.isBlank()) {
             try {
@@ -442,6 +443,7 @@ public class BookingServiceImpl implements BookingService {
         return bookingRepository.findAll(pageable).map(this::toEnrichedResponseSafe);
     }
 
+    @SuppressWarnings("null")
     private Booking findOrThrow(Long bookingId) {
         return bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
