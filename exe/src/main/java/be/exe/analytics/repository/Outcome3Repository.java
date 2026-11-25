@@ -149,17 +149,18 @@ public class Outcome3Repository {
 
     public List<TransactionRow> transactions(int limit, int offset) {
         return jdbc.query("""
-                SELECT p.id, p.booking_id, p.customer_id, u.full_name, p.provider, p.reference_code,
+                SELECT p.id, p.booking_id, p.customer_id, u.full_name, u.email, u.phone, p.provider, p.reference_code,
                        p.transaction_id, p.amount, %s, p.status, p.paid_at
                 FROM payments p LEFT JOIN users u ON u.id = p.customer_id
                 WHERE %s
                 ORDER BY p.paid_at DESC NULLS LAST, p.id DESC
                 LIMIT ? OFFSET ?
                 """.formatted(REFUNDED_AMOUNT, PAID), (rs, i) -> {
-            Timestamp paidAt = rs.getTimestamp(11);
+            Timestamp paidAt = rs.getTimestamp(13);
             return new TransactionRow(rs.getLong(1), rs.getLong(2), rs.getLong(3), rs.getString(4),
-                    rs.getString(5), rs.getString(6), rs.getString(7), rs.getBigDecimal(8),
-                    rs.getBigDecimal(9), rs.getString(10), paidAt == null ? null : paidAt.toInstant());
+                    rs.getString(5), rs.getString(6), rs.getString(7), rs.getString(8), rs.getString(9),
+                    rs.getBigDecimal(10), rs.getBigDecimal(11), rs.getString(12),
+                    paidAt == null ? null : paidAt.toInstant());
         }, limit, offset);
     }
 

@@ -97,7 +97,10 @@ class DemoBookingFlowE2ETest {
         assertThat(stylists.path("data").path("content").size()).isGreaterThanOrEqualTo(1);
         assertThat(salonDetail.path("data").path("businessHours").size()).isEqualTo(7);
 
-        Instant startAt = Instant.now().plus(2, ChronoUnit.DAYS).truncatedTo(ChronoUnit.MINUTES);
+        // Cố định 10:00 giờ VN (salon demo mở 09:00-20:00) để test không phụ thuộc giờ chạy.
+        Instant startAt = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh"))
+                .plusDays(2).atTime(10, 0)
+                .atZone(java.time.ZoneId.of("Asia/Ho_Chi_Minh")).toInstant();
         String bookingJson = """
                 {"salonId":%d,"stylistId":%d,"serviceId":%d,"startAt":"%s","note":"E2E demo booking"}
                 """.formatted(salonId, stylistId, serviceId, startAt);
@@ -151,10 +154,12 @@ class DemoBookingFlowE2ETest {
 
     private JsonNode performJson(org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request,
                                  int expectedStatus) throws Exception {
-        var result = mockMvc.perform(request)
-                .andExpect(status().is(expectedStatus))
-                .andReturn();
-        return objectMapper.readTree(result.getResponse().getContentAsString());
+        var result = mockMvc.perform(request).andReturn();
+        String body = result.getResponse().getContentAsString();
+        assertThat(result.getResponse().getStatus())
+                .as("HTTP status (body: %s)", body)
+                .isEqualTo(expectedStatus);
+        return objectMapper.readTree(body);
     }
 
     private boolean containsId(JsonNode items, long id) {
