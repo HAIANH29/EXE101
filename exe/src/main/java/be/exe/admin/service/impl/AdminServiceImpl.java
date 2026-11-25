@@ -32,14 +32,24 @@ public class AdminServiceImpl implements AdminService {
     private final SalonService salonService;
     private final PaymentService paymentService;
     private final ServiceCatalogService serviceCatalogService;
+    private final be.exe.booking.service.BookingService bookingService;
 
     public AdminServiceImpl(AuthService authService, SalonService salonService,
                             PaymentService paymentService,
                             ServiceCatalogService serviceCatalogService) {
+        this(authService, salonService, paymentService, serviceCatalogService, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public AdminServiceImpl(AuthService authService, SalonService salonService,
+                            PaymentService paymentService,
+                            ServiceCatalogService serviceCatalogService,
+                            be.exe.booking.service.BookingService bookingService) {
         this.authService = authService;
         this.salonService = salonService;
         this.paymentService = paymentService;
         this.serviceCatalogService = serviceCatalogService;
+        this.bookingService = bookingService;
     }
 
     // ===== Quản lý người dùng =====
@@ -157,5 +167,16 @@ public class AdminServiceImpl implements AdminService {
     @Transactional(readOnly = true)
     public PaymentResponse getPaymentDetail(Long paymentId) {
         return paymentService.getPaymentForAdmin(paymentId);
+    }
+
+    // ===== Quản lý booking =====
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<be.exe.booking.dto.response.BookingResponse> getBookings(String statusFilter, Pageable pageable) {
+        if (bookingService == null) {
+            return Page.empty(pageable);
+        }
+        return bookingService.getAllBookings(statusFilter, pageable);
     }
 }

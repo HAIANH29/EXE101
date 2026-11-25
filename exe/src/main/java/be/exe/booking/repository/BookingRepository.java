@@ -18,6 +18,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     Page<Booking> findBySalonId(Long salonId, Pageable pageable);
 
+    Page<Booking> findByStatus(BookingStatus status, Pageable pageable);
+
     Page<Booking> findBySalonIdAndStartAtGreaterThanEqualAndStatusNotOrderByStartAtAsc(
             Long salonId, Instant from, BookingStatus status, Pageable pageable);
 

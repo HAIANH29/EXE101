@@ -150,4 +150,16 @@ public class AdminController {
         PaymentResponse response = adminService.refundPayment(principal.getUserId(), paymentId, request);
         return ResponseEntity.ok(ApiResponse.success("Đã ghi nhận hoàn tiền thành công", response));
     }
+
+    // ===== Quản lý lịch hẹn (Bookings) =====
+
+    @GetMapping("/bookings")
+    public ResponseEntity<ApiResponse<PageResponse<be.exe.booking.dto.response.BookingResponse>>> getBookings(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        var pageable = PaginationUtils.of(page, size, "createdAt", "DESC");
+        var result = adminService.getBookings(status, pageable);
+        return ResponseEntity.ok(ApiResponse.success(PageResponse.from(result)));
+    }
 }

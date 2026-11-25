@@ -187,9 +187,15 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public BookingResponse cancelBooking(Long bookingId, Long requesterId, CancelBookingRequest request) {
+        return cancelBooking(bookingId, requesterId, request, false);
+    }
+
+    @Override
+    public BookingResponse cancelBooking(Long bookingId, Long requesterId, CancelBookingRequest request, boolean admin) {
         Booking booking = findOrThrow(bookingId);
 
-        if (!booking.isOwnedBy(requesterId)) {
+        boolean canManage = canManageBooking(booking, requesterId, admin);
+        if (!booking.isOwnedBy(requesterId) && !canManage) {
             throw new ForbiddenException("Bạn không có quyền hủy lịch hẹn này");
         }
 
@@ -199,10 +205,12 @@ public class BookingServiceImpl implements BookingService {
                     "Lịch hẹn đã kết thúc hoặc đã bị hủy trước đó");
         }
 
-        Duration untilStart = Duration.between(Instant.now(), booking.getStartAt());
-        if (untilStart.toHours() < CANCEL_DEADLINE_HOURS) {
-            throw new BusinessException(ErrorCode.BOOKING_CANNOT_CANCEL,
-                    "Chỉ có thể hủy lịch hẹn trước giờ hẹn ít nhất " + CANCEL_DEADLINE_HOURS + " tiếng");
+        if (!canManage) {
+            Duration untilStart = Duration.between(Instant.now(), booking.getStartAt());
+            if (untilStart.toHours() < CANCEL_DEADLINE_HOURS) {
+                throw new BusinessException(ErrorCode.BOOKING_CANNOT_CANCEL,
+                        "Chỉ có thể hủy lịch hẹn trước giờ hẹn ít nhất " + CANCEL_DEADLINE_HOURS + " tiếng");
+            }
         }
 
         booking.cancel();
@@ -210,7 +218,7 @@ public class BookingServiceImpl implements BookingService {
         String reason = (request != null) ? request.getReason() : null;
         eventPublisher.publishEvent(new BookingCancelledEvent(booking.getId(), booking.getCustomerId(), reason));
 
-        return toEnrichedResponse(booking);
+        return toEnrichedResponseSafe(booking);
     }
 
     @Override
@@ -421,28 +429,93 @@ public class BookingServiceImpl implements BookingService {
         return bookingRepository.sumRevenueBySalonIdBetween(salonId, from, to);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Page<BookingResponse> getAllBookings(String status, Pageable pageable) {
+        if (status != null && !status.isBlank()) {
+            try {
+                BookingStatus bookingStatus = BookingStatus.valueOf(status.trim().toUpperCase());
+                return bookingRepository.findByStatus(bookingStatus, pageable).map(this::toEnrichedResponseSafe);
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        return bookingRepository.findAll(pageable).map(this::toEnrichedResponseSafe);
+    }
+
     private Booking findOrThrow(Long bookingId) {
         return bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId));
     }
 
-    private void verifyCanManageBooking(Booking booking, Long requesterId, boolean admin) {
+    private boolean canManageBooking(Booking booking, Long requesterId, boolean admin) {
         if (admin) {
+            return true;
+        }
+        if (requesterId == null) {
+            return false;
+        }
+        try {
+            SalonSummaryResponse salon = salonService.getSalonOrThrow(booking.getSalonId());
+            if (requesterId.equals(salon.ownerId())) {
+                return true;
+            }
+        } catch (RuntimeException ignored) {
+        }
+        try {
+            StylistResponse stylist = stylistService.getStylist(booking.getStylistId());
+            if (booking.getSalonId().equals(stylist.salonId())
+                    && requesterId.equals(stylist.userId())) {
+                return true;
+            }
+        } catch (RuntimeException ignored) {
+        }
+        return false;
+    }
+
+    private void verifyCanManageBooking(Booking booking, Long requesterId, boolean admin) {
+        if (canManageBooking(booking, requesterId, admin)) {
             return;
         }
-
-        SalonSummaryResponse salon = salonService.getSalonOrThrow(booking.getSalonId());
-        if (salon.ownerId().equals(requesterId)) {
-            return;
-        }
-
-        StylistResponse stylist = stylistService.getStylist(booking.getStylistId());
-        if (stylist.salonId().equals(booking.getSalonId())
-                && stylist.userId().equals(requesterId)) {
-            return;
-        }
-
         throw new ForbiddenException("Bạn không có quyền quản lý lịch hẹn này");
+    }
+
+    private BookingResponse toEnrichedResponseSafe(Booking booking) {
+        String salonName = "Salon #" + booking.getSalonId();
+        String salonAddress = "";
+        try {
+            var salon = salonService.getSalonDetail(booking.getSalonId());
+            salonName = salon.name();
+            salonAddress = salon.address();
+        } catch (RuntimeException ignored) {
+        }
+
+        String stylistName = "Stylist #" + booking.getStylistId();
+        try {
+            stylistName = stylistService.getStylist(booking.getStylistId()).fullName();
+        } catch (RuntimeException ignored) {
+        }
+
+        String serviceName = "Dịch vụ #" + booking.getServiceId();
+        try {
+            serviceName = serviceCatalogService.getServiceOrThrow(booking.getServiceId()).name();
+        } catch (RuntimeException ignored) {
+        }
+
+        String hairstyleName = null;
+        if (booking.getHairstyleId() != null) {
+            try {
+                hairstyleName = hairstyleService.getHairstyleOrThrow(booking.getHairstyleId()).name();
+            } catch (RuntimeException ignored) {
+            }
+        }
+
+        return BookingMapper.toResponse(
+                booking,
+                salonName,
+                salonAddress,
+                stylistName,
+                serviceName,
+                hairstyleName);
     }
 
     private BookingResponse toEnrichedResponse(Booking booking) {

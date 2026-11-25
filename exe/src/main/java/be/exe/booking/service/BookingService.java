@@ -22,6 +22,12 @@ public interface BookingService {
 
     BookingResponse cancelBooking(Long bookingId, Long requesterId, CancelBookingRequest request);
 
+    default BookingResponse cancelBooking(Long bookingId, Long requesterId, CancelBookingRequest request, boolean admin) {
+        return cancelBooking(bookingId, requesterId, request);
+    }
+
+    Page<BookingResponse> getAllBookings(String status, Pageable pageable);
+
     BookingResponse rescheduleBooking(Long bookingId, Long requesterId, RescheduleBookingRequest request);
 
     BookingResponse completeBooking(Long bookingId, Long requesterId, boolean admin);

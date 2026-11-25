@@ -44,4 +44,8 @@ public interface AdminService {
     Page<be.exe.payment.dto.response.PaidUserResponse> getPaidUsers(Pageable pageable);
 
     be.exe.payment.dto.response.PaymentResponse getPaymentDetail(Long paymentId);
+
+    // ===== Quản lý booking =====
+
+    Page<be.exe.booking.dto.response.BookingResponse> getBookings(String statusFilter, Pageable pageable);
 }
