@@ -3,7 +3,7 @@ import { useI18n } from '../../i18n';
 import { useAdminT } from '../../adminI18n';
 import { usePayT } from '../../payI18n';
 import { adminApi } from '../../services/adminApi';
-import { PaidUserInfo, PaymentInfo, PaymentStatus, UserAccount } from '../../types/salon';
+import { PaidUserInfo, PaymentInfo, UserAccount } from '../../types/salon';
 import { Pager } from './AdminParts';
 
 /* ────── Sub-tabs ────── */
@@ -66,7 +66,6 @@ export function AdminPayments() {
   /* ── Lookup by ID state ── */
   const [lookupId, setLookupId] = useState('');
   const [lookupLoading, setLookupLoading] = useState(false);
-  const [lookupResult, setLookupResult] = useState<PaymentInfo | null>(null);
   const [lookupError, setLookupError] = useState<string>();
 
   /* ── Detail modal ── */
@@ -150,10 +149,8 @@ export function AdminPayments() {
     }
     setLookupLoading(true);
     setLookupError(undefined);
-    setLookupResult(null);
     try {
       const payment = await adminApi.getPaymentById(id);
-      setLookupResult(payment);
       setDetailPayment(payment);
     } catch (err) {
       setLookupError(err instanceof Error ? err.message : at('genericError'));
