@@ -16,6 +16,7 @@ import java.util.Arrays;
  * vì trình duyệt sẽ chặn (CORS spec không cho phép wildcard origin + credentials).
  */
 @Configuration
+@SuppressWarnings("null")
 public class WebConfig implements WebMvcConfigurer {
 
     @Value("${app.cors.allowed-origins:http://localhost:3000}")
@@ -25,7 +26,6 @@ public class WebConfig implements WebMvcConfigurer {
     private String uploadRootDir;
 
     @Override
-    @SuppressWarnings("null")
     public void addCorsMappings(@NonNull CorsRegistry registry) {
         String[] sanitizedOrigins = Arrays.stream(allowedOrigins)
                 .map(String::trim)
