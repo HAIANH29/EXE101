@@ -503,11 +503,14 @@ export function AdminSalons({ onNavigate: _onNavigate }: AdminSalonsProps) {
     }
   };
 
-  // Lọc tìm kiếm phía client
+  // Lọc bỏ các bản ghi demo Geoapify cũ và lọc tìm kiếm phía client
   const displayedSalons = useMemo(() => {
-    if (!search.trim()) return salons;
+    const realSalons = salons.filter(
+      (s) => s.listingSource !== 'GEOAPIFY_DEMO' && !s.demo
+    );
+    if (!search.trim()) return realSalons;
     const q = search.trim().toLowerCase();
-    return salons.filter(
+    return realSalons.filter(
       (s) =>
         s.name?.toLowerCase().includes(q) ||
         s.address?.toLowerCase().includes(q) ||

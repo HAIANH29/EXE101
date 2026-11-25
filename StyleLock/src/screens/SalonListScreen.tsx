@@ -531,11 +531,9 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
                     <View style={styles.ratingRow}>
                       <Text style={styles.starIcon}>★</Text>
                       <Text style={styles.ratingScore}>
-                        {salon.isExternal
-                          ? 'Geoapify'
-                          : salon.reviewCount > 0
-                            ? salon.rating.toFixed(1)
-                            : (language === 'vi' ? 'Chưa có đánh giá' : 'No reviews')}
+                        {salon.reviewCount > 0
+                          ? salon.rating.toFixed(1)
+                          : (language === 'vi' ? 'Chưa có đánh giá' : 'No reviews')}
                       </Text>
                     </View>
                   </View>
@@ -544,9 +542,7 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
                   <Text style={styles.serviceDesc} numberOfLines={1}>
                     {salon.services.length > 0
                       ? salon.services.slice(0, 3).map((service) => service.name).join(' · ')
-                      : salon.isExternal
-                        ? (language === 'vi' ? 'Địa điểm từ Geoapify' : 'Location from Geoapify')
-                        : (language === 'vi' ? 'Salon chưa cập nhật dịch vụ' : 'Services not updated')}
+                      : (language === 'vi' ? 'Salon chưa cập nhật dịch vụ' : 'Services not updated')}
                   </Text>
 
                   {/* Distance & Location */}
@@ -610,15 +606,13 @@ export const SalonListScreen: React.FC<SalonListScreenProps> = ({ navigation, ro
                   {/* Actions Row (Book Button + Info Button) */}
                   <View style={styles.actionsRow}>
                     <TouchableOpacity
-                      style={[styles.bookBtn, !salon.isExternal && !salon.bookingEligible && { opacity: 0.55 }]}
+                      style={[styles.bookBtn, !salon.bookingEligible && { opacity: 0.55 }]}
                       activeOpacity={0.85}
                       onPress={() => void handleSelectSalon(salon)}
                     >
                       <Text style={styles.bookBtnText}>
-                        {salon.isExternal
-                          ? (language === 'vi' ? 'Xem vị trí' : 'View location')
-                          : !salon.bookingEligible
-                            ? (language === 'vi' ? 'Chưa nhận lịch' : 'Not bookable')
+                        {!salon.bookingEligible
+                          ? (language === 'vi' ? 'Chưa nhận lịch' : 'Not bookable')
                           : (language === 'vi' ? 'Đặt lịch' : 'Book')}
                       </Text>
                     </TouchableOpacity>
