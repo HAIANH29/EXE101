@@ -42,7 +42,7 @@ public interface AuthService {
      * Đăng nhập qua Google OAuth2 - nếu email chưa tồn tại thì tự tạo tài khoản mới (role CUSTOMER),
      * nếu đã tồn tại thì đăng nhập bình thường và cập nhật avatar mới nhất từ Google.
      */
-    LoginResponse loginOrRegisterViaOAuth2(String email, String fullName, String avatarUrl);
+    LoginResponse loginOrRegisterViaOAuth2(String email, String fullName, String avatarUrl, String signupSessionId);
 
     // ===== Dùng bởi module admin =====
 

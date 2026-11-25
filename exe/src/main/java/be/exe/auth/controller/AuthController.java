@@ -71,7 +71,7 @@ public class AuthController {
             @Valid @RequestBody GoogleLoginRequest request) {
         GoogleTokenVerifier.GoogleProfile profile = googleTokenVerifier.verify(request.getIdToken());
         LoginResponse response = authService.loginOrRegisterViaOAuth2(
-                profile.email(), profile.fullName(), profile.avatarUrl());
+                profile.email(), profile.fullName(), profile.avatarUrl(), request.getSignupSessionId());
         return ResponseEntity.ok(ApiResponse.success("Đăng nhập Google thành công", response));
     }
 

@@ -76,6 +76,9 @@ app:
   billing:
     booking-fee: ${STYLELOCK_BOOKING_FEE:5000}
     salon-pro-monthly-fee: ${STYLELOCK_SALON_PRO_MONTHLY_FEE:150000}
+  outcome3:
+    # Ngưỡng giao dịch của G3.1 (mặc định 35; đặt 0 để ẩn % tiến độ, hoặc ghi đè bằng biến môi trường)
+    transaction-threshold: ${OUTCOME3_TRANSACTION_THRESHOLD:35}
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:8082,http://localhost:8081,http://localhost:19006,http://localhost:3000}
 

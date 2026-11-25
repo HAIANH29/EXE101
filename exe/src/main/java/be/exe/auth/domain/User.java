@@ -28,6 +28,10 @@ public class User {
     @Column(name = "phone", length = 20)
     private String phone;
 
+    /** Phiên truy cập (traffic_visits.session_id) lúc đăng ký - dùng để quy kênh UTM cho user. */
+    @Column(name = "signup_session_id", length = 64)
+    private String signupSessionId;
+
     @Column(name = "avatar_url", columnDefinition = "TEXT")
     private String avatarUrl;
 
@@ -118,6 +122,14 @@ public class User {
 
     public String getPhone() {
         return phone;
+    }
+
+    public String getSignupSessionId() {
+        return signupSessionId;
+    }
+
+    public void setSignupSessionId(String signupSessionId) {
+        this.signupSessionId = signupSessionId;
     }
 
     public void setPhone(String phone) {
