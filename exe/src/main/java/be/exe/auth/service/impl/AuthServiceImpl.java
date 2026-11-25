@@ -212,6 +212,7 @@ public class AuthServiceImpl implements AuthService {
         );
 
         user.setPhone(request.getPhone());
+        user.setSignupSessionId(blankToNull(request.getSignupSessionId()));
         user.addRole(customerRole);
 
         userRepository.save(user);
@@ -417,11 +418,12 @@ public class AuthServiceImpl implements AuthService {
     public LoginResponse loginOrRegisterViaOAuth2(
             String email,
             String fullName,
-            String avatarUrl) {
+            String avatarUrl,
+            String signupSessionId) {
 
         User user = userRepository.findByEmail(email)
                 .orElseGet(() ->
-                        createOAuth2User(email, fullName));
+                        createOAuth2User(email, fullName, signupSessionId));
 
         // Cập nhật avatar mới nhất từ Google
         if (avatarUrl != null) {
@@ -437,9 +439,14 @@ public class AuthServiceImpl implements AuthService {
         return buildLoginResponse(user);
     }
 
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
     private User createOAuth2User(
             String email,
-            String fullName) {
+            String fullName,
+            String signupSessionId) {
 
         Role customerRole =
                 roleRepository.findByName(RoleName.CUSTOMER)
@@ -461,6 +468,7 @@ public class AuthServiceImpl implements AuthService {
         );
 
         user.addRole(customerRole);
+        user.setSignupSessionId(blankToNull(signupSessionId));
 
         userRepository.save(user);
 

@@ -64,6 +64,12 @@ function loadGa4() {
   w.gtag('config', measurementId);
 }
 
+/** Phiên truy cập hiện tại (chỉ web) - gửi kèm lúc đăng ký để quy kênh UTM cho user. */
+export function getTrackingSessionId(): string | undefined {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return undefined;
+  return getSessionId();
+}
+
 export function trackVisit() {
   if (Platform.OS !== 'web' || typeof window === 'undefined') return;
   loadGa4();

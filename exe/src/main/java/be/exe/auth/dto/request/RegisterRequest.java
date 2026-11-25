@@ -20,6 +20,18 @@ public class RegisterRequest {
 
     private String phone;
 
+    /** Phiên truy cập của trình duyệt (tuỳ chọn) để quy kênh UTM cho user mới. */
+    @Size(max = 64)
+    private String signupSessionId;
+
+    public String getSignupSessionId() {
+        return signupSessionId;
+    }
+
+    public void setSignupSessionId(String signupSessionId) {
+        this.signupSessionId = signupSessionId;
+    }
+
     public String getEmail() {
         return email;
     }
