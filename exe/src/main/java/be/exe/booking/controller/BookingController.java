@@ -102,7 +102,8 @@ public class BookingController {
             @AuthenticationPrincipal CustomUserDetails principal,
             @PathVariable Long bookingId,
             @RequestBody(required = false) CancelBookingRequest request) {
-        BookingResponse response = bookingService.cancelBooking(bookingId, principal.getUserId(), request);
+        BookingResponse response = bookingService.cancelBooking(
+                bookingId, principal.getUserId(), request, isAdmin(principal));
         return ResponseEntity.ok(ApiResponse.success("Đã hủy lịch hẹn", response));
     }
 
