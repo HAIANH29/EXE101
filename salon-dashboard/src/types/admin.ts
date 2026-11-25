@@ -128,6 +128,8 @@ export interface Outcome3Transaction {
   orderId: number;
   customerId: number;
   customerName: string | null;
+  customerEmail: string | null;
+  customerPhone: string | null;
   paymentMethod: string;
   referenceCode: string | null;
   gatewayTransactionId: string | null;

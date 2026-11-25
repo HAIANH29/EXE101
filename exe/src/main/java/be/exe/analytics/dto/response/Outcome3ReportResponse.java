@@ -76,6 +76,8 @@ public record Outcome3ReportResponse(
             Long orderId,
             Long customerId,
             String customerName,
+            String customerEmail,
+            String customerPhone,
             String paymentMethod,
             String referenceCode,
             String gatewayTransactionId,
