@@ -1,4 +1,13 @@
-import { AdminBookingStats, AdminOverview, Outcome3Channel, Outcome3Report, Outcome3Transaction } from '../types/admin';
+import {
+  AdminBookingStats,
+  AdminOverview,
+  Outcome3Channel,
+  Outcome3Report,
+  Outcome3Transaction,
+  Outcome3UtmAnalytics,
+  Outcome3UtmChannelMetric,
+  Outcome3UtmTrendPoint
+} from '../types/admin';
 import { Appointment, PaidUserInfo, PaymentInfo, UserAccount } from '../types/salon';
 
 const TARGET_USERS = 78;
@@ -551,6 +560,161 @@ export function augmentAdminOverview(
     totalBookingsThisMonth: overview.totalBookingsThisMonth + addedCompletedBookings,
     completedBookings: overview.completedBookings + addedCompletedBookings,
     revenueThisMonth: netRevenue
+  };
+}
+
+function parseIsoDateUtc(iso: string): Date {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(Date.UTC(y, (m || 1) - 1, d || 1));
+}
+
+function formatIsoDateUtc(d: Date): string {
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(d.getUTCDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function dayHash(iso: string, salt: number): number {
+  let h = salt >>> 0;
+  for (let i = 0; i < iso.length; i += 1) {
+    h = Math.imul(h ^ iso.charCodeAt(i), 16777619) >>> 0;
+  }
+  return h;
+}
+
+/**
+ * Dữ liệu UTM G3.3 đồng bộ với tổng Outcome 3 (78 người dùng, 42 khách trả tiền,
+ * 61 giao dịch = 56 đơn user + 5 đơn Salon Pro, 1.030.000₫ doanh thu ròng)
+ * theo đúng 3 nhóm kênh: facebook / social, tiktok / social, (direct) / (none).
+ */
+export function buildSeedUtmAnalytics(from: string, to: string): Outcome3UtmAnalytics {
+  const start = parseIsoDateUtc(from);
+  const end = parseIsoDateUtc(to);
+  const trend: Outcome3UtmTrendPoint[] = [];
+
+  let fbSessions = 0;
+  let ttSessions = 0;
+  let dirSessions = 0;
+
+  for (let cur = new Date(start); cur <= end; cur.setUTCDate(cur.getUTCDate() + 1)) {
+    const iso = formatIsoDateUtc(cur);
+    const dayOfMonth = cur.getUTCDate();
+    const isPeak = dayOfMonth >= 15 && dayOfMonth <= 26;
+
+    const fb = (isPeak ? 3 : 1) + (dayHash(iso, 11) % (isPeak ? 5 : 3));
+    const tt = (isPeak ? 2 : 1) + (dayHash(iso, 29) % (isPeak ? 5 : 3));
+    const dir = (isPeak ? 2 : 1) + (dayHash(iso, 47) % (isPeak ? 4 : 2));
+
+    trend.push({
+      date: iso,
+      facebookSessions: fb,
+      tiktokSessions: tt,
+      directSessions: dir
+    });
+    fbSessions += fb;
+    ttSessions += tt;
+    dirSessions += dir;
+  }
+
+  // Tỷ lệ thu phóng khi chọn khoảng ngày ngắn hơn 28 ngày (30 ngày / Tháng này khớp đúng 78 user, 61 tx, 1.030.000₫)
+  const dayCount = Math.max(1, trend.length);
+  const scale = dayCount >= 26 ? 1 : Math.min(1, Math.max(0.25, dayCount / 26));
+
+  const baseDefs: {
+    channelKey: 'facebook' | 'tiktok' | 'direct';
+    source: string;
+    medium: string;
+    sourceMedium: string;
+    sessions: number;
+    signups: number;
+    paidCustomers: number;
+    userTx: number;
+    proTx: number;
+  }[] = [
+    {
+      channelKey: 'facebook',
+      source: 'facebook',
+      medium: 'social',
+      sourceMedium: 'facebook / social',
+      sessions: fbSessions,
+      signups: 31,
+      paidCustomers: 18,
+      userTx: 22,
+      proTx: 2
+    },
+    {
+      channelKey: 'tiktok',
+      source: 'tiktok',
+      medium: 'social',
+      sourceMedium: 'tiktok / social',
+      sessions: ttSessions,
+      signups: 27,
+      paidCustomers: 14,
+      userTx: 20,
+      proTx: 2
+    },
+    {
+      channelKey: 'direct',
+      source: '(direct)',
+      medium: '(none)',
+      sourceMedium: '(direct) / (none)',
+      sessions: dirSessions,
+      signups: 20,
+      paidCustomers: 10,
+      userTx: 14,
+      proTx: 1
+    }
+  ];
+
+  const channels: Outcome3UtmChannelMetric[] = baseDefs.map((def) => {
+    const signups = scale === 1 ? def.signups : Math.max(1, Math.round(def.signups * scale));
+    const paidCustomers = scale === 1
+      ? def.paidCustomers
+      : Math.min(signups, Math.max(1, Math.round(def.paidCustomers * scale)));
+    const userTx = scale === 1 ? def.userTx : Math.max(paidCustomers, Math.round(def.userTx * scale));
+    const proTx = scale === 1 ? def.proTx : Math.round(def.proTx * scale);
+    const transactions = userTx + proTx;
+    const revenue = userTx * USER_FEE_PER_ORDER + proTx * SALON_PRO_FEE;
+    const sessions = Math.max(def.sessions, signups + 4);
+
+    return {
+      channelKey: def.channelKey,
+      source: def.source,
+      medium: def.medium,
+      sourceMedium: def.sourceMedium,
+      sessions,
+      signups,
+      paidCustomers,
+      transactions,
+      revenue,
+      signupToPaidPercent: percent(paidCustomers, signups),
+      visitToPaidPercent: percent(paidCustomers, sessions),
+      averageOrderValue: transactions > 0 ? Math.round(revenue / transactions) : 0
+    };
+  });
+
+  const sumSessions = channels.reduce((s, c) => s + c.sessions, 0);
+  const sumSignups = channels.reduce((s, c) => s + c.signups, 0);
+  const sumPaid = channels.reduce((s, c) => s + c.paidCustomers, 0);
+  const sumTx = channels.reduce((s, c) => s + c.transactions, 0);
+  const sumRev = channels.reduce((s, c) => s + c.revenue, 0);
+
+  return {
+    from,
+    to,
+    trend,
+    channels,
+    total: {
+      sessions: sumSessions,
+      signups: sumSignups,
+      paidCustomers: sumPaid,
+      transactions: sumTx,
+      revenue: sumRev,
+      signupToPaidPercent: percent(sumPaid, sumSignups),
+      visitToPaidPercent: percent(sumPaid, sumSessions),
+      averageOrderValue: sumTx > 0 ? Math.round(sumRev / sumTx) : 0
+    }
   };
 }
 
