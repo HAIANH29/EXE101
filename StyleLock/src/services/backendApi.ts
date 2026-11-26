@@ -4,6 +4,7 @@ import { Booking,BookingStatus, GenderCategory, Hairstyle, NotificationItem, Pay
 import { ApiError, apiRequest, authSessionStore } from './apiClient';
 import { getTrackingSessionId } from './trafficTracker';
 import { unregisterPush } from './pushNotifications';
+import { mergeSalonReviews, mergeSalonReviewSummary } from '../data/mockSalonReviews';
 
 type PageResponse<T> = {
   content: T[];
@@ -218,6 +219,7 @@ export type BackendReview = {
   id: number;
   bookingId: number;
   customerId: number;
+  customerName?: string;
   salonId: number;
   rating: number;
   comment?: string;
@@ -334,7 +336,8 @@ function mapSalon(
   reviewSummary?: BackendReviewSummary,
   distanceKm?: number
 ): Salon {
-  const rating = Number(reviewSummary?.averageRating || 0);
+  const mergedSummary = mergeSalonReviewSummary(item.id, reviewSummary);
+  const rating = Number(mergedSummary.averageRating || 0);
   const validPrices = services.map((s) => s.price).filter((p) => p > 0);
   const minPrice = validPrices.length > 0 ? Math.min(...validPrices) : undefined;
   const maxPrice = validPrices.length > 0 ? Math.max(...validPrices) : undefined;
@@ -348,7 +351,7 @@ function mapSalon(
     distance: distanceKm === undefined ? (hasCoordinates ? 'Xem trên bản đồ' : 'Chưa có tọa độ') : `${distanceKm} km`,
     distanceKm,
     rating: rating > 0 ? Number(rating.toFixed(1)) : 0,
-    reviewCount: reviewSummary?.totalReviews || 0,
+    reviewCount: mergedSummary.totalReviews || 0,
     priceRange: formatPriceRange(services),
     minPrice,
     maxPrice,
@@ -872,17 +875,22 @@ export const backendApi = {
   },
 
   async getSalonReviewSummary(salonId: number) {
-    return apiRequest<BackendReviewSummary>(`/api/salons/${salonId}/reviews/summary`);
+    const realSummary = await apiRequest<BackendReviewSummary>(`/api/salons/${salonId}/reviews/summary`).catch(
+      () => undefined
+    );
+    return mergeSalonReviewSummary(salonId, realSummary);
   },
 
   async getSalonReviews(salonId: number, page = 0, size = 50) {
     const result = await apiRequest<PageResponse<BackendReview>>(
       `/api/salons/${salonId}/reviews?page=${page}&size=${size}`
-    );
+    ).catch(() => ({ content: [] as BackendReview[], totalElements: 0, totalPages: 1, last: true }));
+    const mergedItems = page === 0 ? mergeSalonReviews(salonId, result.content || []) : (result.content || []);
+    const mockCount = page === 0 ? mergedItems.length - (result.content?.length || 0) : 0;
     return {
-      items: result.content || [],
-      total: result.totalElements || 0,
-      totalPages: result.totalPages || 0,
+      items: mergedItems,
+      total: (result.totalElements || 0) + mockCount,
+      totalPages: Math.max(1, result.totalPages || 1),
       last: result.last ?? true
     };
   },

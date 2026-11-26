@@ -1085,13 +1085,22 @@ export const SalonDetailScreen: React.FC<SalonDetailScreenProps> = ({ navigation
                 <View style={styles.reviewUserRow}>
                   <View style={styles.userAvatarCircle}>
                     <Text style={styles.userAvatarLetter}>
-                      {rev.customerId ? `KH` : `U`}
+                      {rev.customerName
+                        ? rev.customerName
+                            .split(' ')
+                            .filter(Boolean)
+                            .slice(-2)
+                            .map((part) => part[0]?.toUpperCase() || '')
+                            .join('')
+                        : rev.customerId
+                          ? 'KH'
+                          : 'U'}
                     </Text>
                   </View>
 
                   <View style={styles.userNameCol}>
                     <Text style={styles.reviewUserName}>
-                      Khách hàng StyleLock #{rev.customerId}
+                      {rev.customerName || `Khách hàng StyleLock #${rev.customerId}`}
                     </Text>
                     <View style={styles.verifiedRow}>
                       <AppIcon name="check" size={11} color="#34A853" style={{ marginRight: 3 }} />
