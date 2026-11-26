@@ -138,3 +138,44 @@ export interface Outcome3Transaction {
   status: string;
   paidAt: string | null;
 }
+
+export interface Outcome3UtmTrendPoint {
+  date: string;
+  facebookSessions: number;
+  tiktokSessions: number;
+  directSessions: number;
+}
+
+export interface Outcome3UtmChannelMetric {
+  channelKey: 'facebook' | 'tiktok' | 'direct';
+  source: string;
+  medium: string;
+  sourceMedium: string;
+  sessions: number;
+  signups: number;
+  paidCustomers: number;
+  transactions: number;
+  revenue: number;
+  signupToPaidPercent: number;
+  visitToPaidPercent: number;
+  averageOrderValue: number;
+}
+
+export interface Outcome3UtmSummary {
+  sessions: number;
+  signups: number;
+  paidCustomers: number;
+  transactions: number;
+  revenue: number;
+  signupToPaidPercent: number;
+  visitToPaidPercent: number;
+  averageOrderValue: number;
+}
+
+export interface Outcome3UtmAnalytics {
+  from: string;
+  to: string;
+  trend: Outcome3UtmTrendPoint[];
+  channels: Outcome3UtmChannelMetric[];
+  total: Outcome3UtmSummary;
+}

@@ -3,6 +3,7 @@ import { useAdminT } from '../../adminI18n';
 import { adminApi } from '../../services/adminApi';
 import { Outcome3Report, Outcome3Transaction } from '../../types/admin';
 import { buildAugmentedOutcome3 } from '../../data/outcome3Seed';
+import { Outcome3UtmSection } from './Outcome3UtmSection';
 
 const PAGE_SIZE = 20;
 const MIN_REVIEWERS = 10;
@@ -165,46 +166,7 @@ export function AdminOutcome3() {
               />
             </div>
 
-            <h4 className="utm-subtitle">{at('o3Channels')}</h4>
-            {report.channels.length === 0 ? (
-              <div className="empty-row">{at('trEmpty')}</div>
-            ) : (
-              <div className="o3-table-wrap">
-                <table className="o3-table">
-                  <thead>
-                    <tr>
-                      <th>{at('trSource')}</th>
-                      <th>{at('trMedium')}</th>
-                      <th>{at('trSessions')}</th>
-                      <th>{at('o3Signups')}</th>
-                      <th>{at('o3PaidCustomers')}</th>
-                      <th>{at('o3Transactions')}</th>
-                      <th>{at('o3ColRevenue')}</th>
-                      <th>{at('o3ConvSignup')}</th>
-                      <th>{at('o3ConvVisit')}</th>
-                      <th>{at('o3Aov')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {report.channels.map((row) => (
-                      <tr key={`${row.source}|${row.medium}`}>
-                        <td><b>{row.source}</b></td>
-                        <td>{row.medium}</td>
-                        <td>{row.sessions.toLocaleString()}</td>
-                        <td>{row.signups.toLocaleString()}</td>
-                        <td>{row.paidCustomers.toLocaleString()}</td>
-                        <td>{row.transactions.toLocaleString()}</td>
-                        <td>{money(row.revenue)}</td>
-                        <td>{row.signupToPaidPercent}%</td>
-                        <td>{row.visitToPaidPercent}%</td>
-                        <td>{money(row.averageOrderValue)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            <p className="utm-hint">{at('o3ChannelHint')}</p>
+            <Outcome3UtmSection />
           </>
         )}
       </section>

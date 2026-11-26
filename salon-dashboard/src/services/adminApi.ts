@@ -6,6 +6,7 @@ import {
   AdminTrafficReport,
   Outcome3Report,
   Outcome3Transaction,
+  Outcome3UtmAnalytics,
   AdminUserStatus,
   CreateSalonOwnerInput,
   Hairstyle,
@@ -51,6 +52,14 @@ export const adminApi = {
 
   getOutcome3Transactions(page = 0, size = 100) {
     return request<Outcome3Transaction[]>(`/api/admin/analytics/outcome3/transactions?page=${page}&size=${size}`);
+  },
+
+  getOutcome3UtmAnalytics(from?: string, to?: string) {
+    const query = new URLSearchParams();
+    if (from) query.set('from', from);
+    if (to) query.set('to', to);
+    const qs = query.toString();
+    return request<Outcome3UtmAnalytics>(`/api/admin/analytics/outcome3/utm${qs ? `?${qs}` : ''}`);
   },
 
   getSalons(status: AdminSalonStatus | '', page: number, size = 10) {
