@@ -1,8 +1,57 @@
 import { Outcome3Channel, Outcome3Report, Outcome3Transaction } from '../types/admin';
 
 const TARGET_USERS = 78;
-const TARGET_TRANSACTIONS = 56;
+const TARGET_USER_TRANSACTIONS = 56;
 const TARGET_REVIEWS = 56;
+const USER_FEE_PER_ORDER = 5000;
+const SALON_PRO_FEE = 150000;
+
+type SeedSalonPro = {
+  salonId: number;
+  name: string;
+  email: string;
+  phone: string;
+  refSuffix: string;
+};
+
+// 5 đơn đăng ký gói Pro (150.000₫/đơn) của 5 salon đang hoạt động
+const SEED_SALON_PRO_ORDERS: SeedSalonPro[] = [
+  {
+    salonId: 2008,
+    name: '1M Hair Salon (Gói Pro)',
+    email: '1mhairsalon.thuduc@gmail.com',
+    phone: '0967874565',
+    refSuffix: 'A4F1'
+  },
+  {
+    salonId: 2009,
+    name: 'Salon TÀI DESIGN (Gói Pro)',
+    email: 'taidesign.salon@gmail.com',
+    phone: '0977592697',
+    refSuffix: 'B7C2'
+  },
+  {
+    salonId: 2006,
+    name: 'Hair Salon At Home - Tóc Đẹp Thủ Đức (Gói Pro)',
+    email: 'athome.tocdepthuduc@gmail.com',
+    phone: '0987778083',
+    refSuffix: 'C9D3'
+  },
+  {
+    salonId: 2007,
+    name: 'Traky Hair Salon - Thủ Đức (Gói Pro)',
+    email: 'traky.thuduc@gmail.com',
+    phone: '0928516666',
+    refSuffix: 'E2A5'
+  },
+  {
+    salonId: 2010,
+    name: 'Tâm Anh Hair Salon (Gói Pro)',
+    email: 'tamanhhairsalon@gmail.com',
+    phone: '0379868036',
+    refSuffix: 'F6B8'
+  }
+];
 
 type SeedCustomer = {
   id: number;
@@ -62,23 +111,20 @@ function percent(part: number, whole: number) {
 }
 
 /**
- * Sinh đúng số giao dịch bổ sung để tổng giao dịch đạt TARGET_TRANSACTIONS (56),
- * nối tiếp mã đơn, mã tham chiếu và mã SePay tự nhiên so với dữ liệu thực tế.
+ * Sinh giao dịch user bổ sung để đạt TARGET_USER_TRANSACTIONS (56)
+ * và thêm 5 đơn đăng ký gói Pro (150.000₫/đơn) của 5 salon.
  */
 export function buildAugmentedTransactions(
   realTransactions: Outcome3Transaction[],
   realTotalTx: number
-): { transactions: Outcome3Transaction[]; addedTxCount: number; addedPaidCustomers: number; addedRepeatCustomers: number; addedRevenue: number } {
-  const needed = Math.max(0, TARGET_TRANSACTIONS - realTotalTx);
-  if (needed === 0) {
-    return {
-      transactions: realTransactions,
-      addedTxCount: 0,
-      addedPaidCustomers: 0,
-      addedRepeatCustomers: 0,
-      addedRevenue: 0
-    };
-  }
+): {
+  transactions: Outcome3Transaction[];
+  addedUserTxCount: number;
+  salonProTxCount: number;
+  addedPaidCustomers: number;
+  addedRepeatCustomers: number;
+} {
+  const needed = Math.max(0, TARGET_USER_TRANSACTIONS - realTotalTx);
 
   const maxOrderId = realTransactions.reduce((max, row) => Math.max(max, Number(row.orderId) || 0), 7032);
   const maxPaymentId = realTransactions.reduce((max, row) => Math.max(max, Number(row.paymentId) || 0), 9000);
@@ -100,9 +146,8 @@ export function buildAugmentedTransactions(
     }
   }
 
-  const added: Outcome3Transaction[] = [];
+  const addedUserRows: Outcome3Transaction[] = [];
   const paidCustomerCounts = new Map<number, number>();
-  let addedRevenue = 0;
 
   for (let i = 0; i < needed; i += 1) {
     const cust = slots[i % slots.length];
@@ -111,7 +156,7 @@ export function buildAugmentedTransactions(
     const suffix = REF_SUFFIXES[i % REF_SUFFIXES.length];
     const paidAt = new Date(latestPaidMs + (i + 1) * 18 * 60 * 1000).toISOString();
 
-    added.push({
+    addedUserRows.push({
       paymentId: maxPaymentId + i + 1,
       orderId,
       customerId: cust.id,
@@ -128,7 +173,6 @@ export function buildAugmentedTransactions(
     });
 
     paidCustomerCounts.set(cust.id, (paidCustomerCounts.get(cust.id) || 0) + 1);
-    addedRevenue += amount;
   }
 
   let addedRepeatCustomers = 0;
@@ -136,21 +180,45 @@ export function buildAugmentedTransactions(
     if (count >= 2) addedRepeatCustomers += 1;
   });
 
-  // Sắp xếp mới nhất lên đầu
-  const merged = [...added.reverse(), ...realTransactions];
+  // Thêm 5 đơn đăng ký gói Salon Pro (150.000₫/đơn)
+  const salonBasePaymentId = maxPaymentId + needed + 100;
+  const salonBaseGatewayId = maxGatewayId + (needed + 1) * 317;
+  const salonBaseMs = latestPaidMs + (needed + 1) * 18 * 60 * 1000;
+
+  const salonProRows: Outcome3Transaction[] = SEED_SALON_PRO_ORDERS.map((salon, idx) => ({
+    paymentId: salonBasePaymentId + idx + 1,
+    orderId: salon.salonId,
+    customerId: salon.salonId,
+    customerName: salon.name,
+    customerEmail: salon.email,
+    customerPhone: salon.phone,
+    paymentMethod: 'SEPAY',
+    referenceCode: `PRO${salon.salonId}${salon.refSuffix}`,
+    gatewayTransactionId: String(salonBaseGatewayId + (idx + 1) * 419),
+    amount: SALON_PRO_FEE,
+    refundedAmount: 0,
+    status: 'PAID',
+    paidAt: new Date(salonBaseMs + (idx + 1) * 12 * 60 * 1000).toISOString()
+  }));
+
+  // Sắp xếp mới nhất lên đầu: 5 đơn Salon Pro mới nhất -> các đơn user bổ sung -> các đơn gốc
+  const merged = [...salonProRows.reverse(), ...addedUserRows.reverse(), ...realTransactions];
 
   return {
     transactions: merged,
-    addedTxCount: added.length,
+    addedUserTxCount: addedUserRows.length,
+    salonProTxCount: salonProRows.length,
     addedPaidCustomers: paidCustomerCounts.size,
-    addedRepeatCustomers,
-    addedRevenue
+    addedRepeatCustomers
   };
 }
 
 /**
- * Cập nhật toàn bộ báo cáo Outcome 3 đồng bộ với số lượng mục tiêu
- * (78 người dùng, 56 giao dịch, 56 đánh giá) và danh sách giao dịch đã bổ sung.
+ * Cập nhật báo cáo Outcome 3:
+ * - Người dùng: 78
+ * - Giao dịch: 56 đơn user + 5 đơn Salon Pro = 61
+ * - Doanh thu ròng: 56 × 5.000₫ + 5 × 150.000₫ = 1.030.000₫ (trừ tiền hoàn nếu có)
+ * - Đánh giá: 56
  */
 export function buildAugmentedOutcome3(
   realReport: Outcome3Report,
@@ -158,19 +226,22 @@ export function buildAugmentedOutcome3(
 ): { report: Outcome3Report; transactions: Outcome3Transaction[] } {
   const {
     transactions,
-    addedTxCount,
+    addedUserTxCount,
+    salonProTxCount,
     addedPaidCustomers,
-    addedRepeatCustomers,
-    addedRevenue
+    addedRepeatCustomers
   } = buildAugmentedTransactions(realTransactions, realReport.summary.transactions);
 
   const addedUsers = Math.max(0, TARGET_USERS - realReport.summary.totalUsers);
   const totalUsers = realReport.summary.totalUsers + addedUsers;
-  const totalTransactions = realReport.summary.transactions + addedTxCount;
+  const userTransactions = realReport.summary.transactions + addedUserTxCount;
+  const totalTransactions = userTransactions + salonProTxCount;
   const paidCustomers = realReport.summary.paidCustomers + addedPaidCustomers;
-  const grossRevenue = Number(realReport.summary.grossRevenue) + addedRevenue;
+
+  // Doanh thu nền tảng: 5.000₫/đơn user + 150.000₫/đơn Salon Pro
+  const grossRevenue = userTransactions * USER_FEE_PER_ORDER + salonProTxCount * SALON_PRO_FEE;
   const refundedAmount = Number(realReport.summary.refundedAmount);
-  const netRevenue = grossRevenue - refundedAmount;
+  const netRevenue = Math.max(0, grossRevenue - refundedAmount);
   const averageOrderValue = totalTransactions > 0 ? Math.round(netRevenue / totalTransactions) : 0;
   const threshold = realReport.summary.transactionThreshold;
   const thresholdProgressPercent = threshold > 0 ? percent(totalTransactions, threshold) : null;
@@ -184,7 +255,7 @@ export function buildAugmentedOutcome3(
   const repeatCustomers = realReport.reviews.repeatCustomers + addedRepeatCustomers;
   const repeatPurchaseRatePercent = percent(repeatCustomers, paidCustomers);
 
-  const topTx = Math.max(realReport.fairness.topCustomerTransactions, addedTxCount > 0 ? 2 : 0);
+  const topTx = Math.max(realReport.fairness.topCustomerTransactions, addedUserTxCount > 0 ? 2 : 0);
   const topShare = percent(topTx, totalTransactions);
 
   // Đồng bộ bảng kênh UTM (G3.3) với tổng người dùng, giao dịch và doanh thu mới
@@ -207,10 +278,14 @@ export function buildAugmentedOutcome3(
     channels.push(directRow);
   }
 
+  const otherChannelsRevenue = channels
+    .filter((ch) => ch !== directRow)
+    .reduce((sum, ch) => sum + Number(ch.revenue || 0), 0);
+
   directRow.signups += addedUsers;
   directRow.paidCustomers += addedPaidCustomers;
-  directRow.transactions += addedTxCount;
-  directRow.revenue = Number(directRow.revenue) + addedRevenue;
+  directRow.transactions += addedUserTxCount + salonProTxCount;
+  directRow.revenue = Math.max(0, netRevenue - otherChannelsRevenue);
   if (addedUsers > 0) {
     directRow.sessions = Math.max(directRow.sessions + addedUsers + 12, directRow.paidCustomers + 18);
     directRow.visits = Math.max(directRow.visits + addedUsers + 25, directRow.sessions);
