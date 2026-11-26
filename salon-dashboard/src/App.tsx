@@ -22,6 +22,7 @@ import { AdminUsers } from './components/admin/AdminUsers';
 import { AdminCatalog } from './components/admin/AdminCatalog';
 import { AdminPayments } from './components/admin/AdminPayments';
 import { AdminOutcome3 } from './components/admin/AdminOutcome3';
+import { PublicOutcome3Page } from './components/admin/PublicOutcome3Page';
 import { AdminTab } from './types/admin';
 
 function isAdminUser(user?: UserAccount) {
@@ -42,6 +43,7 @@ export function App() {
   const [creatingSalon, setCreatingSalon] = useState(false);
   const [authError, setAuthError] = useState<string>();
   const [booting, setBooting] = useState(true);
+  const [showLogin, setShowLogin] = useState(false);
 
   const selectedSalon = useMemo(
     () => salons.find((salon) => salon.id === selectedSalonId),
@@ -178,6 +180,9 @@ export function App() {
   }
 
   if (!user || authError) {
+    if (!showLogin) {
+      return <PublicOutcome3Page onOpenLogin={() => setShowLogin(true)} />;
+    }
     return <LoginScreen error={authError} onLogin={handleLogin} />;
   }
 

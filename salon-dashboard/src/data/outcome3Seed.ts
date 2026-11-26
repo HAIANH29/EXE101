@@ -718,3 +718,78 @@ export function buildSeedUtmAnalytics(from: string, to: string): Outcome3UtmAnal
   };
 }
 
+const PUBLIC_BASELINE_REPORT: Outcome3Report = {
+  summary: {
+    grossRevenue: 2680000,
+    refundedAmount: 0,
+    netRevenue: 2680000,
+    totalUsers: 33,
+    transactions: 21,
+    paidCustomers: 13,
+    reviews: 1,
+    averageOrderValue: 127619,
+    transactionThreshold: 35,
+    thresholdProgressPercent: 60
+  },
+  fairness: {
+    topCustomerTransactions: 4,
+    topCustomerSharePercent: 19,
+    maxAllowedSharePercent: 20,
+    withinLimit: true
+  },
+  reviews: {
+    reviewedPaidCustomers: 1,
+    reviewRatePercent: 7.7,
+    averageRating: 5,
+    repeatCustomers: 6,
+    repeatPurchaseRatePercent: 46.2
+  },
+  channels: [
+    {
+      source: 'direct',
+      medium: 'none',
+      visits: 25,
+      sessions: 15,
+      signups: 33,
+      paidCustomers: 13,
+      transactions: 21,
+      revenue: 2680000,
+      signupToPaidPercent: 39.4,
+      visitToPaidPercent: 86.7,
+      averageOrderValue: 127619
+    }
+  ]
+};
+
+const PUBLIC_BASELINE_TRANSACTIONS: Outcome3Transaction[] = [
+  { paymentId: 8032, orderId: 7032, customerId: 1032, customerName: 'Nguyễn Việt Khánh', customerEmail: 'annhamat23@gmail.com', customerPhone: null, paymentMethod: 'SEPAY', referenceCode: 'DH70326605', gatewayTransactionId: '102586153', amount: 125000, refundedAmount: 0, status: 'PAID', paidAt: '2026-11-25T14:40:38.000Z' },
+  { paymentId: 8031, orderId: 7031, customerId: 1032, customerName: 'Nguyễn Việt Khánh', customerEmail: 'annhamat23@gmail.com', customerPhone: null, paymentMethod: 'SEPAY', referenceCode: 'DH703143D0', gatewayTransactionId: '102585966', amount: 125000, refundedAmount: 0, status: 'PAID', paidAt: '2026-11-25T14:39:54.000Z' },
+  { paymentId: 8030, orderId: 7030, customerId: 1030, customerName: 'Trần Việt An', customerEmail: 'annhamat012@gmail.com', customerPhone: null, paymentMethod: 'SEPAY', referenceCode: 'DH7030246B', gatewayTransactionId: '102585299', amount: 125000, refundedAmount: 0, status: 'PAID', paidAt: '2026-11-25T14:37:35.000Z' },
+  { paymentId: 8029, orderId: 7029, customerId: 1030, customerName: 'Trần Việt An', customerEmail: 'annhamat012@gmail.com', customerPhone: null, paymentMethod: 'SEPAY', referenceCode: 'DH70296DF0', gatewayTransactionId: '102584510', amount: 125000, refundedAmount: 0, status: 'PAID', paidAt: '2026-11-25T14:34:49.000Z' },
+  { paymentId: 8028, orderId: 7028, customerId: 1028, customerName: 'Đinh Bùi', customerEmail: 'dinhbui0125@gmail.com', customerPhone: null, paymentMethod: 'SEPAY', referenceCode: 'DH7028B9D1', gatewayTransactionId: '102524803', amount: 125000, refundedAmount: 0, status: 'PAID', paidAt: '2026-11-25T10:59:00.000Z' },
+  { paymentId: 8027, orderId: 7027, customerId: 1027, customerName: 'Anh Trần', customerEmail: 'anht96363@gmail.com', customerPhone: null, paymentMethod: 'SEPAY', referenceCode: 'DH70271EC4', gatewayTransactionId: '102523644', amount: 125000, refundedAmount: 0, status: 'PAID', paidAt: '2026-11-25T10:54:48.000Z' },
+  { paymentId: 8026, orderId: 7026, customerId: 1026, customerName: 'Triều Thiên', customerEmail: 'trieuthien26011@gmail.com', customerPhone: null, paymentMethod: 'SEPAY', referenceCode: 'DH70263601', gatewayTransactionId: '102522667', amount: 125000, refundedAmount: 0, status: 'PAID', paidAt: '2026-11-25T10:51:21.000Z' },
+  { paymentId: 8025, orderId: 7025, customerId: 1025, customerName: 'Lý Trần', customerEmail: 'tly541259@gmail.com', customerPhone: null, paymentMethod: 'SEPAY', referenceCode: 'DH70256A11', gatewayTransactionId: '102521411', amount: 125000, refundedAmount: 0, status: 'PAID', paidAt: '2026-11-25T10:47:11.000Z' },
+  { paymentId: 8024, orderId: 7024, customerId: 1025, customerName: 'Lý Trần', customerEmail: 'tly541259@gmail.com', customerPhone: null, paymentMethod: 'SEPAY', referenceCode: 'DH70241B46', gatewayTransactionId: '102520173', amount: 125000, refundedAmount: 0, status: 'PAID', paidAt: '2026-11-25T10:43:28.000Z' },
+  { paymentId: 8022, orderId: 7022, customerId: 1022, customerName: 'Lê Văn Minh', customerEmail: 'lm7333106@gmail.com', customerPhone: null, paymentMethod: 'SEPAY', referenceCode: 'DH70220C2D', gatewayTransactionId: '102516556', amount: 125000, refundedAmount: 0, status: 'PAID', paidAt: '2026-11-25T10:32:12.000Z' },
+  { paymentId: 8021, orderId: 7021, customerId: 1021, customerName: 'Phước', customerEmail: 'ple46524@gmail.com', customerPhone: null, paymentMethod: 'SEPAY', referenceCode: 'DH70214B33', gatewayTransactionId: '102514300', amount: 125000, refundedAmount: 0, status: 'PAID', paidAt: '2026-11-25T10:25:29.000Z' },
+  { paymentId: 8020, orderId: 7020, customerId: 1020, customerName: 'Nam', customerEmail: 'quangle3121@gmail.com', customerPhone: null, paymentMethod: 'SEPAY', referenceCode: 'DH702078F3', gatewayTransactionId: '100576897', amount: 125000, refundedAmount: 0, status: 'PAID', paidAt: '2026-11-18T10:42:56.000Z' },
+  { paymentId: 8019, orderId: 7019, customerId: 1019, customerName: 'Lâm Thiên Hải Anh', customerEmail: 'haianhlam29052005@gmail.com', customerPhone: null, paymentMethod: 'SEPAY', referenceCode: 'DH701973D1', gatewayTransactionId: '98877017', amount: 125000, refundedAmount: 0, status: 'PAID', paidAt: '2026-11-12T14:29:14.000Z' },
+  { paymentId: 8018, orderId: 7018, customerId: 1019, customerName: 'Lâm Thiên Hải Anh', customerEmail: 'haianhlam29052005@gmail.com', customerPhone: null, paymentMethod: 'SEPAY', referenceCode: 'DH70183674', gatewayTransactionId: '98865184', amount: 125000, refundedAmount: 0, status: 'PAID', paidAt: '2026-11-12T13:48:48.000Z' },
+  { paymentId: 8016, orderId: 7016, customerId: 1016, customerName: 'Quang', customerEmail: 'vothithanhtam6458@gmail.com', customerPhone: null, paymentMethod: 'SEPAY', referenceCode: 'DH70165C85', gatewayTransactionId: '94332167', amount: 155000, refundedAmount: 0, status: 'PAID', paidAt: '2026-10-29T13:34:28.000Z' },
+  { paymentId: 8011, orderId: 7011, customerId: 1011, customerName: 'Quang', customerEmail: 'levonhatquang11@gmail.com', customerPhone: null, paymentMethod: 'SEPAY', referenceCode: 'DH7011D0C7', gatewayTransactionId: '94322708', amount: 5000, refundedAmount: 0, status: 'PAID', paidAt: '2026-10-29T13:05:41.000Z' },
+  { paymentId: 8013, orderId: 7013, customerId: 1011, customerName: 'Quang', customerEmail: 'levonhatquang11@gmail.com', customerPhone: null, paymentMethod: 'SEPAY', referenceCode: 'DH70132481', gatewayTransactionId: '94321792', amount: 5000, refundedAmount: 0, status: 'PAID', paidAt: '2026-10-29T13:03:22.000Z' },
+  { paymentId: 8012, orderId: 7012, customerId: 1011, customerName: 'Quang', customerEmail: 'levonhatquang11@gmail.com', customerPhone: null, paymentMethod: 'SEPAY', referenceCode: 'DH70120B50', gatewayTransactionId: '94302521', amount: 5000, refundedAmount: 0, status: 'PAID', paidAt: '2026-10-29T12:07:14.000Z' },
+  { paymentId: 8008, orderId: 7008, customerId: 1011, customerName: 'Quang', customerEmail: 'levonhatquang11@gmail.com', customerPhone: null, paymentMethod: 'SEPAY', referenceCode: 'DH70083173', gatewayTransactionId: '92506695', amount: 155000, refundedAmount: 0, status: 'PAID', paidAt: '2026-10-23T09:55:13.000Z' },
+  { paymentId: 8007, orderId: 7007, customerId: 1007, customerName: 'Nguyen Van Min', customerEmail: 'customer@stylelock.test', customerPhone: null, paymentMethod: 'SEPAY', referenceCode: 'DH7007506A', gatewayTransactionId: '90254422', amount: 155000, refundedAmount: 0, status: 'PAID', paidAt: '2026-10-15T15:26:01.000Z' },
+  { paymentId: 8006, orderId: 7006, customerId: 1006, customerName: 'Trần Minh Hải', customerEmail: 'minhhai.tr01@gmail.com', customerPhone: null, paymentMethod: 'SEPAY', referenceCode: 'DH700641B2', gatewayTransactionId: '90184210', amount: 125000, refundedAmount: 0, status: 'PAID', paidAt: '2026-10-14T10:15:22.000Z' }
+];
+
+/** Dữ liệu đầy đủ cho trang Báo cáo doanh thu công khai (không cần đăng nhập). */
+export function buildPublicOutcome3Fallback(): {
+  report: Outcome3Report;
+  transactions: Outcome3Transaction[];
+} {
+  return buildAugmentedOutcome3(PUBLIC_BASELINE_REPORT, PUBLIC_BASELINE_TRANSACTIONS);
+}
+
