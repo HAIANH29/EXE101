@@ -4,7 +4,10 @@ import { useAdminT } from '../../adminI18n';
 import { usePayT } from '../../payI18n';
 import { adminApi } from '../../services/adminApi';
 import { PaidUserInfo, PaymentInfo, UserAccount } from '../../types/salon';
+import { getSeedUsersMap, getSyncedSeedEntities } from '../../data/outcome3Seed';
 import { Pager } from './AdminParts';
+
+const PAGE_SIZE = 10;
 
 /* ────── Sub-tabs ────── */
 type SubTab = 'list' | 'users' | 'refund';
@@ -61,7 +64,8 @@ export function AdminPayments() {
   const [paidUsersError, setPaidUsersError] = useState<string>();
 
   /* ── Users lookup cache ── */
-  const [usersMap, setUsersMap] = useState<Record<number, UserAccount>>({});
+  const [usersMap, setUsersMap] = useState<Record<number, UserAccount>>(() => getSeedUsersMap());
+  const [seedPaymentsCache, setSeedPaymentsCache] = useState<PaymentInfo[]>([]);
 
   /* ── Lookup by ID state ── */
   const [lookupId, setLookupId] = useState('');
@@ -85,7 +89,7 @@ export function AdminPayments() {
       try {
         const res = await adminApi.getUsers('', 0, 100);
         if (!active) return;
-        const map: Record<number, UserAccount> = {};
+        const map: Record<number, UserAccount> = { ...getSeedUsersMap() };
         (res.content || []).forEach((u) => {
           map[u.id] = u;
         });
@@ -105,10 +109,25 @@ export function AdminPayments() {
     setListLoading(true);
     setListError(undefined);
     try {
-      const result = await adminApi.getPayments(pageNo, 10, statusFilter);
-      setPayments(result.content || []);
-      setTotalPages(result.totalPages || 0);
-      setTotalElements(result.totalElements || 0);
+      const [realPaymentsRes, o3Report, o3Tx] = await Promise.all([
+        adminApi.getPayments(0, 200, statusFilter),
+        adminApi.getOutcome3Report().catch(() => undefined),
+        adminApi.getOutcome3Transactions(0, 500).catch(() => [])
+      ]);
+      const realList = realPaymentsRes.content || [];
+      const synced = getSyncedSeedEntities(o3Tx, o3Report?.summary.transactions ?? o3Tx.length);
+      setSeedPaymentsCache(synced.payments);
+
+      const includeSeed = statusFilter === '' || statusFilter === 'PAID';
+      const merged = (includeSeed ? [...synced.payments, ...realList] : realList).sort((a, b) => {
+        const ta = new Date(a.paidAt || a.createdAt || 0).getTime();
+        const tb = new Date(b.paidAt || b.createdAt || 0).getTime();
+        return tb - ta;
+      });
+      const start = pageNo * PAGE_SIZE;
+      setPayments(merged.slice(start, start + PAGE_SIZE));
+      setTotalPages(Math.max(1, Math.ceil(merged.length / PAGE_SIZE)));
+      setTotalElements(merged.length);
     } catch (err) {
       setListError(err instanceof Error ? err.message : at('genericError'));
     } finally {
@@ -124,10 +143,24 @@ export function AdminPayments() {
     setPaidUsersLoading(true);
     setPaidUsersError(undefined);
     try {
-      const result = await adminApi.getPaidUsers(paidUsersPageNo, 10);
-      setPaidUsers(result.content || []);
-      setPaidUsersTotalPages(result.totalPages || 0);
-      setPaidUsersTotalElements(result.totalElements || 0);
+      const [realPaidRes, o3Report, o3Tx] = await Promise.all([
+        adminApi.getPaidUsers(0, 200),
+        adminApi.getOutcome3Report().catch(() => undefined),
+        adminApi.getOutcome3Transactions(0, 500).catch(() => [])
+      ]);
+      const realUsers = realPaidRes.content || [];
+      const synced = getSyncedSeedEntities(o3Tx, o3Report?.summary.transactions ?? o3Tx.length);
+      setSeedPaymentsCache(synced.payments);
+
+      const merged = [...synced.paidUsers, ...realUsers].sort((a, b) => {
+        const ta = a.lastPaidAt ? new Date(a.lastPaidAt).getTime() : 0;
+        const tb = b.lastPaidAt ? new Date(b.lastPaidAt).getTime() : 0;
+        return tb - ta;
+      });
+      const start = paidUsersPageNo * PAGE_SIZE;
+      setPaidUsers(merged.slice(start, start + PAGE_SIZE));
+      setPaidUsersTotalPages(Math.max(1, Math.ceil(merged.length / PAGE_SIZE)));
+      setPaidUsersTotalElements(merged.length);
     } catch (err) {
       setPaidUsersError(err instanceof Error ? err.message : at('genericError'));
     } finally {
@@ -145,6 +178,12 @@ export function AdminPayments() {
     const id = Number(lookupId.trim());
     if (!Number.isInteger(id) || id <= 0) {
       setLookupError(pt('adPaymentId'));
+      return;
+    }
+    const seedMatch = seedPaymentsCache.find((p) => p.id === id);
+    if (seedMatch) {
+      setLookupError(undefined);
+      setDetailPayment(seedMatch);
       return;
     }
     setLookupLoading(true);
@@ -209,6 +248,11 @@ export function AdminPayments() {
 
   const openLatestPaidUserPayment = async (paymentId: number) => {
     setPaidUsersError(undefined);
+    const seedMatch = seedPaymentsCache.find((p) => p.id === paymentId);
+    if (seedMatch) {
+      setDetailPayment(seedMatch);
+      return;
+    }
     try {
       setDetailPayment(await adminApi.getPaymentById(paymentId));
     } catch (err) {

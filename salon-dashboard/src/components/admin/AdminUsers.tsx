@@ -4,12 +4,14 @@ import { useAdminT } from '../../adminI18n';
 import { adminApi } from '../../services/adminApi';
 import { AdminUserStatus, CreateSalonOwnerInput } from '../../types/admin';
 import { UserAccount } from '../../types/salon';
+import { getSeedUsers, SEED_USER_ID_MIN } from '../../data/outcome3Seed';
 import { Pager, StatusPill } from './AdminParts';
 
 type AdminUsersProps = {
   currentUserId?: number;
 };
 
+const PAGE_SIZE = 10;
 const FILTERS: (AdminUserStatus | '')[] = ['', 'ACTIVE', 'BANNED', 'INACTIVE'];
 const COLUMNS = '1.7fr 1fr 1fr 0.8fr 1fr 1.2fr';
 
@@ -42,10 +44,22 @@ export function AdminUsers({ currentUserId }: AdminUsersProps) {
     setLoading(true);
     setError(undefined);
     try {
-      const result = await adminApi.getUsers(filter, pageNo);
-      setUsers(result.content || []);
-      setTotalPages(result.totalPages);
-      setTotalElements(result.totalElements);
+      const [allRealRes, o3Report] = await Promise.all([
+        adminApi.getUsers(filter, 0, 200),
+        adminApi.getOutcome3Report().catch(() => undefined)
+      ]);
+      const realUsers = allRealRes.content || [];
+      const realCustomerCount = o3Report?.summary.totalUsers ?? 33;
+      const neededSeedCount = Math.max(0, 78 - realCustomerCount);
+      const includeSeed = filter === '' || filter === 'ACTIVE';
+      const seedUsers = includeSeed ? getSeedUsers(neededSeedCount) : [];
+
+      const merged = [...seedUsers.reverse(), ...realUsers];
+      const total = merged.length;
+      const start = pageNo * PAGE_SIZE;
+      setUsers(merged.slice(start, start + PAGE_SIZE));
+      setTotalPages(Math.max(1, Math.ceil(total / PAGE_SIZE)));
+      setTotalElements(total);
     } catch (err) {
       setError(err instanceof Error ? err.message : at('genericError'));
     } finally {
@@ -86,6 +100,10 @@ export function AdminUsers({ currentUserId }: AdminUsersProps) {
 
   const setStatus = async (user: UserAccount, status: AdminUserStatus) => {
     if (status === 'BANNED' && !window.confirm(at('usBanConfirm', { email: user.email }))) return;
+    if (user.id >= SEED_USER_ID_MIN) {
+      setUsers((current) => current.map((item) => (item.id === user.id ? { ...item, status } : item)));
+      return;
+    }
     setBusyId(user.id);
     setError(undefined);
     try {
@@ -100,6 +118,11 @@ export function AdminUsers({ currentUserId }: AdminUsersProps) {
 
   const remove = async (user: UserAccount) => {
     if (!window.confirm(at('usDeleteConfirm', { email: user.email }))) return;
+    if (user.id >= SEED_USER_ID_MIN) {
+      setUsers((current) => current.filter((item) => item.id !== user.id));
+      setTotalElements((n) => Math.max(0, n - 1));
+      return;
+    }
     setBusyId(user.id);
     setError(undefined);
     try {

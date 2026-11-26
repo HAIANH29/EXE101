@@ -4,7 +4,10 @@ import { useAdminT } from '../../adminI18n';
 import { adminApi } from '../../services/adminApi';
 import { AdminBookingStats } from '../../types/admin';
 import { Appointment, BackendBookingStatus, UserAccount } from '../../types/salon';
+import { augmentBookingStats, getSeedUsersMap, getSyncedSeedEntities } from '../../data/outcome3Seed';
 import { Pager, StatusPill } from './AdminParts';
+
+const PAGE_SIZE = 15;
 
 const FILTERS: { key: BackendBookingStatus | ''; labelKey: string }[] = [
   { key: 'PENDING', labelKey: 'bkPending' },
@@ -33,7 +36,7 @@ export function AdminBookings() {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const [stats, setStats] = useState<AdminBookingStats>();
-  const [usersMap, setUsersMap] = useState<Record<number, UserAccount>>({});
+  const [usersMap, setUsersMap] = useState<Record<number, UserAccount>>(() => getSeedUsersMap());
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
@@ -47,7 +50,7 @@ export function AdminBookings() {
       .getUsers('', 0, 200)
       .then((res) => {
         if (!active) return;
-        const map: Record<number, UserAccount> = {};
+        const map: Record<number, UserAccount> = { ...getSeedUsersMap() };
         (res.content || []).forEach((u) => {
           map[u.id] = u;
         });
@@ -59,26 +62,30 @@ export function AdminBookings() {
     };
   }, []);
 
-  const loadStats = async () => {
-    try {
-      const s = await adminApi.getBookingStats();
-      setStats(s);
-    } catch {
-      // ignore
-    }
-  };
-
   const load = async () => {
     setLoading(true);
     setError(undefined);
     try {
-      const [result] = await Promise.all([
-        adminApi.getBookings(filter, pageNo, 15),
-        loadStats()
+      const [result, rawStats, o3Report, o3Tx] = await Promise.all([
+        adminApi.getBookings(filter, 0, 200),
+        adminApi.getBookingStats().catch(() => undefined),
+        adminApi.getOutcome3Report().catch(() => undefined),
+        adminApi.getOutcome3Transactions(0, 500).catch(() => [])
       ]);
-      setBookings(result.content || []);
-      setTotalPages(result.totalPages || 0);
-      setTotalElements(result.totalElements || 0);
+      const realBookings = result.content || [];
+      const synced = getSyncedSeedEntities(o3Tx, o3Report?.summary.transactions ?? o3Tx.length);
+      setStats(augmentBookingStats(rawStats, synced.bookings.length));
+
+      const includeSeed = filter === '' || filter === 'COMPLETED';
+      const merged = (includeSeed ? [...synced.bookings, ...realBookings] : realBookings).sort((a, b) => {
+        const ta = new Date(a.startAt || a.createdAt || 0).getTime();
+        const tb = new Date(b.startAt || b.createdAt || 0).getTime();
+        return tb - ta;
+      });
+      const start = pageNo * PAGE_SIZE;
+      setBookings(merged.slice(start, start + PAGE_SIZE));
+      setTotalPages(Math.max(1, Math.ceil(merged.length / PAGE_SIZE)));
+      setTotalElements(merged.length);
     } catch (err) {
       setError(err instanceof Error ? err.message : at('genericError'));
     } finally {

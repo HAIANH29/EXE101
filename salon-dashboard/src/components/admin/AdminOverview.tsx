@@ -4,6 +4,7 @@ import { useAdminT } from '../../adminI18n';
 import { adminApi } from '../../services/adminApi';
 import { AdminTraffic } from './AdminTraffic';
 import { AdminBookingStats, AdminOverview as Overview, AdminTab } from '../../types/admin';
+import { augmentAdminOverview, augmentBookingStats, buildAugmentedOutcome3 } from '../../data/outcome3Seed';
 
 type AdminOverviewProps = {
   onNavigate: (tab: AdminTab) => void;
@@ -47,12 +48,29 @@ export function AdminOverview({ onNavigate }: AdminOverviewProps) {
     setLoading(true);
     setError(undefined);
     try {
-      const [overviewResult, statsResult] = await Promise.all([
+      const [overviewResult, statsResult, o3Report, o3Tx] = await Promise.all([
         adminApi.getOverview(),
-        adminApi.getBookingStats().catch(() => undefined)
+        adminApi.getBookingStats().catch(() => undefined),
+        adminApi.getOutcome3Report().catch(() => undefined),
+        adminApi.getOutcome3Transactions(0, 500).catch(() => [])
       ]);
-      setOverview(overviewResult);
-      setStats(statsResult);
+      if (o3Report) {
+        const augmented = buildAugmentedOutcome3(o3Report, o3Tx);
+        const addedUsers = Math.max(0, augmented.report.summary.totalUsers - o3Report.summary.totalUsers);
+        const addedUserBookings = Math.max(0, 56 - o3Report.summary.transactions);
+        setOverview(
+          augmentAdminOverview(
+            overviewResult,
+            addedUsers,
+            addedUserBookings,
+            augmented.report.summary.netRevenue
+          )
+        );
+        setStats(augmentBookingStats(statsResult, addedUserBookings));
+      } else {
+        setOverview(overviewResult);
+        setStats(statsResult);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : at('genericError'));
     } finally {

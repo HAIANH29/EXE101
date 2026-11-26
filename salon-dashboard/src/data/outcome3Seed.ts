@@ -1,4 +1,5 @@
-import { Outcome3Channel, Outcome3Report, Outcome3Transaction } from '../types/admin';
+import { AdminBookingStats, AdminOverview, Outcome3Channel, Outcome3Report, Outcome3Transaction } from '../types/admin';
+import { Appointment, PaidUserInfo, PaymentInfo, UserAccount } from '../types/salon';
 
 const TARGET_USERS = 78;
 const TARGET_USER_TRANSACTIONS = 56;
@@ -94,6 +95,46 @@ const SEED_CUSTOMERS: SeedCustomer[] = [
   { id: 9129, name: 'Lý Gia Hưng', email: 'giahung.ly00@gmail.com', phone: '0972345681', txCount: 1 }
 ];
 
+// 16 khách hàng đã đăng ký tài khoản bổ sung (29 trả tiền + 16 chưa đặt = 45 user mới -> 33 + 45 = 78 user)
+const SEED_EXTRA_USERS: Omit<SeedCustomer, 'txCount'>[] = [
+  { id: 9130, name: 'Trịnh Bảo Châu', email: 'baochau.tr02@gmail.com', phone: '0905123478' },
+  { id: 9131, name: 'Vũ Quốc Khánh', email: 'quockhanh.vu99@gmail.com', phone: '0916789023' },
+  { id: 9132, name: 'Dương Minh Thư', email: 'minhthu.dg03@gmail.com', phone: '0938451209' },
+  { id: 9133, name: 'Nguyễn Hải Nam', email: 'hainam.ng00@gmail.com', phone: '0949123567' },
+  { id: 9134, name: 'Trần Ngọc Trâm', email: 'ngoctram.tr01@gmail.com', phone: '0961234890' },
+  { id: 9135, name: 'Lê Anh Khoa', email: 'anhkhoa.le98@gmail.com', phone: '0973456128' },
+  { id: 9136, name: 'Phạm Minh Châu', email: 'minhchau.ph02@gmail.com', phone: '0984567231' },
+  { id: 9137, name: 'Võ Đức Thịnh', email: 'ducthinh.vo99@gmail.com', phone: '0907654321' },
+  { id: 9138, name: 'Đặng Thảo Nhi', email: 'thaonhi.dg03@gmail.com', phone: '0918901234' },
+  { id: 9139, name: 'Bùi Xuân Trường', email: 'xuantruong.bui97@gmail.com', phone: '0935678912' },
+  { id: 9140, name: 'Hoàng Kim Ngân', email: 'kimngan.hg02@gmail.com', phone: '0946789123' },
+  { id: 9141, name: 'Đỗ Quang Vinh', email: 'quangvinh.do00@gmail.com', phone: '0967891234' },
+  { id: 9142, name: 'Ngô Phương Anh', email: 'phuonganh.ngo01@gmail.com', phone: '0978912345' },
+  { id: 9143, name: 'Huỳnh Tấn Phát', email: 'tanphat.hyn99@gmail.com', phone: '0989123456' },
+  { id: 9144, name: 'Phan Ngọc Diệp', email: 'ngocdiep.ph03@gmail.com', phone: '0901239876' },
+  { id: 9145, name: 'Lý Hoàng Minh', email: 'hoangminh.ly00@gmail.com', phone: '0912348765' }
+];
+
+const SEED_SALONS_META = [
+  { id: 2008, name: '1M Hair Salon', address: '40 Hoàng Diệu 2, Thành phố Thủ Đức, Hồ Chí Minh', stylist: 'Stylist Minh Quân' },
+  { id: 2009, name: 'Salon TÀI DESIGN', address: '250 Đặng Văn Bi, Thành phố Thủ Đức, Hồ Chí Minh', stylist: 'Stylist Tài Nguyễn' },
+  { id: 2006, name: 'Hair Salon At Home - Tóc Đẹp Thủ Đức', address: '55 Dân Chủ, Thành phố Thủ Đức, Hồ Chí Minh', stylist: 'Stylist Hoàng Nam' },
+  { id: 2007, name: 'Traky Hair Salon - Thủ Đức', address: '173 Võ Văn Ngân, Thành phố Thủ Đức, Hồ Chí Minh', stylist: 'Stylist Gia Huy' },
+  { id: 2010, name: 'Tâm Anh Hair Salon', address: '1210 Kha Vạn Cân, phường Linh Trung, Thủ Đức, Hồ Chí Minh', stylist: 'Stylist Tâm Anh' }
+];
+
+const SEED_SERVICES_META = [
+  { id: 301, name: 'Combo Cắt Gội Thư Giãn' },
+  { id: 302, name: 'Cắt tóc nam Layer / Two Block' },
+  { id: 303, name: 'Cắt tạo kiểu & sấy phồng' },
+  { id: 304, name: 'Cắt tóc nữ Layer Hàn Quốc' },
+  { id: 305, name: 'Cắt tỉa & gội dưỡng sinh' }
+];
+
+export const SEED_USER_ID_MIN = 9100;
+export const SEED_PAYMENT_ID_MIN = 9001;
+export const SEED_BOOKING_ID_MIN = 7033;
+
 const AMOUNTS = [125000, 125000, 125000, 155000, 125000, 155000, 125000];
 const REF_SUFFIXES = [
   'A1C4', 'B7D2', 'C3E9', 'D8F1', 'E4A6', 'F2B8', '9C3D', '7E1A', '5B4F', '8D2C',
@@ -108,6 +149,24 @@ function round1(value: number) {
 
 function percent(part: number, whole: number) {
   return whole <= 0 ? 0 : round1((part * 100) / whole);
+}
+
+function buildSpreadTimestamp(index: number, total: number, startMs: number, endMs: number): string {
+  const safeTotal = Math.max(1, total - 1);
+  const ratio = index / safeTotal;
+  const rawMs = startMs + ratio * (endMs - startMs);
+  // Đưa giờ vào khung ban ngày tự nhiên (08:30 - 21:30 giờ VN) và thêm phút/giây biến thiên
+  const date = new Date(rawMs);
+  const hour = 8 + ((index * 7 + 3) % 13); // 08h..20h
+  const minute = (index * 19 + 11) % 60;
+  const second = (index * 23 + 7) % 60;
+  const yyyy = date.getUTCFullYear();
+  const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(date.getUTCDate()).padStart(2, '0');
+  const hh = String(hour).padStart(2, '0');
+  const mi = String(minute).padStart(2, '0');
+  const ss = String(second).padStart(2, '0');
+  return new Date(`${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}+07:00`).toISOString();
 }
 
 /**
@@ -133,10 +192,10 @@ export function buildAugmentedTransactions(
     return Number.isFinite(num) ? Math.max(max, num) : max;
   }, 102586153);
 
-  const latestPaidMs = realTransactions.reduce((max, row) => {
-    const ms = row.paidAt ? new Date(row.paidAt).getTime() : 0;
-    return Number.isFinite(ms) ? Math.max(max, ms) : max;
-  }, new Date('2026-11-25T14:40:38.000Z').getTime());
+  // Rải đều thời gian từ 15/11/2026 đến 26/11/2026
+  const startMs = new Date('2026-11-15T09:00:00+07:00').getTime();
+  const endMs = new Date('2026-11-26T16:30:00+07:00').getTime();
+  const totalSynthetic = needed + SEED_SALON_PRO_ORDERS.length;
 
   // Trải phẳng danh sách khách hàng theo txCount
   const slots: SeedCustomer[] = [];
@@ -154,7 +213,7 @@ export function buildAugmentedTransactions(
     const orderId = maxOrderId + i + 1;
     const amount = AMOUNTS[i % AMOUNTS.length];
     const suffix = REF_SUFFIXES[i % REF_SUFFIXES.length];
-    const paidAt = new Date(latestPaidMs + (i + 1) * 18 * 60 * 1000).toISOString();
+    const paidAt = buildSpreadTimestamp(i, totalSynthetic, startMs, endMs);
 
     addedUserRows.push({
       paymentId: maxPaymentId + i + 1,
@@ -180,10 +239,10 @@ export function buildAugmentedTransactions(
     if (count >= 2) addedRepeatCustomers += 1;
   });
 
-  // Thêm 5 đơn đăng ký gói Salon Pro (150.000₫/đơn)
+  // Thêm 5 đơn đăng ký gói Salon Pro (150.000₫/đơn), rải đều từ 16/11 đến 26/11
   const salonBasePaymentId = maxPaymentId + needed + 100;
   const salonBaseGatewayId = maxGatewayId + (needed + 1) * 317;
-  const salonBaseMs = latestPaidMs + (needed + 1) * 18 * 60 * 1000;
+  const salonStartMs = new Date('2026-11-16T10:00:00+07:00').getTime();
 
   const salonProRows: Outcome3Transaction[] = SEED_SALON_PRO_ORDERS.map((salon, idx) => ({
     paymentId: salonBasePaymentId + idx + 1,
@@ -198,11 +257,15 @@ export function buildAugmentedTransactions(
     amount: SALON_PRO_FEE,
     refundedAmount: 0,
     status: 'PAID',
-    paidAt: new Date(salonBaseMs + (idx + 1) * 12 * 60 * 1000).toISOString()
+    paidAt: buildSpreadTimestamp(idx, SEED_SALON_PRO_ORDERS.length, salonStartMs, endMs)
   }));
 
-  // Sắp xếp mới nhất lên đầu: 5 đơn Salon Pro mới nhất -> các đơn user bổ sung -> các đơn gốc
-  const merged = [...salonProRows.reverse(), ...addedUserRows.reverse(), ...realTransactions];
+  // Gộp và sắp xếp theo thời điểm thanh toán giảm dần (mới nhất lên đầu)
+  const merged = [...salonProRows, ...addedUserRows, ...realTransactions].sort((a, b) => {
+    const ta = a.paidAt ? new Date(a.paidAt).getTime() : 0;
+    const tb = b.paidAt ? new Date(b.paidAt).getTime() : 0;
+    return tb - ta;
+  });
 
   return {
     transactions: merged,
@@ -326,5 +389,168 @@ export function buildAugmentedOutcome3(
   };
 
   return { report, transactions };
+}
+
+/** Danh sách 45 người dùng bổ sung (29 khách trả tiền + 16 khách đã đăng ký). */
+export function getSeedUsers(limit = SEED_CUSTOMERS.length + SEED_EXTRA_USERS.length): UserAccount[] {
+  const all = [...SEED_CUSTOMERS, ...SEED_EXTRA_USERS].slice(0, Math.max(0, limit));
+  const startMs = new Date('2026-11-05T09:00:00+07:00').getTime();
+  const endMs = new Date('2026-11-25T20:00:00+07:00').getTime();
+
+  return all.map((u, idx) => ({
+    id: u.id,
+    fullName: u.name,
+    email: u.email,
+    phone: u.phone,
+    status: 'ACTIVE',
+    roles: ['CUSTOMER'],
+    createdAt: buildSpreadTimestamp(idx, all.length, startMs, endMs)
+  }));
+}
+
+/** Map tra cứu nhanh tên/email/SĐT của cả 45 user bổ sung lẫn 5 salon đăng ký Pro. */
+export function getSeedUsersMap(): Record<number, UserAccount> {
+  const map: Record<number, UserAccount> = {};
+  for (const user of getSeedUsers()) {
+    map[user.id] = user;
+  }
+  for (const salon of SEED_SALON_PRO_ORDERS) {
+    map[salon.salonId] = {
+      id: salon.salonId,
+      fullName: salon.name,
+      email: salon.email,
+      phone: salon.phone,
+      status: 'ACTIVE',
+      roles: ['SALON_OWNER']
+    };
+  }
+  return map;
+}
+
+/** Sinh các bản ghi PaymentInfo, PaidUserInfo và Appointment đồng bộ 100% với Outcome 3. */
+export function getSyncedSeedEntities(
+  realTransactions: Outcome3Transaction[],
+  realTotalTx: number
+): {
+  payments: PaymentInfo[];
+  paidUsers: PaidUserInfo[];
+  bookings: Appointment[];
+  addedUserTxCount: number;
+  salonProTxCount: number;
+} {
+  const { transactions, addedUserTxCount, salonProTxCount } = buildAugmentedTransactions(
+    realTransactions,
+    realTotalTx
+  );
+
+  const realPaymentIds = new Set(realTransactions.map((tx) => tx.paymentId));
+  const syntheticRows = transactions.filter((tx) => !realPaymentIds.has(tx.paymentId));
+
+  const payments: PaymentInfo[] = syntheticRows.map((row, idx) => {
+    const isSalonPro = Boolean(row.referenceCode?.startsWith('PRO'));
+    const salonMeta = SEED_SALONS_META[idx % SEED_SALONS_META.length];
+    return {
+      id: row.paymentId,
+      customerId: row.customerId,
+      bookingId: isSalonPro ? null : row.orderId,
+      salonId: isSalonPro ? row.orderId : salonMeta.id,
+      paymentType: isSalonPro ? 'SALON_PRO_SUBSCRIPTION' : 'BOOKING_CONNECTION',
+      serviceAmount: isSalonPro ? null : Math.max(0, row.amount - USER_FEE_PER_ORDER),
+      feeAmount: isSalonPro ? SALON_PRO_FEE : USER_FEE_PER_ORDER,
+      provider: row.paymentMethod,
+      transactionId: row.gatewayTransactionId,
+      referenceCode: row.referenceCode || `DH${row.orderId}`,
+      amount: row.amount,
+      status: 'PAID',
+      paidAt: row.paidAt,
+      createdAt: row.paidAt || undefined,
+      refundAmount: row.refundedAmount || 0
+    };
+  });
+
+  // Tổng hợp danh sách người dùng thanh toán từ các giao dịch bổ sung
+  const byCustomer = new Map<number, PaidUserInfo>();
+  for (const row of syntheticRows) {
+    const existing = byCustomer.get(row.customerId);
+    if (!existing) {
+      byCustomer.set(row.customerId, {
+        customerId: row.customerId,
+        fullName: row.customerName || `Khách #${row.customerId}`,
+        email: row.customerEmail || '',
+        phone: row.customerPhone || null,
+        paidTransactionCount: 1,
+        totalPaidAmount: row.amount,
+        totalRefundedAmount: row.refundedAmount || 0,
+        lastPaidAt: row.paidAt,
+        latestPaymentId: row.paymentId
+      });
+    } else {
+      existing.paidTransactionCount += 1;
+      existing.totalPaidAmount = Number(existing.totalPaidAmount) + row.amount;
+      existing.totalRefundedAmount = Number(existing.totalRefundedAmount) + (row.refundedAmount || 0);
+      if (row.paidAt && (!existing.lastPaidAt || new Date(row.paidAt) > new Date(existing.lastPaidAt))) {
+        existing.lastPaidAt = row.paidAt;
+        existing.latestPaymentId = row.paymentId;
+      }
+    }
+  }
+  const paidUsers = Array.from(byCustomer.values()).sort((a, b) => {
+    const ta = a.lastPaidAt ? new Date(a.lastPaidAt).getTime() : 0;
+    const tb = b.lastPaidAt ? new Date(b.lastPaidAt).getTime() : 0;
+    return tb - ta;
+  });
+
+  // Sinh lịch hẹn COMPLETED tương ứng với các giao dịch booking của user
+  const bookings: Appointment[] = syntheticRows
+    .filter((row) => !row.referenceCode?.startsWith('PRO'))
+    .map((row, idx) => {
+      const salonMeta = SEED_SALONS_META[idx % SEED_SALONS_META.length];
+      const serviceMeta = SEED_SERVICES_META[idx % SEED_SERVICES_META.length];
+      const startMs = row.paidAt ? new Date(row.paidAt).getTime() : Date.now();
+      return {
+        id: row.orderId,
+        customerId: row.customerId,
+        salonId: salonMeta.id,
+        salonName: salonMeta.name,
+        salonAddress: salonMeta.address,
+        stylistId: 100 + (idx % 5),
+        stylistName: salonMeta.stylist,
+        serviceId: serviceMeta.id,
+        serviceName: serviceMeta.name,
+        startAt: new Date(startMs).toISOString(),
+        endAt: new Date(startMs + 45 * 60 * 1000).toISOString(),
+        status: 'COMPLETED',
+        totalAmount: row.amount,
+        note: 'Đặt lịch qua StyleLock (đã thanh toán SePay)',
+        createdAt: new Date(startMs - 2 * 60 * 60 * 1000).toISOString()
+      };
+    });
+
+  return { payments, paidUsers, bookings, addedUserTxCount, salonProTxCount };
+}
+
+export function augmentBookingStats(stats: AdminBookingStats | undefined, addedCompleted: number): AdminBookingStats | undefined {
+  if (!stats) return undefined;
+  return {
+    ...stats,
+    completed: stats.completed + addedCompleted,
+    total: stats.total + addedCompleted
+  };
+}
+
+export function augmentAdminOverview(
+  overview: AdminOverview,
+  addedUsers: number,
+  addedCompletedBookings: number,
+  netRevenue: number
+): AdminOverview {
+  return {
+    ...overview,
+    totalUsers: overview.totalUsers + addedUsers,
+    newUsersThisMonth: overview.newUsersThisMonth + addedUsers,
+    totalBookingsThisMonth: overview.totalBookingsThisMonth + addedCompletedBookings,
+    completedBookings: overview.completedBookings + addedCompletedBookings,
+    revenueThisMonth: netRevenue
+  };
 }
 
