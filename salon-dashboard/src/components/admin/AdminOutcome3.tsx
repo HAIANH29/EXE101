@@ -17,11 +17,11 @@ function csvCell(value: unknown) {
 }
 
 function exportTransactionsCsv(rows: Outcome3Transaction[]) {
-  const header = ['paymentId', 'orderId', 'customerId', 'customerName', 'customerEmail', 'customerPhone', 'paymentMethod', 'referenceCode',
+  const header = ['paymentId', 'orderId', 'customerId', 'customerName', 'customerEmail', 'paymentMethod', 'referenceCode',
     'gatewayTransactionId', 'amount', 'refundedAmount', 'status', 'paidAt'];
   const lines = [header.join(',')].concat(
     rows.map((row) =>
-      [row.paymentId, row.orderId, row.customerId, row.customerName, row.customerEmail, row.customerPhone, row.paymentMethod, row.referenceCode,
+      [row.paymentId, row.orderId, row.customerId, row.customerName, row.customerEmail, row.paymentMethod, row.referenceCode,
         row.gatewayTransactionId, row.amount, row.refundedAmount, row.status, row.paidAt]
         .map(csvCell).join(','))
   );
@@ -192,7 +192,6 @@ export function AdminOutcome3() {
                   <th>{at('o3Order')}</th>
                   <th>{at('o3Customer')}</th>
                   <th>{at('o3Email')}</th>
-                  <th>{at('o3Phone')}</th>
                   <th>{at('o3Method')}</th>
                   <th>{at('o3Reference')}</th>
                   <th>{at('o3Gateway')}</th>
@@ -207,7 +206,6 @@ export function AdminOutcome3() {
                     <td>#{row.orderId}</td>
                     <td>{row.customerName || `#${row.customerId}`}</td>
                     <td>{row.customerEmail || '—'}</td>
-                    <td>{row.customerPhone || '—'}</td>
                     <td>{row.paymentMethod}</td>
                     <td>{row.referenceCode}</td>
                     <td>{row.gatewayTransactionId || '—'}</td>
