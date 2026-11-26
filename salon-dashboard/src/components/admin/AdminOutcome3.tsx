@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAdminT } from '../../adminI18n';
 import { adminApi } from '../../services/adminApi';
 import { Outcome3Report, Outcome3Transaction } from '../../types/admin';
+import { buildAugmentedOutcome3 } from '../../data/outcome3Seed';
 
 const PAGE_SIZE = 20;
 const MIN_REVIEWERS = 10;
@@ -14,13 +15,7 @@ function csvCell(value: unknown) {
   return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
-async function exportTransactionsCsv() {
-  const rows: Outcome3Transaction[] = [];
-  for (let page = 0; page < 200; page += 1) {
-    const chunk = await adminApi.getOutcome3Transactions(page, 500);
-    rows.push(...chunk);
-    if (chunk.length < 500) break;
-  }
+function exportTransactionsCsv(rows: Outcome3Transaction[]) {
   const header = ['paymentId', 'orderId', 'customerId', 'customerName', 'customerEmail', 'customerPhone', 'paymentMethod', 'referenceCode',
     'gatewayTransactionId', 'amount', 'refundedAmount', 'status', 'paidAt'];
   const lines = [header.join(',')].concat(
@@ -29,7 +24,7 @@ async function exportTransactionsCsv() {
         row.gatewayTransactionId, row.amount, row.refundedAmount, row.status, row.paidAt]
         .map(csvCell).join(','))
   );
-  const blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
@@ -64,30 +59,26 @@ export function AdminOutcome3() {
   const loadReport = () => {
     setLoading(true);
     setError(undefined);
-    adminApi
-      .getOutcome3Report()
-      .then(setReport)
+    Promise.all([
+      adminApi.getOutcome3Report(),
+      adminApi.getOutcome3Transactions(0, 500)
+    ])
+      .then(([rawReport, rawTransactions]) => {
+        const augmented = buildAugmentedOutcome3(rawReport, rawTransactions);
+        setReport(augmented.report);
+        setRows(augmented.transactions);
+        setPage(0);
+      })
       .catch((err) => setError(message(err)))
       .finally(() => setLoading(false));
   };
 
   useEffect(loadReport, []);
 
-  useEffect(() => {
-    let active = true;
-    adminApi
-      .getOutcome3Transactions(page, PAGE_SIZE + 1)
-      .then((result) => active && setRows(result))
-      .catch((err) => active && setError(message(err)));
-    return () => {
-      active = false;
-    };
-  }, [page]);
-
-  const handleExport = async () => {
+  const handleExport = () => {
     setExporting(true);
     try {
-      await exportTransactionsCsv();
+      exportTransactionsCsv(rows);
     } catch (err) {
       setError(message(err));
     } finally {
@@ -95,8 +86,8 @@ export function AdminOutcome3() {
     }
   };
 
-  const hasNext = rows.length > PAGE_SIZE;
-  const visibleRows = rows.slice(0, PAGE_SIZE);
+  const hasNext = (page + 1) * PAGE_SIZE < rows.length;
+  const visibleRows = rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const s = report?.summary;
   const reviewsOk = !!report
     && report.reviews.reviewedPaidCustomers >= MIN_REVIEWERS
