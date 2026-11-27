@@ -2,13 +2,21 @@ package be.exe.analytics.repository;
 
 import be.exe.analytics.dto.response.Outcome3ReportResponse.ChannelRow;
 import be.exe.analytics.dto.response.Outcome3ReportResponse.TransactionRow;
+import be.exe.analytics.dto.response.Outcome3UtmAnalyticsResponse;
+import be.exe.analytics.dto.response.Outcome3UtmAnalyticsResponse.ChannelMetric;
+import be.exe.analytics.dto.response.Outcome3UtmAnalyticsResponse.ChannelSummary;
+import be.exe.analytics.dto.response.Outcome3UtmAnalyticsResponse.DailyTrendPoint;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +34,14 @@ public class Outcome3Repository {
     private static final String REFUNDED_AMOUNT =
             "CASE WHEN p.status = 'REFUNDED' THEN COALESCE(p.refund_amount, p.amount) ELSE 0 END";
     private static final String SEP = "|";
+    private static final ZoneId VN_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+    private static final String CHANNEL_CASE_FV = """
+            CASE
+                WHEN LOWER(TRIM(COALESCE(fv.utm_source, ''))) IN ('facebook', 'fb', 'meta') THEN 'facebook'
+                WHEN LOWER(TRIM(COALESCE(fv.utm_source, ''))) IN ('tiktok', 'tt') THEN 'tiktok'
+                ELSE 'direct'
+            END
+            """;
 
     private final JdbcTemplate jdbc;
 
@@ -166,6 +182,167 @@ public class Outcome3Repository {
 
     private static String key(String source, String medium) {
         return source + SEP + medium;
+    }
+
+    /**
+     * Báo cáo G3.3 theo khoảng ngày [from..to] (giờ Việt Nam Asia/Ho_Chi_Minh),
+     * sử dụng First-Touch Attribution cho 3 nhóm kênh chính:
+     * facebook / social, tiktok / social, (direct) / (none).
+     */
+    public Outcome3UtmAnalyticsResponse utmAnalytics(LocalDate from, LocalDate to) {
+        Instant fromInstant = from.atStartOfDay(VN_ZONE).toInstant();
+        Instant toExclusive = to.plusDays(1).atStartOfDay(VN_ZONE).toInstant();
+        Timestamp fromTs = Timestamp.from(fromInstant);
+        Timestamp toTs = Timestamp.from(toExclusive);
+
+        // 1. Xu hướng phiên duy nhất theo ngày (First-Touch theo session_id)
+        Map<LocalDate, long[]> dailyMap = new HashMap<>();
+        jdbc.query("""
+                WITH first_visit AS (
+                    SELECT session_id, utm_source, created_at FROM (
+                        SELECT session_id, utm_source, created_at,
+                               ROW_NUMBER() OVER (PARTITION BY session_id ORDER BY created_at, id) AS rn
+                        FROM traffic_visits
+                    ) t WHERE rn = 1
+                )
+                SELECT CAST(fv.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh' AS DATE) AS visit_date,
+                       %s AS channel_key,
+                       COUNT(DISTINCT fv.session_id) AS sessions
+                FROM first_visit fv
+                WHERE fv.created_at >= ? AND fv.created_at < ?
+                GROUP BY visit_date, channel_key
+                """.formatted(CHANNEL_CASE_FV), rs -> {
+            LocalDate day = rs.getDate(1).toLocalDate();
+            String channel = rs.getString(2);
+            long count = rs.getLong(3);
+            long[] bucket = dailyMap.computeIfAbsent(day, k -> new long[3]);
+            if ("facebook".equals(channel)) {
+                bucket[0] += count;
+            } else if ("tiktok".equals(channel)) {
+                bucket[1] += count;
+            } else {
+                bucket[2] += count;
+            }
+        }, fromTs, toTs);
+
+        List<DailyTrendPoint> trend = new ArrayList<>();
+        Map<String, Long> totalSessionsByChannel = new HashMap<>();
+        totalSessionsByChannel.put("facebook", 0L);
+        totalSessionsByChannel.put("tiktok", 0L);
+        totalSessionsByChannel.put("direct", 0L);
+
+        for (LocalDate d = from; !d.isAfter(to); d = d.plusDays(1)) {
+            long[] bucket = dailyMap.getOrDefault(d, new long[3]);
+            trend.add(new DailyTrendPoint(d, bucket[0], bucket[1], bucket[2]));
+            totalSessionsByChannel.merge("facebook", bucket[0], Long::sum);
+            totalSessionsByChannel.merge("tiktok", bucket[1], Long::sum);
+            totalSessionsByChannel.merge("direct", bucket[2], Long::sum);
+        }
+
+        // 2. Đăng ký trong khoảng ngày theo First-Touch channel
+        Map<String, Long> signupsByChannel = new HashMap<>();
+        jdbc.query("""
+                WITH first_visit AS (
+                    SELECT session_id, utm_source FROM (
+                        SELECT session_id, utm_source,
+                               ROW_NUMBER() OVER (PARTITION BY session_id ORDER BY created_at, id) AS rn
+                        FROM traffic_visits
+                    ) t WHERE rn = 1
+                )
+                SELECT %s AS channel_key, COUNT(DISTINCT u.id) AS signups
+                FROM users u
+                JOIN user_roles ur ON ur.user_id = u.id
+                JOIN roles r ON r.id = ur.role_id AND r.name = 'CUSTOMER'
+                LEFT JOIN first_visit fv ON fv.session_id = u.signup_session_id
+                WHERE u.created_at >= ? AND u.created_at < ?
+                GROUP BY channel_key
+                """.formatted(CHANNEL_CASE_FV), rs -> {
+            signupsByChannel.put(rs.getString(1), rs.getLong(2));
+        }, fromTs, toTs);
+
+        // 3. Khách trả tiền, giao dịch & doanh thu ròng trong khoảng ngày theo First-Touch channel
+        record PayChannelStats(long paidCustomers, long transactions, BigDecimal revenue) {
+        }
+        Map<String, PayChannelStats> payByChannel = new HashMap<>();
+        jdbc.query("""
+                WITH first_visit AS (
+                    SELECT session_id, utm_source FROM (
+                        SELECT session_id, utm_source,
+                               ROW_NUMBER() OVER (PARTITION BY session_id ORDER BY created_at, id) AS rn
+                        FROM traffic_visits
+                    ) t WHERE rn = 1
+                )
+                SELECT %s AS channel_key,
+                       COUNT(DISTINCT p.customer_id) AS paid_customers,
+                       COUNT(*) AS tx,
+                       COALESCE(SUM(p.amount - (%s)), 0) AS revenue
+                FROM payments p
+                LEFT JOIN users u ON u.id = p.customer_id
+                LEFT JOIN first_visit fv ON fv.session_id = u.signup_session_id
+                WHERE %s
+                  AND COALESCE(p.paid_at, p.created_at) >= ?
+                  AND COALESCE(p.paid_at, p.created_at) < ?
+                GROUP BY channel_key
+                """.formatted(CHANNEL_CASE_FV, REFUNDED_AMOUNT, PAID), rs -> {
+            payByChannel.put(rs.getString(1),
+                    new PayChannelStats(rs.getLong(2), rs.getLong(3), rs.getBigDecimal(4)));
+        }, fromTs, toTs);
+
+        // Luôn trả đủ 3 nhóm kênh chính theo yêu cầu G3.3
+        String[][] channelDefs = {
+                {"facebook", "facebook", "social", "facebook / social"},
+                {"tiktok", "tiktok", "social", "tiktok / social"},
+                {"direct", "(direct)", "(none)", "(direct) / (none)"}
+        };
+
+        List<ChannelMetric> channels = new ArrayList<>(3);
+        long sumSessions = 0;
+        long sumSignups = 0;
+        long sumPaidCustomers = 0;
+        long sumTransactions = 0;
+        BigDecimal sumRevenue = BigDecimal.ZERO;
+
+        for (String[] def : channelDefs) {
+            String chKey = def[0];
+            long sessions = totalSessionsByChannel.getOrDefault(chKey, 0L);
+            long signups = signupsByChannel.getOrDefault(chKey, 0L);
+            PayChannelStats pay = payByChannel.getOrDefault(chKey, new PayChannelStats(0, 0, BigDecimal.ZERO));
+
+            BigDecimal aov = pay.transactions() == 0
+                    ? BigDecimal.ZERO
+                    : pay.revenue().divide(BigDecimal.valueOf(pay.transactions()), 0, RoundingMode.HALF_UP);
+
+            channels.add(new ChannelMetric(
+                    chKey, def[1], def[2], def[3],
+                    sessions, signups, pay.paidCustomers(), pay.transactions(), pay.revenue(),
+                    percent(pay.paidCustomers(), signups),
+                    percent(pay.paidCustomers(), sessions),
+                    aov
+            ));
+
+            sumSessions += sessions;
+            sumSignups += signups;
+            sumPaidCustomers += pay.paidCustomers();
+            sumTransactions += pay.transactions();
+            sumRevenue = sumRevenue.add(pay.revenue());
+        }
+
+        BigDecimal totalAov = sumTransactions == 0
+                ? BigDecimal.ZERO
+                : sumRevenue.divide(BigDecimal.valueOf(sumTransactions), 0, RoundingMode.HALF_UP);
+
+        ChannelSummary total = new ChannelSummary(
+                sumSessions,
+                sumSignups,
+                sumPaidCustomers,
+                sumTransactions,
+                sumRevenue,
+                percent(sumPaidCustomers, sumSignups),
+                percent(sumPaidCustomers, sumSessions),
+                totalAov
+        );
+
+        return new Outcome3UtmAnalyticsResponse(from, to, trend, channels, total);
     }
 
     public static double percent(long part, long whole) {

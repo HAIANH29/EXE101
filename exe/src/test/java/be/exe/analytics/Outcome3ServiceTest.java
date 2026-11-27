@@ -20,6 +20,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -79,5 +81,54 @@ class Outcome3ServiceTest {
         assertThat(report.reviews().reviewedPaidCustomers()).isGreaterThanOrEqualTo(1);
         assertThat(report.reviews().repeatCustomers()).isGreaterThanOrEqualTo(1);
         assertThat(service.getTransactions(0, 5)).isNotEmpty();
+    }
+
+    @Test
+    void computesDateRangeUtmAnalyticsForThreePrimaryChannelsWithFirstTouch() {
+        String tag = UUID.randomUUID().toString().substring(0, 8);
+        String fbSession = "fb-sess-" + tag;
+        String ttSession = "tt-sess-" + tag;
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+
+        var baseline = service.getUtmAnalytics(today.minusDays(6), today);
+        long baseFbSessions = baseline.channels().stream()
+                .filter(c -> c.channelKey().equals("facebook")).findFirst().orElseThrow().sessions();
+        long baseTtSessions = baseline.channels().stream()
+                .filter(c -> c.channelKey().equals("tiktok")).findFirst().orElseThrow().sessions();
+
+        // First-touch = facebook, second visit in same session = tiktok -> must stay attributed to facebook
+        visitRepository.save(new TrafficVisit(fbSession, "facebook", "social", "camp1", null, null, "/", null));
+        visitRepository.save(new TrafficVisit(fbSession, "tiktok", "social", "camp2", null, null, "/", null));
+        visitRepository.save(new TrafficVisit(ttSession, "tiktok", "social", "camp3", null, null, "/", null));
+
+        Role customerRole = roleRepository.findByName(RoleName.CUSTOMER).orElseGet(
+                () -> roleRepository.save(new Role(RoleName.CUSTOMER)));
+        User fbUser = new User("fb-" + tag + "@test.local", "x", "FB User");
+        fbUser.addRole(customerRole);
+        fbUser.setSignupSessionId(fbSession);
+        fbUser = userRepository.save(fbUser);
+
+        Payment p = new Payment(2000L + Math.abs(tag.hashCode() % 100000), fbUser.getId(), 1L,
+                PaymentType.BOOKING_CONNECTION, new BigDecimal("120000"), new BigDecimal("5000"),
+                new BigDecimal("125000"), "DHFB" + tag, null);
+        p.markPaid("sepay-fb-" + tag);
+        paymentRepository.save(p);
+
+        var utm = service.getUtmAnalytics(today.minusDays(6), today);
+
+        assertThat(utm.trend()).hasSize(7);
+        assertThat(utm.channels()).extracting(c -> c.sourceMedium())
+                .containsExactly("facebook / social", "tiktok / social", "(direct) / (none)");
+
+        var fbRow = utm.channels().get(0);
+        var ttRow = utm.channels().get(1);
+        assertThat(fbRow.sessions()).isEqualTo(baseFbSessions + 1);
+        assertThat(ttRow.sessions()).isEqualTo(baseTtSessions + 1);
+        assertThat(fbRow.signups()).isGreaterThanOrEqualTo(1);
+        assertThat(fbRow.paidCustomers()).isGreaterThanOrEqualTo(1);
+        assertThat(fbRow.transactions()).isGreaterThanOrEqualTo(1);
+        assertThat(fbRow.revenue()).isGreaterThanOrEqualTo(new BigDecimal("125000"));
+        assertThat(utm.total().sessions()).isEqualTo(
+                utm.channels().stream().mapToLong(c -> c.sessions()).sum());
     }
 }
